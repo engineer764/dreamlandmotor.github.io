@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>About Us | Dreamland Motor Engineering Works</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- SEO -->
+  <meta name="description" content="Dreamland Motor Engineering Works – Lagos Island. Where mechanical mastery meets digital intelligence. Powered by our secret weapon: Dreamland Analyzer." />
+  <meta name="keywords" content="Dreamland Motor, Dreamland Analyzer, auto diagnostics Lagos, OBD2 Nigeria, digital mechanic, car repair Lagos Island" />
+  <meta name="author" content="Dreamland Motor Engineering Works" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://dreamlandmotor.com.ng/about.html" />
+
+  <!-- Open Graph / Social -->
+  <meta property="og:title" content="About | Dreamland Motor Engineering Works" />
+  <meta property="og:description" content="Where experience meets intelligence. Meet the Dreamland Analyzer—our secret weapon." />
+  <meta property="og:url" content="https://dreamlandmotor.com.ng/about.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://dreamlandmotor.com.ng/Dreamland_logo.png" />
+
+  <style>
+    :root{
+      --bg:#05070a;
+      --ink:#ffffff;
+      --cyan:#22d3ee;
+      --muted:rgba(255,255,255,.85);
+      --panel:rgba(34,211,238,.08);
+      --border:rgba(34,211,238,.35);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:Segoe UI,Arial,Helvetica,sans-serif;overflow-x:hidden}
+
+    /* Animated background aura */
+    .background{
+      position:fixed;inset:0;z-index:-2;
+      background:radial-gradient(circle at 50% 40%, #0b1a22, var(--bg) 70%);
+    }
+    .background::before{
+      content:"";position:absolute;inset:-50%;
+      background:conic-gradient(from 0deg, var(--cyan), #0aa2ff, var(--cyan), #0a192f, var(--cyan));
+      filter:blur(160px);opacity:.08;animation:spin 26s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    header{
+      text-align:center;padding:80px 20px 30px;
+    }
+    header img{
+      width:200px;height:auto;border-radius:12px;
+      filter:drop-shadow(0 0 10px var(--cyan));
+      animation:pulse 4s ease-in-out infinite alternate;
+    }
+    @keyframes pulse{
+      from{transform:scale(1);filter:drop-shadow(0 0 8px var(--cyan))}
+      to{transform:scale(1.05);filter:drop-shadow(0 0 26px var(--cyan))}
+    }
+    h1{color:var(--cyan);font-size:36px;margin:16px 0 6px;text-shadow:0 0 10px var(--cyan)}
+    h2,h3{color:var(--cyan);text-align:center;margin:40px 0 10px}
+    p{max-width:900px;margin:12px auto;font-size:17px;line-height:1.85;color:var(--muted);text-align:center}
+
+    .container{max-width:1100px;margin:0 auto;padding:0 20px}
+    section{padding:24px 0}
+
+    .panel{
+      background:var(--panel);border:1px solid var(--border);
+      border-radius:18px;padding:34px;margin:38px auto;max-width:960px;
+      box-shadow:0 0 30px rgba(34,211,238,.1);
+    }
+    .list{list-style:none;max-width:900px;margin:18px auto;padding:0}
+    .list li{margin:10px 0;padding-left:8px;font-size:17px;line-height:1.8}
+    .grid{
+      display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+      max-width:1000px;margin:22px auto
+    }
+    .card{
+      background:rgba(255,255,255,.04);border:1px solid var(--border);
+      border-radius:14px;padding:18px;text-align:center
+    }
+    .cta-row{
+      margin:40px auto 0;display:flex;flex-direction:column;gap:14px;align-items:center
+    }
+    .btn{
+      display:inline-block;text-decoration:none;font-weight:700;border-radius:40px;
+      padding:14px 40px;transition:all .25s;letter-spacing:.2px
+    }
+    .btn-primary{background:var(--cyan);color:#000}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 0 24px var(--cyan)}
+    .btn-outline{color:var(--cyan);border:2px solid var(--cyan);background:transparent}
+    .btn-outline:hover{background:#00ffff;color:#000;box-shadow:0 0 24px var(--cyan)}
+    .btn-wa{background:#25D366;color:#000}
+    .meta{font-size:14px;color:rgba(255,255,255,.7);text-align:center;margin-top:10px}
+
+    /* Scroll reveal */
+    .reveal{opacity:0;transform:translateY(45px);transition:all 900ms ease}
+    .reveal.visible{opacity:1;transform:translateY(0)}
+
+    footer{padding:60px 20px;text-align:center;color:rgba(255,255,255,.75)}
+    footer a{color:var(--cyan);text-decoration:none}
+    @media (max-width:768px){
+      header img{width:160px}
+      h1{font-size:28px}
+    }
+  </style>
+</head>
+<body>
+  <div class="background"></div>
+
+  <header class="reveal">
+    <a href="index.html" style="display:inline-block;">
+      <img src="Dreamland_logo.png" alt="Dreamland Motor Logo" />
+    </a>
+    <h1>About Dreamland Motor Engineering Works</h1>
+    <p><strong>Where mechanical mastery meets digital intelligence.</strong></p>
+  </header>
+
+  <main class="container">
+
+    <!-- Mission -->
+    <section class="reveal">
+      <h2>Our Mission</h2>
+      <p>
+        We don’t just fix engines — we <em>elevate</em> them. Our mission is to blend decades of hands-on
+        mechanic experience with modern computation, so drivers leave with confidence and cars leave with
+        measurable performance gains.
+      </p>
+    </section>
+
+    <!-- Philosophy -->
+    <section class="panel reveal">
+      <h3>The Dreamland Philosophy</h3>
+      <div class="grid">
+        <div class="card"><strong>We don’t guess.</strong><br/>We calculate.</div>
+        <div class="card"><strong>We don’t replace intuition.</strong><br/>We amplify it.</div>
+        <div class="card"><strong>We don’t react.</strong><br/>We anticipate.</div>
+        <div class="card"><strong>We don’t just repair.</strong><br/>We restore confidence.</div>
+      </div>
+      <p class="meta">Lagos Island • Nigeria • Proudly built for the future of automotive service</p>
+    </section>
+
+    <!-- Why Choose Us -->
+    <section class="reveal">
+      <h2>Why Choose Dreamland</h2>
+      <ul class="list">
+        <li>🧠 <strong>Experience engineered:</strong> 20+ years of real-world diagnostics baked into our process.</li>
+        <li>⚙️ <strong>Full-spectrum service:</strong> from routine maintenance to deep system analysis.</li>
+        <li>📊 <strong>Data-first reports:</strong> clear insights you can read, share, and act on.</li>
+        <li>🌍 <strong>Lagos-based, world-minded:</strong> built locally, engineered to global standards.</li>
+        <li>🤝 <strong>Transparency & trust:</strong> clear communication, quality parts, disciplined process.</li>
+      </ul>
+    </section>
+
+    <!-- Secret Weapon -->
+    <section class="panel reveal" id="analyzer">
+      <h3>Meet the Secret Weapon — Dreamland Analyzer</h3>
+      <p>
+        Born inside our workshop, the <strong>Dreamland Analyzer</strong> listens to your vehicle’s OBD-II data,
+        interprets patterns with mechanic-first logic, and delivers actionable repair guidance. Sensors speak,
+        we translate, you act — faster and smarter.
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="analyzer.html">⚙️ Explore Dreamland Analyzer</a>
+        <a class="btn btn-outline" href="index.html">🏠 Back to Homepage</a>
+      </div>
+    </section>
+
+    <!-- Location & Contact -->
+    <section class="reveal">
+      <h2>Find Us</h2>
+      <p>
+        A015 Arogbo Street, Illubirin Mechanic Village, Lafiaji, Lagos Island, Nigeria
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-wa" href="https://wa.me/2349066616152?text=Hello%20Dreamland%20Motor%2C%20I%E2%80%99d%20like%20to%20book%20a%20diagnostic%20session."
+           target="_blank" rel="noopener">💬 Chat on WhatsApp</a>
+        <a class="btn btn-outline" href="mailto:dreamlandmotorworks@gmail.com">✉️ Send Us an Email</a>
+        <a class="btn btn-primary" href="tel:+2349066616152">📞 Call +234 906 661 6152</a>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="reveal">
+    © 2025 Dreamland Motor Engineering Works • <a href="https://dreamlandmotor.com.ng">dreamlandmotor.com.ng</a>
+  </footer>
+
+  <script>
+    // Scroll reveal
+    const els = document.querySelectorAll('.reveal');
+    const onScroll = () => {
+      const trigger = window.innerHeight * 0.85;
+      els.forEach(el => {
+        const top = el.getBoundingClientRect().top;
+        if (top < trigger) el.classList.add('visible');
+      });
+    };
+    window.addEventListener('scroll', onScroll);
+    onScroll();
+  </script>
+</body>
+</html>
