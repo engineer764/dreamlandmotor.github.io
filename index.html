@@ -10,6 +10,75 @@ h2{font-size:20px;color:#fff;margin:20px 0}
 .btn:hover{box-shadow:0 0 20px #22d3ee}
 footer{margin-top:50px;padding:20px 0;color:rgba(255,255,255,.7);font-size:14px;border-top:1px solid rgba(255,255,255,.1)}
 </style>
+/* Navigation Bar */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #000;
+  padding: 15px 40px;
+  box-shadow: 0 0 15px cyan;
+  position: sticky;
+  top: 0;
+  z-index: 999;
+}
+
+/* Logo */
+.logo a {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: cyan;
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+.logo img {
+  height: 35px;
+  margin-right: 10px;
+}
+
+/* Nav links */
+.nav-links {
+  list-style: none;
+  display: flex;
+  gap: 35px;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: white;
+  font-weight: 500;
+  transition: color 0.3s, text-shadow 0.3s;
+}
+
+.nav-links a:hover {
+  color: cyan;
+  text-shadow: 0 0 10px cyan;
+}
+
+/* Optional underline effect */
+.nav-links a {
+  position: relative;
+}
+
+.nav-links a::after {
+  content: "";
+  position: absolute;
+  width: 0%;
+  height: 2px;
+  bottom: -4px;
+  left: 0;
+  background: cyan;
+  transition: 0.3s ease-in-out;
+}
+
+.nav-links a:hover::after {
+  width: 100%;
+}
+  </style>
 </head>
 </body>
   <!-- 🌌 Dreamland Navigation Bar -->
@@ -28,7 +97,8 @@ footer{margin-top:50px;padding:20px 0;color:rgba(255,255,255,.7);font-size:14px;
       </div>
     </div>
   </nav>
-
+  <!-- 🌌 Dreamland Motor Homepage Hero Section -->
+  <section style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
   <!-- 🌌 Dreamland Motor Homepage Hero Section -->
   <section style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
   <!-- 🌌 Dreamland Motor Homepage Hero Section -->
