@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dreamland Motor Engineering Works | Digital Mechanic Hub</title>
-  <meta name="description" content="Dreamland Motor Engineering Works — your trusted digital mechanic workshop in Lagos. Explore our services, cars for sale, and the intelligent Dreamland Analyzer.">
+  <meta name="description" content="Dreamland Motor Engineering Works — your trusted digital mechanic workshop in Lagos. Explore our diagnostic innovation, cars for sale, and the Dreamland Analyzer.">
   <link rel="icon" href="images/dreamland_logo.png" type="image/png" />
 
   <style>
@@ -13,33 +13,38 @@
       font-family: 'Poppins', sans-serif;
       background-color: #05080e;
       color: #eaf6ff;
+      overflow-x: hidden;
     }
 
-    /* Navigation Bar */
+    /* Navigation */
     nav {
-      background: #0d1117;
+      background: rgba(5, 10, 15, 0.95);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 15px 40px;
-      box-shadow: 0 0 20px #00b4ff30;
+      padding: 12px 40px;
+      box-shadow: 0 0 20px #00b4ff40;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
     nav .logo {
       display: flex;
       align-items: center;
     }
     nav .logo img {
-      width: 55px;
+      width: 60px;
+      height: auto;
       margin-right: 10px;
     }
     nav .logo h2 {
       color: #00b4ff;
-      letter-spacing: 1px;
       font-size: 1.4em;
+      letter-spacing: 1px;
     }
     nav ul {
-      list-style: none;
       display: flex;
+      list-style: none;
       margin: 0;
       padding: 0;
     }
@@ -54,58 +59,68 @@
     }
     nav ul li a:hover {
       color: #00b4ff;
+      text-shadow: 0 0 8px #00e0ff;
     }
 
     /* Hero Section */
     .hero {
       text-align: center;
-      padding: 120px 20px;
-      background: linear-gradient(180deg, #0a0f18, #06111c);
-      box-shadow: 0 0 40px #00b4ff20;
+      padding: 130px 25px;
+      background: radial-gradient(circle at top, #06111c, #010308 80%);
+      box-shadow: inset 0 0 120px #00b4ff15;
+      animation: fadeIn 1.5s ease-out;
     }
-    .hero h1 {
-      font-size: 2.6em;
-      color: #00b4ff;
+    .hero img {
+      width: 120px;
+      opacity: 0.9;
       margin-bottom: 15px;
     }
+    .hero h1 {
+      font-size: 2.8em;
+      color: #00b4ff;
+      text-shadow: 0 0 12px #00e0ff70;
+      margin-bottom: 10px;
+    }
     .hero p {
-      font-size: 1.1em;
+      font-size: 1.15em;
       color: #a7c5e2;
-      max-width: 650px;
+      max-width: 680px;
       margin: 0 auto 25px;
-      line-height: 1.6;
+      line-height: 1.7;
     }
     .hero-buttons {
-      margin-top: 25px;
+      margin-top: 30px;
     }
     .hero-buttons a {
       text-decoration: none;
-      padding: 12px 25px;
-      margin: 0 10px;
-      border-radius: 8px;
       background: #00b4ff;
       color: white;
+      padding: 12px 28px;
+      border-radius: 8px;
+      margin: 0 8px;
       font-weight: 600;
       transition: 0.3s;
     }
     .hero-buttons a:hover {
       background: #00e0ff;
-      box-shadow: 0 0 15px #00e0ff90;
+      box-shadow: 0 0 20px #00e0ff90;
+      transform: translateY(-2px);
     }
 
-    /* Section */
+    /* Intro Section */
     section {
-      padding: 60px 20px;
+      padding: 70px 20px;
       text-align: center;
     }
     section h2 {
       color: #00b4ff;
-      margin-bottom: 20px;
-      font-size: 1.8em;
+      font-size: 1.9em;
+      margin-bottom: 18px;
+      text-shadow: 0 0 10px #00b4ff40;
     }
     section p {
       color: #b5c9e3;
-      max-width: 700px;
+      max-width: 750px;
       margin: 0 auto;
       line-height: 1.7;
     }
@@ -114,43 +129,52 @@
     footer {
       background: #0b0c10;
       text-align: center;
-      padding: 30px 20px;
+      padding: 35px 20px;
+      border-top: 1px solid #00b4ff25;
       font-size: 0.95em;
       color: #99bce2;
-      border-top: 1px solid #00b4ff20;
     }
     footer a {
       color: #00b4ff;
       text-decoration: none;
-      margin: 0 5px;
     }
     footer a:hover {
       text-decoration: underline;
     }
 
-    /* Responsive */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     @media (max-width: 768px) {
+      nav {
+        flex-direction: column;
+        padding: 15px;
+      }
       nav ul {
         flex-wrap: wrap;
         justify-content: center;
       }
       nav ul li {
-        margin: 10px 10px;
+        margin: 8px 10px;
       }
-      .hero h1 { font-size: 2em; }
+      .hero h1 {
+        font-size: 2em;
+      }
     }
   </style>
 </head>
 
 <body>
-  <!-- NAVIGATION -->
+  <!-- NAVIGATION BAR -->
   <nav>
     <div class="logo">
-      <img src="images/dreamland_logo.png" alt="Dreamland Motor Logo" />
+      <img src="images/dreamland_logo.png" alt="Dreamland Logo" />
       <h2>Dreamland Motor</h2>
     </div>
     <ul>
-      <li><a href="index.html">Home</a></li>
+      <li><a href="index.html" class="active">Home</a></li>
       <li><a href="about.html">About</a></li>
       <li><a href="services.html">Services</a></li>
       <li><a href="cars.html">Cars</a></li>
@@ -162,45 +186,46 @@
 
   <!-- HERO -->
   <div class="hero">
+    <img src="images/dreamland_logo.png" alt="Dreamland Analyzer Logo">
     <h1>Welcome to Dreamland Motor Engineering Works 🚗</h1>
     <p>
-      Your trusted partner for automotive diagnostics, sales, and innovation.
-      Experience the future of vehicle maintenance through <strong>Dreamland Analyzer</strong> — our intelligent digital mechanic system built by mechanics, for mechanics.
+      Pioneering automotive diagnostics and innovation in Lagos.  
+      Explore our workshop, car listings, and <strong>Dreamland Analyzer</strong> — the intelligent diagnostic brain  
+      that thinks like a mechanic, not a machine.
     </p>
     <div class="hero-buttons">
-      <a href="services.html">Explore Services</a>
-      <a href="cars.html">View Cars</a>
+      <a href="services.html">Our Services</a>
+      <a href="cars.html">Cars for Sale</a>
       <a href="analyzer.html">Try Analyzer</a>
     </div>
   </div>
 
-  <!-- WHY DREAMLAND -->
+  <!-- INTRO -->
   <section>
-    <h2>Why Choose Dreamland?</h2>
+    <h2>Innovation Meets Experience</h2>
     <p>
-      With over 20 years in automotive diagnostics, Dreamland Motor combines 
-      hands-on expertise with technology. Our proprietary <strong>Dreamland Analyzer</strong> evaluates 
-      live sensor data, detects faults, and recommends precise repairs — ensuring accuracy, speed, and trust for every customer.
+      Dreamland Motor Engineering Works combines decades of mechanical expertise  
+      with state-of-the-art diagnostics powered by the <strong>Dreamland Analyzer</strong>.  
+      Every test, every fix, every insight — powered by intelligent logic designed in Lagos  
+      and built for the world.
     </p>
   </section>
 
-  <!-- HIGHLIGHTS -->
+  <!-- LOCATION -->
   <section style="background:#0d1117;">
-    <h2>Our Highlights</h2>
+    <h2>Find Us</h2>
     <p>
-      🔧 Advanced Computer Diagnostics | 💡 Innovative Analyzer Tech | 🚗 Premium Car Sales |
-      📍 Located at A015 Illubirin Mechanic Village, Lafiaji Lagos.
+      🏠 Workshop: A015 Illubirin Mechanic Village, Lafiaji Lagos<br />
+      📞 <a href="tel:+2349066616152">0906 661 6152</a> |
+      📧 <a href="mailto:dreamlandmotorworks@gmail.com">dreamlandmotorworks@gmail.com</a> |
+      💬 <a href="https://wa.me/2349066616152">WhatsApp Us</a>
     </p>
   </section>
 
   <!-- FOOTER -->
   <footer>
-    <p>
-      © 2025 Dreamland Motor Engineering Works. All Rights Reserved.<br />
-      <a href="mailto:dreamlandmotorworks@gmail.com">dreamlandmotorworks@gmail.com</a> |
-      <a href="tel:+2349066616152">0906 661 6152</a> |
-      <a href="https://wa.me/2349066616152">WhatsApp</a>
-    </p>
+    © 2025 Dreamland Motor Engineering Works — All Rights Reserved.<br />
+    Developed with ❤️ by Dreamland Team.
   </footer>
 </body>
-</html>
+  </html>
