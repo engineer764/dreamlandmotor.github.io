@@ -3,229 +3,272 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dreamland Motor Engineering Works | Digital Mechanic Hub</title>
-  <meta name="description" content="Dreamland Motor Engineering Works — your trusted digital mechanic workshop in Lagos. Explore our diagnostic innovation, cars for sale, and the Dreamland Analyzer.">
-  <link rel="icon" href="images/dreamland_logo.png" type="image/png" />
+  <title>Dreamland Motor Engineering Works</title>
+  <link rel="icon" type="image/png" href="dreamland_logo.png" />
 
   <style>
+    /* ===== GLOBAL ===== */
     body {
       margin: 0;
-      font-family: 'Poppins', sans-serif;
-      background-color: #05080e;
-      color: #eaf6ff;
-      overflow-x: hidden;
+      font-family: "Poppins", sans-serif;
+      background-color: #000814;
+      color: white;
     }
 
-    /* Navigation */
+    a { text-decoration: none; }
+
+    /* ===== NAVBAR ===== */
     nav {
-      background: rgba(5, 10, 15, 0.95);
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding: 12px 40px;
-      box-shadow: 0 0 20px #00b4ff40;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      background-color: #001d3d;
+      padding: 10px 20px;
       position: sticky;
       top: 0;
-      z-index: 10;
+      z-index: 1000;
     }
-    nav .logo {
+
+    .logo {
       display: flex;
       align-items: center;
+      gap: 10px;
     }
-    nav .logo img {
-      width: 60px;
-      height: auto;
-      margin-right: 10px;
+
+    .logo img {
+      height: 40px;
+      width: auto;
+      border-radius: 8px;
     }
-    nav .logo h2 {
-      color: #00b4ff;
-      font-size: 1.4em;
-      letter-spacing: 1px;
+
+    .logo-text {
+      color: #00bfff;
+      font-size: 1.3rem;
+      font-weight: 600;
     }
+
     nav ul {
-      display: flex;
       list-style: none;
+      display: flex;
+      gap: 20px;
       margin: 0;
       padding: 0;
+      transition: all 0.3s ease-in-out;
     }
-    nav ul li {
-      margin-left: 25px;
-    }
+
     nav ul li a {
-      color: #eaf6ff;
-      text-decoration: none;
+      color: white;
       font-weight: 500;
       transition: 0.3s;
     }
-    nav ul li a:hover {
-      color: #00b4ff;
-      text-shadow: 0 0 8px #00e0ff;
+
+    nav ul li a:hover { color: #00bfff; }
+
+    /* ===== HAMBURGER MENU ===== */
+    .menu-toggle {
+      display: none;
+      flex-direction: column;
+      cursor: pointer;
     }
 
-    /* Hero Section */
+    .bar {
+      width: 25px;
+      height: 3px;
+      background-color: white;
+      margin: 4px 0;
+      transition: 0.4s;
+    }
+
+    /* Hamburger animation when active */
+    .menu-toggle.change .bar:nth-child(1) {
+      transform: rotate(-45deg) translate(-5px, 6px);
+    }
+    .menu-toggle.change .bar:nth-child(2) { opacity: 0; }
+    .menu-toggle.change .bar:nth-child(3) {
+      transform: rotate(45deg) translate(-5px, -6px);
+    }
+
+    /* ===== HERO SECTION ===== */
     .hero {
       text-align: center;
-      padding: 130px 25px;
-      background: radial-gradient(circle at top, #06111c, #010308 80%);
-      box-shadow: inset 0 0 120px #00b4ff15;
-      animation: fadeIn 1.5s ease-out;
+      padding: 70px 20px;
+      background: linear-gradient(180deg, #000814, #001d3d);
     }
-    .hero img {
-      width: 120px;
-      opacity: 0.9;
-      margin-bottom: 15px;
-    }
+
     .hero h1 {
-      font-size: 2.8em;
-      color: #00b4ff;
-      text-shadow: 0 0 12px #00e0ff70;
-      margin-bottom: 10px;
+      font-size: 2.2rem;
+      color: #00bfff;
+      text-shadow: 0 0 15px #00bfff;
     }
+
     .hero p {
-      font-size: 1.15em;
-      color: #a7c5e2;
-      max-width: 680px;
-      margin: 0 auto 25px;
-      line-height: 1.7;
+      font-size: 1.1rem;
+      color: #b8c1c8;
+      line-height: 1.6;
+      margin-top: 20px;
+      margin-bottom: 30px;
     }
-    .hero-buttons {
-      margin-top: 30px;
+
+    .buttons {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
     }
-    .hero-buttons a {
-      text-decoration: none;
-      background: #00b4ff;
+
+    .buttons a {
+      background-color: #00bfff;
       color: white;
-      padding: 12px 28px;
-      border-radius: 8px;
-      margin: 0 8px;
+      padding: 12px 20px;
+      border-radius: 10px;
       font-weight: 600;
+      box-shadow: 0 0 10px #00bfff;
       transition: 0.3s;
     }
-    .hero-buttons a:hover {
-      background: #00e0ff;
-      box-shadow: 0 0 20px #00e0ff90;
-      transform: translateY(-2px);
+
+    .buttons a:hover {
+      background-color: #0099cc;
+      box-shadow: 0 0 20px #0099cc;
     }
 
-    /* Intro Section */
-    section {
-      padding: 70px 20px;
+    /* ===== WHATSAPP BUTTON ===== */
+    .whatsapp-float {
+      position: fixed;
+      width: 55px;
+      height: 55px;
+      bottom: 20px;
+      right: 20px;
+      background-color: #25d366;
+      color: white;
+      border-radius: 50%;
       text-align: center;
-    }
-    section h2 {
-      color: #00b4ff;
-      font-size: 1.9em;
-      margin-bottom: 18px;
-      text-shadow: 0 0 10px #00b4ff40;
-    }
-    section p {
-      color: #b5c9e3;
-      max-width: 750px;
-      margin: 0 auto;
-      line-height: 1.7;
+      font-size: 30px;
+      box-shadow: 0 0 15px #00bfff;
+      z-index: 100;
+      animation: pulse 2s infinite;
     }
 
-    /* Footer */
-    footer {
-      background: #0b0c10;
-      text-align: center;
-      padding: 35px 20px;
-      border-top: 1px solid #00b4ff25;
-      font-size: 0.95em;
-      color: #99bce2;
+    .whatsapp-float i {
+      margin-top: 12px;
     }
-    footer a {
-      color: #00b4ff;
-      text-decoration: none;
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 10px #25d366; }
+      50% { box-shadow: 0 0 25px #25d366; }
+      100% { box-shadow: 0 0 10px #25d366; }
     }
-    footer a:hover {
-      text-decoration: underline;
+
+    /* ===== MOBILE RESPONSIVENESS ===== */
+    @media (max-width: 768px) {
+      .menu-toggle { display: flex; }
+
+      nav ul {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        background-color: #001d3d;
+        margin-top: 10px;
+        border-top: 1px solid #003566;
+      }
+
+      nav ul.active {
+        display: flex;
+        animation: fadeIn 0.3s ease-in-out;
+      }
+
+      nav ul li {
+        width: 100%;
+        text-align: left;
+        padding: 8px 0;
+      }
+
+      nav ul li a {
+        display: block;
+        width: 100%;
+        padding: 10px 20px;
+      }
+
+      .hero h1 { font-size: 1.8rem; }
+      .hero p { font-size: 1rem; padding: 0 10px; }
+
+      .buttons {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .buttons a {
+        width: 80%;
+        text-align: center;
+      }
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(30px); }
+      from { opacity: 0; transform: translateY(-10px); }
       to { opacity: 1; transform: translateY(0); }
-    }
-
-    @media (max-width: 768px) {
-      nav {
-        flex-direction: column;
-        padding: 15px;
-      }
-      nav ul {
-        flex-wrap: wrap;
-        justify-content: center;
-      }
-      nav ul li {
-        margin: 8px 10px;
-      }
-      .hero h1 {
-        font-size: 2em;
-      }
     }
   </style>
 </head>
 
 <body>
-  <!-- NAVIGATION BAR -->
+  <!-- ===== NAVBAR ===== -->
   <nav>
     <div class="logo">
-      <img src="images/dreamland_logo.png" alt="Dreamland Logo" />
-      <h2>Dreamland Motor</h2>
+      <img src="dreamland_logo.png" alt="Dreamland Logo" />
+      <span class="logo-text">Dreamland Motor</span>
     </div>
-    <ul>
-      <li><a href="index.html" class="active">Home</a></li>
+
+    <!-- Hamburger Icon -->
+    <div class="menu-toggle" id="menu-toggle">
+      <div class="bar"></div>
+      <div class="bar"></div>
+      <div class="bar"></div>
+    </div>
+
+    <!-- Navigation Links -->
+    <ul id="nav-links">
+      <li><a href="index.html">Home</a></li>
       <li><a href="about.html">About</a></li>
       <li><a href="services.html">Services</a></li>
       <li><a href="cars.html">Cars</a></li>
       <li><a href="analyzer.html">Analyzer</a></li>
       <li><a href="contact.html">Contact</a></li>
-      <li><a href="cars_admin.html" style="color:#00e0ff;">Admin</a></li>
+      <li><a href="admin.html">Admin</a></li>
     </ul>
   </nav>
 
-  <!-- HERO -->
-  <div class="hero">
-    <img src="images/dreamland_logo.png" alt="Dreamland Analyzer Logo">
+  <!-- ===== HERO SECTION ===== -->
+  <section class="hero">
     <h1>Welcome to Dreamland Motor Engineering Works 🚗</h1>
     <p>
-      Pioneering automotive diagnostics and innovation in Lagos.  
-      Explore our workshop, car listings, and <strong>Dreamland Analyzer</strong> — the intelligent diagnostic brain  
-      that thinks like a mechanic, not a machine.
+      Pioneering automotive diagnostics and innovation in Lagos.<br />
+      Explore our workshop, car listings, and <strong>Dreamland Analyzer</strong> —
+      the intelligent diagnostic brain that thinks like a mechanic, not a machine.
     </p>
-    <div class="hero-buttons">
+
+    <div class="buttons">
       <a href="services.html">Our Services</a>
       <a href="cars.html">Cars for Sale</a>
       <a href="analyzer.html">Try Analyzer</a>
     </div>
-  </div>
-
-  <!-- INTRO -->
-  <section>
-    <h2>Innovation Meets Experience</h2>
-    <p>
-      Dreamland Motor Engineering Works combines decades of mechanical expertise  
-      with state-of-the-art diagnostics powered by the <strong>Dreamland Analyzer</strong>.  
-      Every test, every fix, every insight — powered by intelligent logic designed in Lagos  
-      and built for the world.
-    </p>
   </section>
 
-  <!-- LOCATION -->
-  <section style="background:#0d1117;">
-    <h2>Find Us</h2>
-    <p>
-      🏠 Workshop: A015 Illubirin Mechanic Village, Lafiaji Lagos<br />
-      📞 <a href="tel:+2349066616152">0906 661 6152</a> |
-      📧 <a href="mailto:dreamlandmotorworks@gmail.com">dreamlandmotorworks@gmail.com</a> |
-      💬 <a href="https://wa.me/2349066616152">WhatsApp Us</a>
-    </p>
-  </section>
+  <!-- ===== FLOATING WHATSAPP BUTTON ===== -->
+  <a href="https://wa.me/2349066616152?text=Hello%20Dreamland%20Motor!%20I%20need%20help%20with%20my%20car%20or%20Analyzer."
+     class="whatsapp-float" target="_blank" title="Chat on WhatsApp">
+    <i>💬</i>
+  </a>
 
-  <!-- FOOTER -->
-  <footer>
-    © 2025 Dreamland Motor Engineering Works — All Rights Reserved.<br />
-    Developed with ❤️ by Dreamland Team.
-  </footer>
+  <!-- ===== JAVASCRIPT TOGGLE ===== -->
+  <script>
+    const menuToggle = document.getElementById("menu-toggle");
+    const navLinks = document.getElementById("nav-links");
+
+    menuToggle.addEventListener("click", () => {
+      navLinks.classList.toggle("active");
+      menuToggle.classList.toggle("change");
+    });
+  </script>
 </body>
-  </html>
+        </html>
