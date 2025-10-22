@@ -3,38 +3,207 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Dreamland Motor Engineering Works – Lagos’ leading digital mechanic workshop. Expert diagnostics, repairs, and advanced Dreamland Analyzer technology.">
-  <title>Dreamland Motor Engineering Works | Our Services</title>
+  <title>Dreamland Motor Engineering Works | Digital Mechanic Hub</title>
+  <meta name="description" content="Dreamland Motor Engineering Works — your trusted digital mechanic workshop in Lagos. Explore our services, cars for sale, and the intelligent Dreamland Analyzer.">
+  <link rel="icon" href="images/logo.png" type="image/png" />
 
   <style>
     body {
       margin: 0;
       font-family: 'Poppins', sans-serif;
-      background-color: #0b0c10;
+      background-color: #05080e;
       color: #eaf6ff;
-      line-height: 1.6;
-      scroll-behavior: smooth;
     }
 
-    /* ====== NAVBAR ====== */
+    /* Navigation Bar */
     nav {
-      background: linear-gradient(90deg, #00b4ff, #0066ff);
+      background: #0d1117;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 1rem 2rem;
-      box-shadow: 0 0 20px #00b4ff80;
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      padding: 15px 40px;
+      box-shadow: 0 0 20px #00b4ff30;
+    }
+    nav .logo {
+      display: flex;
+      align-items: center;
+    }
+    nav .logo img {
+      width: 55px;
+      margin-right: 10px;
+    }
+    nav .logo h2 {
+      color: #00b4ff;
+      letter-spacing: 1px;
+      font-size: 1.4em;
+    }
+    nav ul {
+      list-style: none;
+      display: flex;
+      margin: 0;
+      padding: 0;
+    }
+    nav ul li {
+      margin-left: 25px;
+    }
+    nav ul li a {
+      color: #eaf6ff;
+      text-decoration: none;
+      font-weight: 500;
+      transition: 0.3s;
+    }
+    nav ul li a:hover {
+      color: #00b4ff;
     }
 
-    nav .logo {
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      padding: 120px 20px;
+      background: linear-gradient(180deg, #0a0f18, #06111c);
+      box-shadow: 0 0 40px #00b4ff20;
+    }
+    .hero h1 {
+      font-size: 2.6em;
+      color: #00b4ff;
+      margin-bottom: 15px;
+    }
+    .hero p {
+      font-size: 1.1em;
+      color: #a7c5e2;
+      max-width: 650px;
+      margin: 0 auto 25px;
+      line-height: 1.6;
+    }
+    .hero-buttons {
+      margin-top: 25px;
+    }
+    .hero-buttons a {
+      text-decoration: none;
+      padding: 12px 25px;
+      margin: 0 10px;
+      border-radius: 8px;
+      background: #00b4ff;
       color: white;
-      font-size: 1.6em;
-      font-weight: bold;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+      font-weight: 600;
+      transition: 0.3s;
+    }
+    .hero-buttons a:hover {
+      background: #00e0ff;
+      box-shadow: 0 0 15px #00e0ff90;
+    }
+
+    /* Section */
+    section {
+      padding: 60px 20px;
+      text-align: center;
+    }
+    section h2 {
+      color: #00b4ff;
+      margin-bottom: 20px;
+      font-size: 1.8em;
+    }
+    section p {
+      color: #b5c9e3;
+      max-width: 700px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* Footer */
+    footer {
+      background: #0b0c10;
+      text-align: center;
+      padding: 30px 20px;
+      font-size: 0.95em;
+      color: #99bce2;
+      border-top: 1px solid #00b4ff20;
+    }
+    footer a {
+      color: #00b4ff;
+      text-decoration: none;
+      margin: 0 5px;
+    }
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      nav ul {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      nav ul li {
+        margin: 10px 10px;
+      }
+      .hero h1 { font-size: 2em; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- NAVIGATION -->
+  <nav>
+    <div class="logo">
+      <img src="images/logo.png" alt="Dreamland Motor Logo" />
+      <h2>Dreamland Motor</h2>
+    </div>
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li><a href="cars.html">Cars</a></li>
+      <li><a href="analyzer.html">Analyzer</a></li>
+      <li><a href="contact.html">Contact</a></li>
+      <li><a href="cars_admin.html" style="color:#00e0ff;">Admin</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <h1>Welcome to Dreamland Motor Engineering Works 🚗</h1>
+    <p>
+      Your trusted partner for automotive diagnostics, sales, and innovation.
+      Experience the future of vehicle maintenance through <strong>Dreamland Analyzer</strong> — our intelligent digital mechanic system built by mechanics, for mechanics.
+    </p>
+    <div class="hero-buttons">
+      <a href="services.html">Explore Services</a>
+      <a href="cars.html">View Cars</a>
+      <a href="analyzer.html">Try Analyzer</a>
+    </div>
+  </div>
+
+  <!-- WHY DREAMLAND -->
+  <section>
+    <h2>Why Choose Dreamland?</h2>
+    <p>
+      With over 20 years in automotive diagnostics, Dreamland Motor combines 
+      hands-on expertise with technology. Our proprietary <strong>Dreamland Analyzer</strong> evaluates 
+      live sensor data, detects faults, and recommends precise repairs — ensuring accuracy, speed, and trust for every customer.
+    </p>
+  </section>
+
+  <!-- HIGHLIGHTS -->
+  <section style="background:#0d1117;">
+    <h2>Our Highlights</h2>
+    <p>
+      🔧 Advanced Computer Diagnostics | 💡 Innovative Analyzer Tech | 🚗 Premium Car Sales |
+      📍 Located at A015 Illubirin Mechanic Village, Lafiaji Lagos.
+    </p>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>
+      © 2025 Dreamland Motor Engineering Works. All Rights Reserved.<br />
+      <a href="mailto:dreamlandmotorworks@gmail.com">dreamlandmotorworks@gmail.com</a> |
+      <a href="tel:+2349066616152">0906 661 6152</a> |
+      <a href="https://wa.me/2349066616152">WhatsApp</a>
+    </p>
+  </footer>
+</body>
+</html>      letter-spacing: 1px;
       text-shadow: 0 0 10px #00b4ff;
     }
 
