@@ -170,6 +170,31 @@
   </footer>
 
   <!-- SCRIPTS -->
+  <script>
+  async function loadCars() {
+    const response = await fetch('cars.json');
+    const cars = await response.json();
+    const container = document.getElementById('carContainer');
+    container.innerHTML = '';
+
+    cars.forEach(car => {
+      const card = document.createElement('div');
+      card.className = 'car-card';
+      card.innerHTML = `
+        <img src="${car.image}" alt="${car.make} ${car.model}">
+        <h2>${car.make} ${car.model} ${car.year}</h2>
+        <div class="price">₦${Number(car.price).toLocaleString()}</div>
+        <div class="condition"><b>Condition:</b> ${car.condition}</div>
+        <div class="vin"><b>VIN:</b> ${car.vin}</div>
+        <div class="good"><b>What's good:</b> ${car.whats_good}</div>
+        <div class="bad"><b>What's not good:</b> ${car.whats_not_good}</div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  loadCars();
+  </script>
   <script src="cars.js"></script>
   <script src="whatsapp.js"></script>
 </body>
