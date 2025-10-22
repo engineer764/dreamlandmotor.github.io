@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dreamland Admin Portal | Car Upload</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: #0b0c10;
+      color: #eaf6ff;
+      min-height: 100vh;
+    }
+    h1 {
+      text-align: center;
+      margin-top: 20px;
+      color: #00b4ff;
+    }
+    form {
+      max-width: 700px;
+      margin: 30px auto;
+      background: #11131a;
+      padding: 20px 30px;
+      border-radius: 14px;
+      box-shadow: 0 0 25px #00b4ff40;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: 600;
+      color: #00b4ff;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #00b4ff50;
+      background: #0b0c10;
+      color: white;
+      border-radius: 8px;
+      margin-top: 5px;
+    }
+    textarea { height: 70px; resize: vertical; }
+    button {
+      background: #00b4ff;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1em;
+      margin-top: 15px;
+      transition: .3s;
+    }
+    button:hover { background: #00e0ff; }
+
+    .table-wrapper {
+      max-width: 800px;
+      margin: 30px auto;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #11131a;
+      box-shadow: 0 0 20px #00b4ff20;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #00b4ff30;
+    }
+    th { background: #00b4ff40; }
+    tr:hover { background: #1a1d24; }
+    footer {
+      text-align: center;
+      margin-top: 30px;
+      color: #99bce2;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Dreamland Admin Portal ⚙️</h1>
+
+  <form id="carForm">
+    <label>Admin Password</label>
+    <input type="password" id="adminPass" placeholder="Enter password (dreamland@2025)" required>
+
+    <label>Make</label><input type="text" id="make">
+    <label>Model</label><input type="text" id="model">
+    <label>Year</label><input type="number" id="year">
+    <label>Engine</label><input type="text" id="engine">
+    <label>Transmission</label><input type="text" id="transmission">
+    <label>Mileage</label><input type="text" id="mileage">
+    <label>VIN</label><input type="text" id="vin">
+    <label>Price (₦)</label><input type="text" id="price">
+    <label>Location</label><input type="text" id="location">
+    <label>Image Filename (in /images)</label><input type="text" id="image">
+    <label>Good Points (comma separated)</label><textarea id="good"></textarea>
+    <label>Bad Points (comma separated)</label><textarea id="bad"></textarea>
+    <label>Analyzer Report (optional)</label><input type="text" id="report">
+
+    <button type="submit">➕ Add Car</button>
+    <button type="button" onclick="exportJSON()">💾 Export cars.json</button>
+  </form>
+
+  <div class="table-wrapper">
+    <table id="carTable">
+      <thead>
+        <tr>
+          <th>Make</th>
+          <th>Model</th>
+          <th>Year</th>
+          <th>Price</th>
+          <th>Engine</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <footer>© 2025 Dreamland Motor Engineering Works | Smart Admin Portal</footer>
+
+  <script>
+    const ADMIN_PASS = "dreamland@2025";
+    let cars = JSON.parse(localStorage.getItem("dreamlandCars") || "[]");
+
+    function renderTable() {
+      const tbody = document.querySelector("#carTable tbody");
+      tbody.innerHTML = "";
+      cars.forEach((c, i) => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${c.make}</td>
+            <td>${c.model}</td>
+            <td>${c.year}</td>
+            <td>₦${c.price}</td>
+            <td>${c.engine}</td>
+            <td><button onclick="deleteCar(${i})" style="background:#ff4444;">Delete</button></td>
+          </tr>`;
+      });
+      localStorage.setItem("dreamlandCars", JSON.stringify(cars));
+    }
+
+    document.getElementById("carForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const pass = document.getElementById("adminPass").value;
+      if (pass !== ADMIN_PASS) {
+        alert("❌ Wrong password!");
+        return;
+      }
+
+      const car = {
+        id: `${Date.now()}`,
+        make: make.value,
+        model: model.value,
+        year: parseInt(year.value),
+        engine: engine.value,
+        transmission: transmission.value,
+        mileage: mileage.value,
+        vin: vin.value,
+        price: price.value,
+        location: location.value,
+        image: "images/" + image.value,
+        good: good.value.split(",").map(s => s.trim()).filter(Boolean),
+        bad: bad.value.split(",").map(s => s.trim()).filter(Boolean),
+        report: report.value
+      };
+      cars.push(car);
+      renderTable();
+      document.getElementById("carForm").reset();
+      alert("✅ Car added successfully!");
+    });
+
+    function deleteCar(index) {
+      cars.splice(index, 1);
+      renderTable();
+    }
+
+    function exportJSON() {
+      const blob = new Blob([JSON.stringify(cars, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "cars.json";
+      a.click();
+      URL.revokeObjectURL(url);
+      alert("📦 cars.json exported successfully!");
+    }
+
+    renderTable();
+  </script>
+</body>
+                     </html>
