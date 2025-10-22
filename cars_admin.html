@@ -1,198 +1,393 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dreamland Admin Portal | Car Upload</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dreamland Admin Portal | Car Inventory</title>
+  <meta name="description" content="Secure Dreamland Motor inventory manager for cars.json"/>
+  <link rel="icon" href="images/dreamland_logo.png" type="image/png" />
   <style>
-    body {
-      margin: 0;
-      font-family: 'Poppins', sans-serif;
-      background: #0b0c10;
-      color: #eaf6ff;
-      min-height: 100vh;
+    :root{
+      --bg:#0b0c10; --panel:#11131a; --glow:#00b4ff; --glow2:#00e0ff;
+      --text:#eaf6ff; --muted:#99bce2; --border:#00b4ff40; --danger:#ff4444; --ok:#00ffb4;
     }
-    h1 {
-      text-align: center;
-      margin-top: 20px;
-      color: #00b4ff;
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Poppins,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    /* NAV */
+    nav{
+      position:sticky;top:0;z-index:1000;
+      background:rgba(5,10,15,0.95);display:flex;justify-content:space-between;align-items:center;
+      padding:12px 40px;box-shadow:0 0 20px #00b4ff40;border-bottom:1px solid var(--border)
     }
-    form {
-      max-width: 700px;
-      margin: 30px auto;
-      background: #11131a;
-      padding: 20px 30px;
-      border-radius: 14px;
-      box-shadow: 0 0 25px #00b4ff40;
-    }
-    label {
-      display: block;
-      margin-top: 10px;
-      font-weight: 600;
-      color: #00b4ff;
-    }
-    input, textarea {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #00b4ff50;
-      background: #0b0c10;
-      color: white;
-      border-radius: 8px;
-      margin-top: 5px;
-    }
-    textarea { height: 70px; resize: vertical; }
-    button {
-      background: #00b4ff;
-      color: white;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1em;
-      margin-top: 15px;
-      transition: .3s;
-    }
-    button:hover { background: #00e0ff; }
+    nav .logo{display:flex;align-items:center;gap:10px}
+    nav .logo img{width:48px;height:auto}
+    nav .logo h2{color:var(--glow);font-size:1.25rem;letter-spacing:.5px;margin:0}
+    nav ul{list-style:none;display:flex;gap:22px;margin:0;padding:0}
+    nav a{color:var(--text);text-decoration:none;transition:.25s}
+    nav a:hover{color:var(--glow);text-shadow:0 0 8px var(--glow2)}
 
-    .table-wrapper {
-      max-width: 800px;
-      margin: 30px auto;
-      overflow-x: auto;
+    .wrap{max-width:1100px;margin:24px auto;padding:0 16px}
+    .notice{
+      background:#10131b;border:1px solid var(--border);border-radius:10px;
+      padding:12px 14px;box-shadow:0 0 16px #00b4ff20;color:var(--muted);font-size:.95rem
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #11131a;
-      box-shadow: 0 0 20px #00b4ff20;
-      border-radius: 10px;
-      overflow: hidden;
+    .notice strong{color:#ffd166}
+
+    /* LOCK SCREEN */
+    #lockScreen{
+      max-width:560px;margin:28px auto;background:var(--panel);border:1px solid var(--border);
+      border-radius:14px;box-shadow:0 0 28px #00b4ff30;padding:22px
     }
-    th, td {
-      padding: 10px;
-      text-align: left;
-      border-bottom: 1px solid #00b4ff30;
+    #lockScreen h1{margin:6px 0 10px;color:var(--glow);font-size:1.4rem}
+    .inputRow{display:flex;gap:10px;margin-top:10px}
+    input[type=password], input[type=text], input[type=number], textarea{
+      width:100%;padding:10px 12px;background:#0b0c10;border:1px solid var(--border);
+      color:var(--text);border-radius:8px;outline:none
     }
-    th { background: #00b4ff40; }
-    tr:hover { background: #1a1d24; }
-    footer {
-      text-align: center;
-      margin-top: 30px;
-      color: #99bce2;
-      font-size: 0.9em;
+    button{
+      background:var(--glow);color:white;border:none;padding:10px 16px;border-radius:8px;
+      cursor:pointer;transition:.25s;font-weight:600
     }
+    button:hover{background:var(--glow2);box-shadow:0 0 16px #00e0ff90}
+    .muted{color:var(--muted);font-size:.9rem}
+
+    /* ADMIN PANEL */
+    #adminPanel{display:none}
+    .panel{
+      background:var(--panel);border:1px solid var(--border);border-radius:14px;
+      box-shadow:0 0 28px #00b4ff30;padding:20px
+    }
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    .grid2 .full, .grid3 .full{grid-column:1/-1}
+    @media (max-width:900px){.grid3{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}}
+
+    .toolbar{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+    .toolbar .export{background:#1bc47d}
+    .toolbar .danger{background:var(--danger)}
+    .toolbar .ghost{
+      background:transparent;border:1px solid var(--border);color:var(--text)
+    }
+    .ok{color:var(--ok)}
+
+    /* TABLE */
+    .tableWrap{margin-top:18px;overflow:auto;border:1px solid var(--border);border-radius:10px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid var(--border);text-align:left;font-size:.95rem}
+    th{background:#0f1219}
+    tr:hover{background:#141823}
+    .actions button{margin-right:6px}
+
+    footer{margin:30px 0;color:var(--muted);text-align:center;font-size:.9rem}
   </style>
 </head>
 <body>
-  <h1>Dreamland Admin Portal ⚙️</h1>
+  <!-- NAV -->
+  <nav>
+    <div class="logo">
+      <img src="images/dreamland_logo.png" alt="Dreamland Logo"/>
+      <h2>Dreamland Motor</h2>
+    </div>
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li><a href="cars.html">Cars</a></li>
+      <li><a href="analyzer.html">Analyzer</a></li>
+      <li><a href="contact.html">Contact</a></li>
+      <li><a href="cars_admin.html" style="color:#00e0ff">Admin</a></li>
+    </ul>
+  </nav>
 
-  <form id="carForm">
-    <label>Admin Password</label>
-    <input type="password" id="adminPass" placeholder="Enter password (dreamland@2025)" required>
+  <div class="wrap">
+    <div class="notice">
+      🔒 <strong>Authorized Dreamland Staff Only.</strong> This page manages live inventory.  
+      For GitHub Pages security, entries are stored locally in your browser and exported to <code>cars.json</code> for upload.
+    </div>
 
-    <label>Make</label><input type="text" id="make">
-    <label>Model</label><input type="text" id="model">
-    <label>Year</label><input type="number" id="year">
-    <label>Engine</label><input type="text" id="engine">
-    <label>Transmission</label><input type="text" id="transmission">
-    <label>Mileage</label><input type="text" id="mileage">
-    <label>VIN</label><input type="text" id="vin">
-    <label>Price (₦)</label><input type="text" id="price">
-    <label>Location</label><input type="text" id="location">
-    <label>Image Filename (in /images)</label><input type="text" id="image">
-    <label>Good Points (comma separated)</label><textarea id="good"></textarea>
-    <label>Bad Points (comma separated)</label><textarea id="bad"></textarea>
-    <label>Analyzer Report (optional)</label><input type="text" id="report">
+    <!-- LOCK SCREEN -->
+    <section id="lockScreen">
+      <h1>Admin Login</h1>
+      <p class="muted">Enter access code to unlock the inventory manager.</p>
+      <div class="inputRow">
+        <input id="passInput" type="password" placeholder="Enter admin password" autocomplete="current-password"/>
+        <button id="unlockBtn">Unlock</button>
+      </div>
+      <p id="lockMsg" class="muted" style="margin-top:8px;"></p>
+    </section>
 
-    <button type="submit">➕ Add Car</button>
-    <button type="button" onclick="exportJSON()">💾 Export cars.json</button>
-  </form>
+    <!-- ADMIN PANEL -->
+    <section id="adminPanel" class="panel">
+      <h2 style="margin:0 0 10px;color:var(--glow)">Inventory Manager</h2>
+      <p class="muted" style="margin-top:0">Add cars, review, and export to <strong>cars.json</strong>.</p>
 
-  <div class="table-wrapper">
-    <table id="carTable">
-      <thead>
-        <tr>
-          <th>Make</th>
-          <th>Model</th>
-          <th>Year</th>
-          <th>Price</th>
-          <th>Engine</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+      <div class="toolbar">
+        <button class="export" id="exportBtn">💾 Export cars.json</button>
+        <button class="ghost" id="importBtn">📥 Import cars.json</button>
+        <input id="importFile" type="file" accept="application/json" style="display:none">
+        <button class="danger" id="clearBtn" title="Clear local draft (keeps your uploaded cars.json on the site)">🗑️ Clear Local Draft</button>
+      </div>
+
+      <!-- FORM -->
+      <div class="grid3" style="margin-top:10px">
+        <div>
+          <label>Make</label>
+          <input id="make" type="text" placeholder="Toyota"/>
+        </div>
+        <div>
+          <label>Model</label>
+          <input id="model" type="text" placeholder="Highlander Limited"/>
+        </div>
+        <div>
+          <label>Year</label>
+          <input id="year" type="number" placeholder="2014"/>
+        </div>
+
+        <div>
+          <label>Engine</label>
+          <input id="engine" type="text" placeholder="3.5L V6"/>
+        </div>
+        <div>
+          <label>Transmission</label>
+          <input id="transmission" type="text" placeholder="Automatic"/>
+        </div>
+        <div>
+          <label>Mileage</label>
+          <input id="mileage" type="text" placeholder="78,000 km"/>
+        </div>
+
+        <div>
+          <label>VIN</label>
+          <input id="vin" type="text" placeholder="5TDYKRFH7ES083214"/>
+        </div>
+        <div>
+          <label>Price (₦)</label>
+          <input id="price" type="text" placeholder="30000000"/>
+        </div>
+        <div>
+          <label>Location</label>
+          <input id="location" type="text" placeholder="Ikoyi, Lagos"/>
+        </div>
+
+        <div class="full">
+          <label>Image Filename (must be in /images)</label>
+          <input id="image" type="text" placeholder="highlander2014.jpg"/>
+        </div>
+
+        <div class="full">
+          <label>Good Points (comma separated)</label>
+          <input id="good" type="text" placeholder="Engine perfect, Cold AC, No DTCs"/>
+        </div>
+        <div class="full">
+          <label>Bad Points (comma separated)</label>
+          <input id="bad" type="text" placeholder="Minor paint retouch, Front tires 60% life"/>
+        </div>
+
+        <div class="full">
+          <label>Analyzer Report (optional)</label>
+          <input id="report" type="text" placeholder="Reports/DA_Report_20251021_004633.pdf"/>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <button id="addBtn">➕ Add Car</button>
+      </div>
+
+      <!-- TABLE -->
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Make</th><th>Model</th><th>Year</th><th>Price</th><th>Engine</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="carTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>© 2025 Dreamland Motor Engineering Works | Secure Admin</footer>
   </div>
 
-  <footer>© 2025 Dreamland Motor Engineering Works | Smart Admin Portal</footer>
-
   <script>
-    const ADMIN_PASS = "dreamland@2025";
+    // ============================
+    //  PASSWORD GATE (HASH-BASED)
+    //  Passphrase = "Engineer.1"
+    //  SHA-256 hex = b0134a6e1a4a1085710d2960f6f70744955a86cd5096c42cda5d85023cb3fab3
+    // ============================
+    const PASS_HASH_HEX = "b0134a6e1a4a1085710d2960f6f70744955a86cd5096c42cda5d85023cb3fab3";
+
+    async function sha256Hex(text){
+      const enc = new TextEncoder().encode(text);
+      const buf = await crypto.subtle.digest("SHA-256", enc);
+      const arr = Array.from(new Uint8Array(buf));
+      return arr.map(b => b.toString(16).padStart(2,"0")).join("");
+    }
+
+    async function tryUnlock(){
+      const input = document.getElementById("passInput");
+      const msg = document.getElementById("lockMsg");
+      try{
+        const enteredHash = await sha256Hex(input.value);
+        if(enteredHash === PASS_HASH_HEX){
+          // unlock UI
+          document.getElementById("lockScreen").style.display = "none";
+          document.getElementById("adminPanel").style.display = "block";
+          msg.textContent = "";
+          input.value = "";
+        }else{
+          msg.textContent = "Access denied. Wrong password.";
+        }
+      }catch(e){
+        msg.textContent = "Your browser blocked cryptography features.";
+      }
+    }
+
+    document.getElementById("unlockBtn").addEventListener("click", tryUnlock);
+    document.getElementById("passInput").addEventListener("keydown", e => {
+      if(e.key === "Enter"){ tryUnlock(); }
+    });
+
+    // ============================
+    //  INVENTORY MANAGER (LOCAL)
+    // ============================
     let cars = JSON.parse(localStorage.getItem("dreamlandCars") || "[]");
 
-    function renderTable() {
-      const tbody = document.querySelector("#carTable tbody");
-      tbody.innerHTML = "";
-      cars.forEach((c, i) => {
-        tbody.innerHTML += `
-          <tr>
-            <td>${c.make}</td>
-            <td>${c.model}</td>
-            <td>${c.year}</td>
-            <td>₦${c.price}</td>
-            <td>${c.engine}</td>
-            <td><button onclick="deleteCar(${i})" style="background:#ff4444;">Delete</button></td>
-          </tr>`;
-      });
+    function saveLocal(){
       localStorage.setItem("dreamlandCars", JSON.stringify(cars));
     }
 
-    document.getElementById("carForm").addEventListener("submit", e => {
-      e.preventDefault();
-      const pass = document.getElementById("adminPass").value;
-      if (pass !== ADMIN_PASS) {
-        alert("❌ Wrong password!");
-        return;
+    function renderTable(){
+      const tbody = document.getElementById("carTableBody");
+      tbody.innerHTML = "";
+      cars.forEach((c, idx) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${c.make}</td>
+          <td>${c.model}</td>
+          <td>${c.year}</td>
+          <td>₦${c.price}</td>
+          <td>${c.engine}</td>
+          <td class="actions">
+            <button onclick="editCar(${idx})">Edit</button>
+            <button onclick="deleteCar(${idx})" style="background:#ff4444">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      saveLocal();
+    }
+
+    function readForm(){
+      const v = id => document.getElementById(id).value.trim();
+      const make = v("make"), model = v("model"), year = parseInt(v("year") || "0", 10);
+      const engine = v("engine"), transmission = v("transmission"), mileage = v("mileage");
+      const vin = v("vin"), price = v("price"), location = v("location");
+      const image = v("image"), good = v("good"), bad = v("bad"), report = v("report");
+
+      if(!make || !model || !year || !price || !image){
+        alert("Please fill at least: Make, Model, Year, Price, Image filename.");
+        return null;
       }
 
-      const car = {
-        id: `${Date.now()}`,
-        make: make.value,
-        model: model.value,
-        year: parseInt(year.value),
-        engine: engine.value,
-        transmission: transmission.value,
-        mileage: mileage.value,
-        vin: vin.value,
-        price: price.value,
-        location: location.value,
-        image: "images/" + image.value,
-        good: good.value.split(",").map(s => s.trim()).filter(Boolean),
-        bad: bad.value.split(",").map(s => s.trim()).filter(Boolean),
-        report: report.value
+      return {
+        id: `${make.toLowerCase()}-${model.toLowerCase().replace(/\\s+/g,'-')}-${year}`,
+        make, model, year, engine, transmission, mileage, vin, price, location,
+        image: image.startsWith("images/") ? image : ("images/" + image),
+        good: good ? good.split(",").map(s=>s.trim()).filter(Boolean) : [],
+        bad:  bad  ? bad.split(",").map(s=>s.trim()).filter(Boolean)  : [],
+        report
       };
+    }
+
+    function clearForm(){
+      ["make","model","year","engine","transmission","mileage","vin","price","location","image","good","bad","report"]
+        .forEach(id => document.getElementById(id).value = "");
+    }
+
+    document.getElementById("addBtn").addEventListener("click", () => {
+      const car = readForm();
+      if(!car) return;
       cars.push(car);
       renderTable();
-      document.getElementById("carForm").reset();
-      alert("✅ Car added successfully!");
+      clearForm();
+      alert("✅ Car added to local draft.");
     });
 
-    function deleteCar(index) {
-      cars.splice(index, 1);
-      renderTable();
+    window.deleteCar = function(i){
+      if(confirm("Delete this car from local draft?")){
+        cars.splice(i,1);
+        renderTable();
+      }
     }
 
-    function exportJSON() {
-      const blob = new Blob([JSON.stringify(cars, null, 2)], { type: "application/json" });
+    window.editCar = function(i){
+      const c = cars[i];
+      if(!c) return;
+      // Populate form
+      document.getElementById("make").value = c.make;
+      document.getElementById("model").value = c.model;
+      document.getElementById("year").value = c.year;
+      document.getElementById("engine").value = c.engine;
+      document.getElementById("transmission").value = c.transmission;
+      document.getElementById("mileage").value = c.mileage;
+      document.getElementById("vin").value = c.vin;
+      document.getElementById("price").value = c.price;
+      document.getElementById("location").value = c.location;
+      document.getElementById("image").value = c.image.replace(/^images\\//,"").replace(/^images\\//,"");
+      document.getElementById("good").value = (c.good||[]).join(", ");
+      document.getElementById("bad").value  = (c.bad||[]).join(", ");
+      document.getElementById("report").value = c.report||"";
+
+      // Replace entry on next add
+      cars.splice(i,1);
+      renderTable();
+      alert("✏️ Edit the fields and click ‘Add Car’ to save changes.");
+    }
+
+    // EXPORT
+    function exportJSON(){
+      const blob = new Blob([JSON.stringify(cars,null,2)], {type:"application/json"});
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
-      a.download = "cars.json";
-      a.click();
+      a.href = url; a.download = "cars.json"; a.click();
       URL.revokeObjectURL(url);
-      alert("📦 cars.json exported successfully!");
+      alert("📦 cars.json exported. Upload it to your GitHub repo root.");
     }
+    document.getElementById("exportBtn").addEventListener("click", exportJSON);
 
+    // IMPORT EXISTING cars.json (to continue editing)
+    document.getElementById("importBtn").addEventListener("click", ()=>{
+      document.getElementById("importFile").click();
+    });
+    document.getElementById("importFile").addEventListener("change", async (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      try{
+        const text = await file.text();
+        const arr = JSON.parse(text);
+        if(!Array.isArray(arr)) throw new Error("Invalid format");
+        cars = arr;
+        renderTable();
+        alert("✅ cars.json imported into local draft.");
+      }catch(err){
+        alert("❌ Could not import. Ensure it’s a valid cars.json array.");
+      }finally{
+        e.target.value = "";
+      }
+    });
+
+    // CLEAR LOCAL
+    document.getElementById("clearBtn").addEventListener("click", ()=>{
+      if(confirm("This clears your local draft (NOT your live site). Proceed?")){
+        cars = [];
+        renderTable();
+        alert("🗑️ Local draft cleared.");
+      }
+    });
+
+    // Initial render (if any local)
     renderTable();
   </script>
 </body>
-                     </html>
+        </html>
