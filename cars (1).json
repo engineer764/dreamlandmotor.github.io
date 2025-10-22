@@ -1,0 +1,18 @@
+[
+  {
+    "id": "cmh2a1urd2wbwuq",
+    "make": "Toyota",
+    "model": "CAMRY",
+    "year": 2012,
+    "price": 10500000,
+    "engine": "2.5L 2AR-FE",
+    "vin": "4T4BF1FK7CR240490",
+    "mileage": 109000,
+    "condition": "used",
+    "good": "Well, maintaned, good tyres neat interiors,  very silent engines,  original parts, first Owner",
+    "bad": "Minor scratch on the driver rear side",
+    "image": "https://dreamlandmotor.com.ng/Camry2012.jpg",
+    "created": "2025-10-22T17:38:44.862Z",
+    "updated": "2025-10-22T19:30:38.197Z"
+  }
+]
