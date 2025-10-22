@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Dreamland Motor Engineering Works – Lagos’ leading digital mechanic workshop. Expert diagnostics, repairs, and advanced Dreamland Analyzer technology.">
+  <title>Dreamland Motor Engineering Works | Our Services</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background-color: #0b0c10;
+      color: #eaf6ff;
+      line-height: 1.6;
+    }
+    header {
+      background: linear-gradient(90deg, #00b4ff, #0066ff);
+      padding: 1rem;
+      text-align: center;
+      box-shadow: 0 0 25px #00b4ff80;
+    }
+    header h1 {
+      color: white;
+      font-size: 2.2em;
+      letter-spacing: 1px;
+    }
+    section {
+      padding: 40px 20px;
+      max-width: 1000px;
+      margin: auto;
+    }
+    h2 {
+      color: #00b4ff;
+      border-left: 4px solid #00b4ff;
+      padding-left: 10px;
+      text-transform: uppercase;
+    }
+    .services {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-top: 30px;
+    }
+    .service-card {
+      background: #11131a;
+      border: 1px solid #00b4ff30;
+      border-radius: 12px;
+      padding: 20px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .service-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 0 20px #00b4ff70;
+    }
+    .service-card h3 {
+      color: #00b4ff;
+    }
+    .cta {
+      text-align: center;
+      margin-top: 50px;
+    }
+    .cta a {
+      text-decoration: none;
+      color: white;
+      background: linear-gradient(90deg, #00b4ff, #0078ff);
+      padding: 12px 30px;
+      border-radius: 30px;
+      margin: 10px;
+      display: inline-block;
+      box-shadow: 0 0 15px #00b4ff70;
+      transition: transform 0.2s ease, box-shadow 0.3s ease;
+    }
+    .cta a:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 25px #00b4ffb0;
+    }
+    footer {
+      text-align: center;
+      padding: 20px;
+      color: #99bce2;
+      background: #0b0c10;
+      border-top: 1px solid #00b4ff30;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Dreamland Motor Engineering Works</h1>
+    <p>Lagos’ No.1 Digital Mechanic Workshop</p>
+  </header>
+
+  <section>
+    <h2>Our Core Services</h2>
+    <div class="services">
+      <div class="service-card">
+        <h3>Advanced Diagnostics (OBD-II & Dreamland Analyzer)</h3>
+        <p>Our proprietary Dreamland Analyzer pinpoints faults with precision — reading live sensor data, trims, misfires, and catalyst efficiency like no ordinary tool.</p>
+      </div>
+      <div class="service-card">
+        <h3>Engine Repairs & Overhaul</h3>
+        <p>We rebuild and fine-tune petrol engines to manufacturer precision — from minor leaks to full performance restoration.</p>
+      </div>
+      <div class="service-card">
+        <h3>Transmission & Drivetrain Service</h3>
+        <p>Professional diagnosis, servicing, and repair of automatic and manual transmissions using adaptive learning analysis.</p>
+      </div>
+      <div class="service-card">
+        <h3>Catalyst & Emission Testing</h3>
+        <p>We analyze exhaust gases, O₂ patterns, and catalyst health with multi-phase graph evaluation to ensure clean performance.</p>
+      </div>
+      <div class="service-card">
+        <h3>ECU Programming & Reset</h3>
+        <p>We reprogram faulty ECUs, reset adaptive memories, and calibrate sensors with precision electronic tools.</p>
+      </div>
+      <div class="service-card">
+        <h3>Suspension, Brake & Steering Systems</h3>
+        <p>From brake pad replacement to full steering alignment, we restore your car’s handling comfort and safety.</p>
+      </div>
+      <div class="service-card">
+        <h3>Electrical Repairs</h3>
+        <p>Complete wiring diagnosis, alternator service, starting systems, lighting and intelligent network repair.</p>
+      </div>
+      <div class="service-card">
+        <h3>Vehicle Inspection & Pre-Purchase Scan</h3>
+        <p>Know the true condition of any car before buying — we provide digital inspection reports powered by the Dreamland Analyzer.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="cta">
+    <a href="tel:+2349066616152">📞 Call Dreamland</a>
+    <a href="https://wa.me/2349066616152">💬 Chat on WhatsApp</a>
+    <a href="#booking">🚗 Book a Diagnosis</a>
+  </div>
+
+  <footer>
+    <p>📍 Workshop A015, Illubirin Mechanic Village, Lafiaji, Lagos.</p>
+    <p>© 2025 Dreamland Motor Engineering Works. Powered by the Dreamland Analyzer ⚙️</p>
+  </footer>
+
+</body>
+</html>
