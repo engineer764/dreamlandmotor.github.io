@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cars for Sale | Dreamland Motor Engineering Works</title>
+  <meta name="description" content="Browse analyzer-tested used cars for sale from Dreamland Motor Engineering Works, Lagos. Verified, clean vehicles inspected with Dreamland Analyzer.">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: #0b0c10;
+      color: #eaf6ff;
+    }
+
+    /* ===== NAVBAR ===== */
+    nav {
+      background: linear-gradient(90deg, #00b4ff, #0066ff);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      box-shadow: 0 0 20px #00b4ff80;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    nav .logo { color:white; font-weight:bold; font-size:1.5em; }
+    nav ul { list-style:none; display:flex; gap:25px; margin:0; padding:0; }
+    nav ul li a { color:white; text-decoration:none; transition:.3s; }
+    nav ul li a:hover { color:#00e0ff; text-shadow:0 0 8px #00e0ff; }
+
+    /* ===== FILTER BAR ===== */
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      margin: 30px auto;
+      max-width: 900px;
+      padding: 10px;
+    }
+    .filter-bar input, .filter-bar select {
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid #00b4ff40;
+      background: #11131a;
+      color: white;
+      outline: none;
+      min-width: 180px;
+    }
+    .filter-bar input::placeholder { color: #aaa; }
+    .filter-bar button {
+      background: #00b4ff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .filter-bar button:hover { background: #00e0ff; }
+
+    /* ===== LISTINGS ===== */
+    .listings {
+      max-width: 1100px;
+      margin: 20px auto 60px;
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+    }
+    .car-box {
+      background: #11131a;
+      border: 1px solid #00b4ff40;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 0 25px #00b4ff30;
+      transition: transform .3s, box-shadow .3s;
+    }
+    .car-box:hover { transform: translateY(-4px); box-shadow: 0 0 35px #00b4ff80; }
+
+    .car-header { display: flex; flex-wrap: wrap; }
+    .car-header img { flex:1 1 400px; height:260px; object-fit:cover; }
+    .car-details { flex:1 1 400px; padding:20px; }
+    .car-details h2 { margin-top:0; color:#00b4ff; }
+    .price { color:#00ffb4; font-weight:600; font-size:1.2em; }
+
+    .specs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px,1fr));
+      gap: 10px;
+      margin: 15px 0;
+      font-size: 0.95em;
+    }
+    .specs div {
+      background:#0b0c10;
+      border:1px solid #00b4ff40;
+      padding:8px 12px;
+      border-radius:8px;
+      text-align:center;
+    }
+
+    .condition { background:#0b0c10; border:1px solid #00b4ff40; border-radius:10px; padding:15px; margin:15px 0; }
+    .condition h4 { margin:0 0 10px; color:#00b4ff; }
+    ul.good, ul.bad { list-style:none; padding:0; margin:0; }
+    ul.good li::before { content:"✅ "; color:#00ffb4; }
+    ul.bad li::before { content:"❌ "; color:#ff5555; }
+
+    .cta { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-top:10px; }
+    .buy-btn {
+      background:#25D366; color:white; padding:12px 24px; border-radius:30px;
+      text-decoration:none; font-weight:600; box-shadow:0 0 15px #25D36680; transition:.3s;
+    }
+    .buy-btn:hover { background:#1ebe5b; }
+    .report-link { color:#00e0ff; text-decoration:none; font-size:.9em; }
+
+    footer {
+      text-align:center;
+      padding:20px;
+      border-top:1px solid #00b4ff30;
+      color:#99bce2;
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav>
+    <div class="logo">Dreamland Motor’s ⚙️</div>
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="analyzer.html">Analyzer</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li><a href="cars.html" style="color:#00e0ff;text-shadow:0 0 8px #00e0ff;">Cars</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+  </nav>
+
+  <!-- ===== SEARCH & FILTER BAR ===== -->
+  <section class="filter-bar">
+    <input type="text" id="searchInput" placeholder="Search by make or model...">
+    <select id="brandFilter">
+      <option value="">All Brands</option>
+      <option value="Toyota">Toyota</option>
+      <option value="Lexus">Lexus</option>
+      <option value="Ford">Ford</option>
+      <option value="Honda">Honda</option>
+      <option value="Hyundai">Hyundai</option>
+    </select>
+    <select id="priceFilter">
+      <option value="">All Prices</option>
+      <option value="5000000">Under ₦5M</option>
+      <option value="10000000">₦5M – ₦10M</option>
+      <option value="20000000">₦10M – ₦20M</option>
+      <option value="30000000">Above ₦20M</option>
+    </select>
+    <button onclick="applyFilters()">Filter</button>
+  </section>
+
+  <!-- ===== CAR LISTINGS ===== -->
+  <section class="listings">
+    <!-- Cars auto-load here -->
+  </section>
+
+  <footer>
+    <p>© 2025 Dreamland Motor Engineering Works | Analyzer-Verified Cars ⚙️</p>
+  </footer>
+
+  <!-- SCRIPTS -->
+  <script src="cars.js"></script>
+  <script src="whatsapp.js"></script>
+</body>
+                                              </html>
