@@ -1,5 +1,6 @@
-// === Dreamland Floating WhatsApp Button ===
+// === Dreamland Floating WhatsApp Button (with tooltip) ===
 document.addEventListener("DOMContentLoaded", function () {
+  // Create button
   const btn = document.createElement("a");
   btn.href = "https://wa.me/2349066616152";
   btn.target = "_blank";
@@ -8,6 +9,23 @@ document.addEventListener("DOMContentLoaded", function () {
   btn.innerHTML = "💬";
   document.body.appendChild(btn);
 
+  // Create tooltip
+  const tooltip = document.createElement("div");
+  tooltip.className = "whatsapp-tooltip";
+  tooltip.textContent = "Chat with a Dreamland mechanic now 🚗";
+  document.body.appendChild(tooltip);
+
+  // Position tooltip dynamically
+  btn.addEventListener("mouseenter", function () {
+    tooltip.style.opacity = "1";
+    tooltip.style.transform = "translateY(0)";
+  });
+  btn.addEventListener("mouseleave", function () {
+    tooltip.style.opacity = "0";
+    tooltip.style.transform = "translateY(10px)";
+  });
+
+  // Inject styles
   const style = document.createElement("style");
   style.innerHTML = `
     .whatsapp-float {
@@ -30,10 +48,32 @@ document.addEventListener("DOMContentLoaded", function () {
       transform: scale(1.1);
       box-shadow: 0 0 30px #25D366b0;
     }
-    .whatsapp-float i, .whatsapp-float span {
-      margin-top: 14px;
-      display: inline-block;
+    .whatsapp-tooltip {
+      position: fixed;
+      bottom: 95px;
+      right: 25px;
+      background-color: #11131a;
+      color: #eaf6ff;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 0.9em;
+      white-space: nowrap;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      box-shadow: 0 0 15px #00b4ff40;
+      border: 1px solid #00b4ff60;
+      z-index: 999;
+    }
+    @media (max-width: 600px) {
+      .whatsapp-tooltip {
+        font-size: 0.8em;
+        bottom: 90px;
+        right: 15px;
+      }
     }
   `;
+  document.head.appendChild(style);
+});  `;
   document.head.appendChild(style);
 });
