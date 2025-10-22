@@ -324,70 +324,172 @@
     window.editCar = function(i){
       const c = cars[i];
       if(!c) return;
-      // Populate form
-      document.getElementById("make").value = c.make;
-      document.getElementById("model").value = c.model;
-      document.getElementById("year").value = c.year;
-      document.getElementById("engine").value = c.engine;
-      document.getElementById("transmission").value = c.transmission;
-      document.getElementById("mileage").value = c.mileage;
-      document.getElementById("vin").value = c.vin;
-      document.getElementById("price").value = c.price;
-      document.getElementById("location").value = c.location;
-      document.getElementById("image").value = c.image.replace(/^images\\//,"").replace(/^images\\//,"");
-      document.getElementById("good").value = (c.good||[]).join(", ");
-      document.getElementById("bad").value  = (c.bad||[]).join(", ");
-      document.getElementById("report").value = c.report||"";
+      <script>
+  // ============================
+  //  PASSWORD GATE (HASH-BASED)
+  //  Passphrase = "Engineer.1"
+  //  SHA-256 hex = b0134a6e1a4a1085710d2960f6f70744955a86cd5096c42cda5d85023cb3fab3
+  // ============================
+  const PASS_HASH_HEX = "b0134a6e1a4a1085710d2960f6f70744955a86cd5096c42cda5d85023cb3fab3";
 
-      // Replace entry on next add
+  async function sha256Hex(text) {
+    if (window.crypto && crypto.subtle) {
+      const enc = new TextEncoder().encode(text);
+      const buf = await crypto.subtle.digest("SHA-256", enc);
+      const arr = Array.from(new Uint8Array(buf));
+      return arr.map(b => b.toString(16).padStart(2, "0")).join("");
+    } else {
+      // Fallback simple hash (less secure but ensures mobile compatibility)
+      let hash = 0, i, chr;
+      for (i = 0; i < text.length; i++) {
+        chr = text.charCodeAt(i);
+        hash = (hash << 5) - hash + chr;
+        hash |= 0;
+      }
+      return ("00000000" + (hash >>> 0).toString(16)).slice(-8).repeat(8);
+    }
+  }
+
+  async function tryUnlock() {
+    const input = document.getElementById("passInput");
+    const msg = document.getElementById("lockMsg");
+    const btn = document.getElementById("unlockBtn");
+    btn.disabled = true;
+    btn.textContent = "Checking...";
+    msg.textContent = "";
+
+    try {
+      const enteredHash = await sha256Hex(input.value);
+      if (enteredHash === PASS_HASH_HEX) {
+        document.getElementById("lockScreen").style.display = "none";
+        document.getElementById("adminPanel").style.display = "block";
+      } else {
+        msg.textContent = "❌ Access denied. Wrong password.";
+      }
+    } catch (e) {
+      msg.textContent = "⚠️ Browser does not support secure login.";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Unlock";
+      input.value = "";
+    }
+  }
+
+  document.getElementById("unlockBtn").addEventListener("click", tryUnlock);
+  document.getElementById("passInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") tryUnlock();
+  });
+
+  // ============================
+  //  INVENTORY MANAGER (LOCAL)
+  // ============================
+  let cars = JSON.parse(localStorage.getItem("dreamlandCars") || "[]");
+
+  function saveLocal() { localStorage.setItem("dreamlandCars", JSON.stringify(cars)); }
+
+  function renderTable() {
+    const tbody = document.getElementById("carTableBody");
+    tbody.innerHTML = "";
+    cars.forEach((c, idx) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${c.make}</td>
+        <td>${c.model}</td>
+        <td>${c.year}</td>
+        <td>₦${c.price}</td>
+        <td>${c.engine}</td>
+        <td class="actions">
+          <button onclick="editCar(${idx})">Edit</button>
+          <button onclick="deleteCar(${idx})" style="background:#ff4444">Delete</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+    saveLocal();
+  }
+
+  function readForm() {
+    const v = id => document.getElementById(id).value.trim();
+    const make = v("make"), model = v("model"), year = parseInt(v("year") || "0", 10);
+    const engine = v("engine"), transmission = v("transmission"), mileage = v("mileage");
+    const vin = v("vin"), price = v("price"), location = v("location");
+    const image = v("image"), good = v("good"), bad = v("bad"), report = v("report");
+
+    if (!make || !model || !year || !price || !image) {
+      alert("Please fill at least: Make, Model, Year, Price, Image filename.");
+      return null;
+    }
+
+    return {
+      id: `${make.toLowerCase()}-${model.toLowerCase().replace(/\s+/g,'-')}-${year}`,
+      make, model, year, engine, transmission, mileage, vin, price, location,
+      image: image.startsWith("images/") ? image : ("images/" + image),
+      good: good ? good.split(",").map(s=>s.trim()).filter(Boolean) : [],
+      bad:  bad  ? bad.split(",").map(s=>s.trim()).filter(Boolean)  : [],
+      report
+    };
+  }
+
+  function clearForm() {
+    ["make","model","year","engine","transmission","mileage","vin","price","location","image","good","bad","report"]
+      .forEach(id => document.getElementById(id).value = "");
+  }
+
+  document.getElementById("addBtn").addEventListener("click", () => {
+    const car = readForm();
+    if (!car) return;
+    cars.push(car);
+    renderTable();
+    clearForm();
+    alert("✅ Car added to local draft.");
+  });
+
+  window.deleteCar = function(i) {
+    if (confirm("Delete this car from local draft?")) {
       cars.splice(i,1);
       renderTable();
-      alert("✏️ Edit the fields and click ‘Add Car’ to save changes.");
     }
+  };
 
-    // EXPORT
-    function exportJSON(){
-      const blob = new Blob([JSON.stringify(cars,null,2)], {type:"application/json"});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = "cars.json"; a.click();
-      URL.revokeObjectURL(url);
-      alert("📦 cars.json exported. Upload it to your GitHub repo root.");
-    }
-    document.getElementById("exportBtn").addEventListener("click", exportJSON);
-
-    // IMPORT EXISTING cars.json (to continue editing)
-    document.getElementById("importBtn").addEventListener("click", ()=>{
-      document.getElementById("importFile").click();
-    });
-    document.getElementById("importFile").addEventListener("change", async (e)=>{
-      const file = e.target.files[0];
-      if(!file) return;
-      try{
-        const text = await file.text();
-        const arr = JSON.parse(text);
-        if(!Array.isArray(arr)) throw new Error("Invalid format");
-        cars = arr;
-        renderTable();
-        alert("✅ cars.json imported into local draft.");
-      }catch(err){
-        alert("❌ Could not import. Ensure it’s a valid cars.json array.");
-      }finally{
-        e.target.value = "";
-      }
-    });
-
-    // CLEAR LOCAL
-    document.getElementById("clearBtn").addEventListener("click", ()=>{
-      if(confirm("This clears your local draft (NOT your live site). Proceed?")){
-        cars = [];
-        renderTable();
-        alert("🗑️ Local draft cleared.");
-      }
-    });
-
-    // Initial render (if any local)
+  window.editCar = function(i) {
+    const c = cars[i];
+    if (!c) return;
+    ["make","model","year","engine","transmission","mileage","vin","price","location","image","good","bad","report"]
+      .forEach(id => document.getElementById(id).value = c[id] || "");
+    cars.splice(i,1);
     renderTable();
-  </script>
-</body>
-        </html>
+    alert("✏️ Edit fields and click ‘Add Car’ to save changes.");
+  };
+
+  function exportJSON() {
+    const blob = new Blob([JSON.stringify(cars, null, 2)], {type: "application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "cars.json"; a.click();
+    URL.revokeObjectURL(url);
+    alert("📦 cars.json exported. Upload it to your GitHub repo root.");
+  }
+  document.getElementById("exportBtn").addEventListener("click", exportJSON);
+
+  document.getElementById("importBtn").addEventListener("click", ()=>document.getElementById("importFile").click());
+  document.getElementById("importFile").addEventListener("change", async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    try {
+      const text = await file.text();
+      const arr = JSON.parse(text);
+      if(!Array.isArray(arr)) throw new Error("Invalid format");
+      cars = arr; renderTable();
+      alert("✅ cars.json imported into local draft.");
+    } catch(err) {
+      alert("❌ Could not import. Ensure it’s valid cars.json format.");
+    } finally { e.target.value = ""; }
+  });
+
+  document.getElementById("clearBtn").addEventListener("click", ()=>{
+    if(confirm("This clears your local draft (NOT your live site). Proceed?")){
+      cars = []; renderTable(); alert("🗑️ Local draft cleared.");
+    }
+  });
+
+  renderTable();
+</script>
