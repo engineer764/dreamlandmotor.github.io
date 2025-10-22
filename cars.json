@@ -1,0 +1,42 @@
+[
+  {
+    "id": "toyota-highlander-2014",
+    "make": "Toyota",
+    "model": "Highlander Limited",
+    "year": 2014,
+    "engine": "3.5L V6",
+    "transmission": "Automatic",
+    "mileage": "78,000 km",
+    "vin": "5TDYKRFH7ES083214",
+    "price": "30,000,000",
+    "location": "Ikoyi, Lagos",
+    "image": "images/highlander2014.jpg",
+    "good": [
+      "Engine and transmission excellent",
+      "BSM and Parking Assist working perfectly",
+      "Cold AC, no error codes"
+    ],
+    "bad": ["Minor paint retouch on rear bumper"],
+    "report": "Reports/DA_Report_20251021_004633.pdf"
+  },
+  {
+    "id": "ford-edge-2008",
+    "make": "Ford",
+    "model": "Edge SEL",
+    "year": 2008,
+    "engine": "3.5L V6",
+    "transmission": "Automatic",
+    "mileage": "122,000 km",
+    "vin": "2FMDK38C08BA40215",
+    "price": "4,500,000",
+    "location": "Ikoyi, Lagos",
+    "image": "images/ford_edge2008.jpg",
+    "good": [
+      "Very smooth gear shifts",
+      "Good suspension",
+      "Clean interior and exterior"
+    ],
+    "bad": ["Front tires 60% life", "Minor steering leather wear"],
+    "report": ""
+  }
+]
