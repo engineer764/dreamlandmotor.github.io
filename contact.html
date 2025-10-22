@@ -1,1 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Contact Dreamland Motor Engineering Works – Lagos’ leading digital mechanic workshop. Visit us at Illubirin Mechanic Village or chat directly for expert diagnostics and car repairs.">
+  <title>Contact Dreamland Motor Engineering Works</title>
 
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background-color: #0b0c10;
+      color: #eaf6ff;
+      scroll-behavior: smooth;
+    }
+
+    /* ===== NAVBAR ===== */
+    nav {
+      background: linear-gradient(90deg, #00b4ff, #0066ff);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      box-shadow: 0 0 20px #00b4ff80;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    nav .logo {
+      color: white;
+      font-size: 1.6em;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      text-shadow: 0 0 10px #00b4ff;
+    }
+    nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      gap: 25px;
+    }
+    nav ul li a {
+      text-decoration: none;
+      color: white;
+      font-weight: 500;
+      transition: color 0.3s ease, text-shadow 0.3s ease;
+    }
+    nav ul li a:hover {
+      color: #00e0ff;
+      text-shadow: 0 0 10px #00e0ff;
+    }
+    .menu-toggle {
+      display: none;
+      flex-direction: column;
+      cursor: pointer;
+    }
+    .bar {
+      height: 3px;
+      width: 25px;
+      background-color: white;
+      margin: 4px 0;
+      transition: 0.4s;
+    }
+    @media (max-width: 768px) {
+      nav ul {
+        display: none;
+        flex-direction: column;
+        background: #0b0c10;
+        position: absolute;
+        top: 70px;
+        right: 0;
+        width: 200px;
+        text-align: right;
+        padding: 1rem;
+        border-left: 2px solid #00b4ff80;
+      }
+      nav ul.active { display: flex; }
+      .menu-toggle { display: flex; }
+    }
+
+    /* ===== CONTACT SECTION ===== */
+    .contact-section {
+      max-width: 900px;
+      margin: 60px auto;
+      padding: 20px;
+      text-align: center;
+    }
+    h2 {
+      color: #00b4ff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 30px;
+    }
+    .contact-info {
+      background: #11131a;
+      border-radius: 10px;
+      padding: 25px;
+      border: 1px solid #00b4ff40;
+      box-shadow: 0 0 15px #00b4ff40;
+      margin-bottom: 40px;
+    }
+    .contact-info p {
+      font-size: 1.05em;
+      line-height: 1.8;
+    }
+    .contact-info a {
+      color: #00e0ff;
+      text-decoration: none;
+    }
+
+    form {
+      display: grid;
+      gap: 15px;
+      max-width: 600px;
+      margin: 0 auto;
+      background: #11131a;
+      padding: 25px;
+      border-radius: 10px;
+      border: 1px solid #00b4ff40;
+      box-shadow: 0 0 20px #00b4ff40;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      border-radius: 6px;
+      border: none;
+      background: #0b0c10;
+      color: white;
+      font-size: 1em;
+      border: 1px solid #00b4ff60;
+      outline: none;
+    }
+    input:focus, textarea:focus {
+      border-color: #00e0ff;
+      box-shadow: 0 0 10px #00b4ff80;
+    }
+    button {
+      background: linear-gradient(90deg, #00b4ff, #0078ff);
+      border: none;
+      color: white;
+      font-weight: 600;
+      padding: 12px;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 0 15px #00b4ff70;
+      transition: 0.3s;
+    }
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 25px #00b4ffb0;
+    }
+
+    iframe {
+      border: 0;
+      width: 100%;
+      height: 300px;
+      margin-top: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px #00b4ff40;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      color: #99bce2;
+      border-top: 1px solid #00b4ff30;
+      margin-top: 40px;
+    }
+
+    /* ===== FLOATING WHATSAPP BUTTON ===== */
+    .whatsapp-float {
+      position: fixed;
+      width: 60px;
+      height: 60px;
+      bottom: 25px;
+      right: 25px;
+      background-color: #25D366;
+      color: white;
+      border-radius: 50%;
+      text-align: center;
+      font-size: 32px;
+      box-shadow: 0 0 20px #25D36690;
+      z-index: 1000;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .whatsapp-float:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 30px #25D366b0;
+    }
+    .whatsapp-icon {
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="logo">Dreamland Motor’s ⚙️</div>
+    <div class="menu-toggle" id="menu-toggle">
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    </div>
+    <ul id="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="analyzer.html">Analyzer</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="contact.html" style="color:#00e0ff;text-shadow:0 0 8px #00e0ff;">Contact</a></li>
+    </ul>
+  </nav>
+
+  <section class="contact-section">
+    <h2>Contact Dreamland Motor</h2>
+    <div class="contact-info">
+      <p><strong>📍 Address:</strong> Workshop A015, Illubirin Mechanic Village, Lafiaji, Lagos</p>
+      <p><strong>📞 Phone:</strong> <a href="tel:+2349066616152">+234 906 661 6152</a></p>
+      <p><strong>📧 Email:</strong> <a href="mailto:dreamlandmotorworks@gmail.com">dreamlandmotorworks@gmail.com</a></p>
+      <p><strong>🕓 Working Hours:</strong> Mon–Sat: 8:00am – 6:00pm</p>
+    </div>
+
+    <form id="contactForm">
+      <input type="text" id="name" placeholder="Your Full Name" required>
+      <input type="email" id="email" placeholder="Your Email" required>
+      <textarea id="message" rows="5" placeholder="Your Message..." required></textarea>
+      <button type="submit">Send Message via WhatsApp 💬</button>
+    </form>
+
+    <iframe src="https://www.google.com/maps?q=Illubirin+Mechanic+Village,+Lagos&output=embed" allowfullscreen></iframe>
+  </section>
+
+  <!-- FLOATING WHATSAPP BUTTON -->
+  <a href="https://wa.me/2349066616152" target="_blank" class="whatsapp-float" title="Chat with Dreamland on WhatsApp">
+    <i class="whatsapp-icon">💬</i>
+  </a>
+
+  <footer>
+    <p>© 2025 Dreamland Motor Engineering Works. Powered by Dreamland Analyzer ⚙️</p>
+  </footer>
+
+  <script>
+    // Mobile menu toggle
+    const menuToggle = document.getElementById('menu-toggle');
+    const navLinks = document.getElementById('nav-links');
+    menuToggle.addEventListener('click', () => {
+      navLinks.classList.toggle('active');
+    });
+
+    // WhatsApp auto-message from form
+    document.getElementById('contactForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const message = document.getElementById('message').value;
+      const phoneNumber = "2349066616152";
+      const text = `Hello Dreamland Motor's 👋,%0A%0AI'm ${name}.%0AEmail: ${email}%0A%0A${message}%0A%0AKindly assist.`;
+      const url = `https://wa.me/${phoneNumber}?text=${text}`;
+      window.open(url, "_blank");
+    });
+  </script>
+</body>
+      </html>
