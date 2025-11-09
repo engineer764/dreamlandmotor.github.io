@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://dreamlandmotor.com.ng/sitemap.xml
