@@ -1,80 +1,106 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dreamland Motor Engineering Works</title>
-  <style>
-    body {font-family: Arial, sans-serif; margin:0; line-height:1.6;}
-    .container {padding:20px; max-width:1100px; margin:auto;}
-    .hero {background:#000; color:#fff; padding:60px 20px; text-align:center;}
-    .btn {display:inline-block; padding:15px 25px; margin:10px; background:#28a745; color:#fff; text-decoration:none; border-radius:5px;}
-    .btn.secondary {background:#007bff;}
-    .section {padding:40px 20px;}
-    .grid {display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:20px;}
-    .card {padding:20px; border:1px solid #ddd; border-radius:10px;}
-    .testimonial {background:#f9f9f9; padding:20px; border-left:5px solid #28a745;}
-    .offer {background:#ffefc2; padding:30px; text-align:center; font-size:1.2em;}
-    .cta {text-align:center; padding:40px; background:#000; color:#fff;}
-    footer {text-align:center; padding:20px; background:#111; color:#ccc;}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dreamland Motor Engineering Works</title>
+
+<style>
+body {font-family: Arial, sans-serif; margin:0; line-height:1.6;}
+.container {max-width:1100px; margin:auto; padding:20px;}
+.hero {background:#000; color:#fff; text-align:center; padding:70px 20px;}
+.btn {display:inline-block; padding:15px 25px; margin:10px; border-radius:6px; text-decoration:none; font-weight:bold;}
+.btn-whatsapp {background:#25D366; color:#fff;}
+.btn-book {background:#007bff; color:#fff;}
+.section {padding:50px 20px;}
+.grid {display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:20px;}
+.card {border:1px solid #ddd; padding:20px; border-radius:10px;}
+.offer {background:#ffe8a1; text-align:center; padding:30px; font-size:1.2em;}
+.cta {background:#000; color:#fff; text-align:center; padding:50px 20px;}
+footer {background:#111; color:#ccc; text-align:center; padding:20px;}
+.whatsapp-float {
+  position:fixed; bottom:20px; right:20px;
+  background:#25D366; color:#fff; padding:15px;
+  border-radius:50%; text-decoration:none; font-size:20px;
+}
+</style>
 </head>
-<body><!-- HERO SECTION --><section class="hero">
-  <h1>Accurate Car Diagnosis & Repair in Ikoyi</h1>
-  <p>We use advanced diagnostic technology (Dreamland Analyzer) to detect faults precisely — no guesswork.</p>
-  <a class="btn" href="https://wa.me/2349066616152?text=Hello%2C%20I%20saw%20your%20website.%20I%20need%20car%20diagnosis">Chat on WhatsApp</a>
-  <a class="btn secondary" href="#services">Book Diagnosis</a>
-</section><!-- WHY CHOOSE US --><section class="section container">
-  <h2>Why Choose Us</h2>
+
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <h1>Accurate Car Diagnosis in Ibadan — No Guesswork</h1>
+  <p>Powered by Dreamland Analyzer to detect faults precisely and fix the real problem.</p>
+
+  <a class="btn btn-whatsapp"
+     href="https://wa.me/2349066616152?text=Hello%20I%20need%20car%20diagnosis">
+     Chat on WhatsApp
+  </a>
+
+  <a class="btn btn-book" href="#services">Book Diagnosis</a>
+</section>
+
+<!-- POSITIONING -->
+<section class="section container">
+  <h2>We Are Not Regular Mechanics</h2>
+  <p>Most workshops guess and replace parts blindly.</p>
+  <p><strong>We diagnose first, then repair.</strong></p>
+  <p>This saves you money, time, and repeated breakdowns.</p>
+</section>
+
+<!-- ADVANTAGE -->
+<section class="section container">
+  <h2>Powered by Dreamland Analyzer</h2>
   <div class="grid">
-    <div class="card">
-      <h3>Advanced Diagnostics</h3>
-      <p>Powered by Dreamland Analyzer for precise fault detection.</p>
-    </div>
-    <div class="card">
-      <h3>No Guesswork</h3>
-      <p>We diagnose before repairs, saving you time and money.</p>
-    </div>
-    <div class="card">
-      <h3>Fast & Reliable</h3>
-      <p>Quick turnaround with accurate solutions.</p>
-    </div>
+    <div class="card">Precise fault detection</div>
+    <div class="card">No trial-and-error repairs</div>
+    <div class="card">Faster diagnosis</div>
+    <div class="card">Reduced repair cost</div>
   </div>
-</section><!-- SERVICES --><section id="services" class="section container">
+</section>
+
+<!-- SERVICES -->
+<section id="services" class="section container">
   <h2>Our Services</h2>
   <div class="grid">
-    <div class="card">
-      <h3>Engine Diagnostics</h3>
-      <p>Identify engine faults accurately and fix them fast.</p>
-    </div>
-    <div class="card">
-      <h3>Electrical Repairs</h3>
-      <p>Trace and fix complex wiring and electrical issues.</p>
-    </div>
-    <div class="card">
-      <h3>ECU Scanning</h3>
-      <p>Advanced scanning to detect hidden system faults.</p>
-    </div>
-    <div class="card">
-      <h3>Pre-Purchase Inspection</h3>
-      <p>Know the true condition of any car before buying.</p>
-    </div>
+    <div class="card"><strong>Engine Diagnostics</strong><br>Fix rough idle, power loss, check engine issues</div>
+    <div class="card"><strong>Electrical Repairs</strong><br>Resolve wiring & sensor faults</div>
+    <div class="card"><strong>ECU Scanning</strong><br>Advanced system analysis</div>
+    <div class="card"><strong>Pre-Purchase Inspection</strong><br>Avoid bad vehicles</div>
   </div>
-</section><!-- TESTIMONIALS --><section class="section container">
-  <h2>What Our Customers Say</h2>
-  <div class="testimonial">
-    <p>"They fixed my car after several mechanics failed. Very accurate diagnosis!"</p>
-  </div>
-  <div class="testimonial">
-    <p>"Saved me money by detecting the exact issue quickly."</p>
-  </div>
-</section><!-- OFFER --><section class="offer">
-  <p><strong>Limited Offer:</strong> Full Diagnostic Scan for just ₦5,000</p>
-</section><!-- CTA --><section class="cta">
-  <h2>Having Car Issues?</h2>
-  <p>Stop guessing. Let us diagnose it properly.</p>
-  <a class="btn" href="https://wa.me/2349066616152?text=Hello%2C%20I%20need%20a%20car%20diagnosis">Chat on WhatsApp Now</a>
-</section><!-- FOOTER --><footer>
-  <p>Dreamland Motor Engineering Works | Lagos</p>
-  <p>Call: 09066616152</p>
-</footer></body>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="section container">
+  <h2>What Customers Say</h2>
+  <p>“They fixed what others couldn’t diagnose.”</p>
+  <p>“Saved me from wasting money replacing parts.”</p>
+</section>
+
+<!-- OFFER -->
+<section class="offer">
+  <strong>Limited Offer:</strong> Full Diagnostic Scan — ₦5,000
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <h2>Stop Guessing. Fix It Right.</h2>
+  <a class="btn btn-whatsapp"
+     href="https://wa.me/2349066616152?text=Hello%20I%20need%20diagnosis">
+     Chat on WhatsApp Now
+  </a>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  Dreamland Motor Engineering Works | Lagos<br>
+  Call: 09066616152
+</footer>
+
+<!-- FLOATING WHATSAPP -->
+<a class="whatsapp-float"
+   href="https://wa.me/2349066616152?text=Hello%20I%20need%20diagnosis">💬</a>
+
+</body>
 </html>
