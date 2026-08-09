@@ -85,6 +85,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            cursor: pointer;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .vehicle-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
         }
         .vehicle-info h4 { margin: 0 0 4px 0; font-size: 1rem; }
         .vehicle-meta { font-size: 0.75rem; color: #64748b; }
@@ -165,6 +171,11 @@
         vehicles.forEach(car => {
             const card = document.createElement('div')
             card.className = 'vehicle-card'
+            
+            // Make card clickable to open vehicle detail management page
+            card.onclick = () => {
+                window.location.href = `vehicle-detail.html?id=${car.id}`
+            }
             
             const badgeClass = car.sales_status === 'PUBLISHED' ? 'published' : car.sales_status === 'SOLD' ? 'sold' : 'draft'
             
