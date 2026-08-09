@@ -71,7 +71,7 @@
 
         try {
             await loginStaff(email, password)
-            window.location.href = 'add-vehicle.html' // Redirect to mobile admin workflow
+            window.location.href = 'admin-dashboard.html' // Redirect straight to main dashboard
         } catch (err) {
             errorDiv.textContent = err.message
             errorDiv.style.display = 'block'
@@ -80,4 +80,4 @@
 </script>
 
 </body>
-</html>
+</html>vehicleService.jsvehicleService.js
