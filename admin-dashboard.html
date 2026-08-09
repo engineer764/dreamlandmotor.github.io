@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard — Dreamland Verified</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #cbd5e1;
+            --success: #16a34a;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--primary);
+            margin: 0;
+            padding: 16px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--primary);
+            color: white;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        header h2 { margin: 0; font-size: 1.125rem; }
+        .logout-btn { background: #dc2626; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+        .add-btn {
+            display: block;
+            background: var(--accent);
+            color: white;
+            text-align: center;
+            padding: 14px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        /* Filter Chips */
+        .filters {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+        .filter-chip {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .filter-chip.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        /* Vehicle List Cards */
+        .vehicle-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .vehicle-info h4 { margin: 0 0 4px 0; font-size: 1rem; }
+        .vehicle-meta { font-size: 0.75rem; color: #64748b; }
+        
+        .status-badge {
+            font-size: 0.7rem;
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: #e2e8f0;
+            color: #334155;
+        }
+        .status-badge.published { background: #dcfce7; color: var(--success); }
+        .status-badge.draft { background: #f1f5f9; color: #475569; }
+        .status-badge.sold { background: #fee2e2; color: #dc2626; }
+    </style>
+
+    <script type="module">
+        import { requireAuth } from './supabaseClient.js'
+        await requireAuth() // Enforce secure admin session
+    </script>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div>
+            <h2>Dreamland Admin</h2>
+            <span id="userNameDisplay" style="font-size:0.75rem; color:#94a3b8;">Loading user...</span>
+        </div>
+        <button class="logout-btn" id="logoutBtn">Logout</button>
+    </header>
+
+    <a href="add-vehicle.html" class="add-btn">+ ADD NEW VEHICLE</a>
+
+    <div class="filters" id="filterContainer">
+        <div class="filter-chip active" data-status="ALL">All</div>
+        <div class="filter-chip" data-status="DRAFT">Draft</div>
+        <div class="filter-chip" data-status="PUBLISHED">Published</div>
+        <div class="filter-chip" data-status="RESERVED">Reserved</div>
+        <div class="filter-chip" data-status="SOLD">Sold</div>
+    </div>
+
+    <div id="vehicleList">
+        <p style="text-align:center; color:#64748b;">Loading inventory...</p>
+    </div>
+</div>
+
+<script type="module">
+    import { supabase, logoutStaff } from './supabaseClient.js'
+    import { getAdminVehicles } from './vehicleService.js'
+
+    document.getElementById('logoutBtn').addEventListener('click', logoutStaff)
+
+    async function initDashboard() {
+        // Display user info
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+            const { data: profile } = await supabase.from('users').select('name').eq('id', session.user.id).single()
+            if (profile) document.getElementById('userNameDisplay').textContent = profile.name
+        }
+
+        loadVehicles('ALL')
+    }
+
+    async function loadVehicles(status) {
+        const listContainer = document.getElementById('vehicleList')
+        listContainer.innerHTML = '<p style="text-align:center; color:#64748b;">Loading records...</p>'
+
+        const vehicles = await getAdminVehicles(status)
+
+        if (!vehicles || vehicles.length === 0) {
+            listContainer.innerHTML = '<p style="text-align:center; color:#64748b;">No vehicles found for this filter.</p>'
+            return
+        }
+
+        listContainer.innerHTML = ''
+        vehicles.forEach(car => {
+            const card = document.createElement('div')
+            card.className = 'vehicle-card'
+            
+            const badgeClass = car.sales_status === 'PUBLISHED' ? 'published' : car.sales_status === 'SOLD' ? 'sold' : 'draft'
+            
+            card.innerHTML = `
+                <div class="vehicle-info">
+                    <span style="font-size:0.75rem; color:#2563eb; font-weight:bold;">${car.vehicle_id}</span>
+                    <h4>${car.year} ${car.make} ${car.model} ${car.trim || ''}</h4>
+                    <div class="vehicle-meta">₦${Number(car.price).toLocaleString()} • ${car.location}</div>
+                </div>
+                <div>
+                    <span class="status-badge ${badgeClass}">${car.sales_status}</span>
+                </div>
+            `
+            listContainer.appendChild(card)
+        })
+    }
+
+    // Filter chip click handlers
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+        chip.addEventListener('click', (e) => {
+            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'))
+            e.target.classList.add('active')
+            loadVehicles(e.target.dataset.status)
+        })
+    })
+
+    initDashboard()
+</script>
+
+</body>
+</html>
