@@ -1,13 +1,3 @@
-import { requireAuth } from './supabaseClient.js'
-
-// Run authentication guard on page load
-const authData = await requireAuth()
-if (!authData) {
-    // Execution stops and user is redirected to login.html automatically
-} else {
-    console.log(`Logged in as: ${authData.profile.name} (${authData.profile.role})`)
-}
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -80,6 +70,18 @@ if (!authData) {
             background: #1d4ed8;
         }
     </style>
+
+    <!-- Authentication Guard Script (Must be type="module" to use await) -->
+    <script type="module">
+        import { requireAuth } from './supabaseClient.js'
+
+        const authData = await requireAuth()
+        if (!authData) {
+            // Execution stops and user is redirected to login.html automatically
+        } else {
+            console.log(`Logged in as: ${authData.profile.name} (${authData.profile.role})`)
+        }
+    </script>
 </head>
 <body>
 
