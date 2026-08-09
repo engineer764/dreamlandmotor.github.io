@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dreamland Verified Standard | How We Inspect & Verify Used Cars</title>
+    <meta name="description" content="Discover the Dreamland Verified standard. Learn how we inspect mechanical, diagnostic, electrical, body, and chassis systems with evidence-based assessments.">
+    <style>
+        :root {
+            --primary: #1a1a2e;
+            --secondary: #e94560;
+            --accent: #0f3460;
+            --light: #f4f6f9;
+            --dark: #121212;
+            --gray: #6c757d;
+            --border: #dee2e6;
+            --success: #2e7d32;
+            --warning: #ed6c02;
+            --danger: #d32f2f;
+            --whatsapp: #25d366;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        /* Header & Navigation */
+        header {
+            background-color: var(--primary);
+            color: #fff;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #fff;
+            text-decoration: none;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-links {
+            list-style: none;
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: #cbd5e1;
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .whatsapp-btn-nav {
+            background-color: var(--whatsapp);
+            color: #fff !important;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: #fff;
+            padding: 5rem 2rem;
+            text-align: center;
+        }
+
+        .hero-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 2.75rem;
+            margin-bottom: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .hero p {
+            font-size: 1.15rem;
+            color: #cbd5e1;
+            margin-bottom: 1.5rem;
+            line-height: 1.7;
+        }
+
+        .clarification-box {
+            background: rgba(255, 255, 255, 0.08);
+            border-left: 4px solid var(--secondary);
+            padding: 1rem 1.5rem;
+            text-align: left;
+            border-radius: 0 4px 4px 0;
+            margin-bottom: 2rem;
+            font-size: 1.05rem;
+            color: #fff;
+        }
+
+        .hero-cta-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .btn-primary {
+            background-color: var(--secondary);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background-color: #d63851;
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            color: #fff;
+            border: 2px solid rgba(255,255,255,0.4);
+        }
+
+        .btn-outline:hover {
+            border-color: #fff;
+            background-color: rgba(255,255,255,0.05);
+        }
+
+        /* Main Content Layout */
+        .standard-container {
+            max-width: 1000px;
+            margin: 4rem auto;
+            padding: 0 2rem;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .content-block {
+            background: #fff;
+            padding: 2.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.03);
+            margin-bottom: 2.5rem;
+        }
+
+        .content-block h2 {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .content-block h2 span {
+            color: var(--secondary);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .content-block p {
+            color: var(--gray);
+            margin-bottom: 1rem;
+            font-size: 1.02rem;
+        }
+
+        .checklist {
+            list-style: none;
+            margin-top: 1rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .checklist li {
+            position: relative;
+            padding-left: 1.5rem;
+            color: var(--dark);
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .checklist li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--secondary);
+            font-weight: bold;
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+
+        .badge-status-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .status-card {
+            background: var(--light);
+            padding: 1.5rem;
+            border-radius: 6px;
+            border-top: 4px solid var(--border);
+        }
+
+        .status-card.green { border-color: var(--success); }
+        .status-card.yellow { border-color: var(--warning); }
+        .status-card.red { border-color: var(--danger); }
+
+        .status-card h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Result Rating Cards */
+        .rating-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+            margin-top: 1.5rem;
+        }
+
+        .rating-card {
+            background: var(--light);
+            border-left: 5px solid var(--border);
+            padding: 1.25rem 1.5rem;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .rating-card.pass { border-color: var(--success); }
+        .rating-card.attention { border-color: var(--warning); background: rgba(237, 108, 2, 0.03); }
+        .rating-card.fail { border-color: var(--danger); }
+
+        .rating-card h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.4rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .rating-example {
+            background: #fff;
+            padding: 0.85rem 1rem;
+            border-radius: 4px;
+            margin-top: 0.75rem;
+            border: 1px dashed var(--border);
+            font-size: 0.92rem;
+            color: var(--dark);
+        }
+
+        .rating-example strong {
+            color: var(--primary);
+        }
+
+        /* Condition Table */
+        .condition-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+            background: #fff;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .condition-table th, .condition-table td {
+            padding: 0.85rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.95rem;
+        }
+
+        .condition-table th {
+            background-color: var(--primary);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .condition-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Evidence Report Box */
+        .evidence-box {
+            background: var(--primary);
+            color: #fff;
+            padding: 2rem;
+            border-radius: 8px;
+            font-family: monospace;
+            margin-top: 1.5rem;
+        }
+
+        .evidence-box h3 {
+            color: var(--secondary);
+            margin-bottom: 1rem;
+            font-family: sans-serif;
+        }
+
+        .evidence-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.75rem;
+            font-size: 0.95rem;
+        }
+
+        /* Exclusions List */
+        .exclusion-list {
+            list-style: none;
+            margin-top: 1rem;
+        }
+
+        .exclusion-list li {
+            position: relative;
+            padding-left: 1.75rem;
+            margin-bottom: 0.75rem;
+            color: var(--dark);
+            font-size: 0.98rem;
+        }
+
+        .exclusion-list li::before {
+            content: "✕";
+            position: absolute;
+            left: 0;
+            color: var(--danger);
+            font-weight: bold;
+        }
+
+        .highlight-statement {
+            background: rgba(233, 69, 96, 0.08);
+            border-left: 4px solid var(--secondary);
+            padding: 1.25rem;
+            font-weight: 600;
+            color: var(--primary);
+            border-radius: 0 4px 4px 0;
+            margin-top: 1.5rem;
+            font-size: 1.05rem;
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--primary);
+            color: #94a3b8;
+            padding: 3rem 2rem 2rem 2rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-brand {
+            color: #fff;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .footer-links {
+            list-style: none;
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .footer-links a:hover {
+            color: #fff;
+        }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            .hero h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header / Navigation -->
+    <header>
+        <div class="nav-container">
+            <a href="index.html" class="logo">Dreamland Motor Engineering Works</a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="services.html">Services</a></li>
+                <li><a href="verified-cars.html" class="active">Verified Cars</a></li>
+                <li><a href="ppi.html">PPI</a></li>
+                <li><a href="corporate.html">Corporate FleetCare</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="https://wa.me/2349066616152" target="_blank" class="whatsapp-btn-nav">WhatsApp</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>What Does Dreamland Verified Mean?</h1>
+            <p>Dreamland Verified is our structured vehicle inspection and condition-assessment standard for vehicles offered through Dreamland Verified Cars.</p>
+            <div class="clarification-box">
+                <strong>Important:</strong> Verified does not mean perfect. It means the vehicle has been inspected against defined criteria and relevant findings have been documented.
+            </div>
+            <div class="hero-cta-group">
+                <a href="verified-cars.html" class="btn btn-primary">Browse Verified Cars &rarr;</a>
+                <a href="ppi.html" class="btn btn-outline">Request a PPI</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content Container -->
+    <div class="standard-container">
+
+        <!-- Verification Philosophy -->
+        <div class="content-block">
+            <h2>Evidence Before Claims</h2>
+            <p>Dreamland does not verify a vehicle simply because it looks clean, the seller says it is good, it has low mileage, there are no warning lights, or it drives reasonably well.</p>
+            <p>Instead, <strong>we assess the vehicle using physical inspection, diagnostic information, functional checks and road-test observations</strong>, aligning directly with our diagnostic-first positioning.</p>
+        </div>
+
+        <!-- Result Rating Standard (Mandatory Rule) -->
+        <div class="content-block">
+            <h2>Result Rating Standard <span>(PASS / ATTENTION / FAIL)</span></h2>
+            <p>Every individual inspection area within a Dreamland vehicle report is evaluated using three explicit ratings. Crucially, <strong>“Attention” is never a vague yellow label</strong>—it must always answer two core questions: <em>What is wrong?</em> and <em>What should be done about it?</em></p>
+            
+            <div class="rating-grid">
+                <div class="rating-card pass">
+                    <h4>🟢 PASS</h4>
+                    <p>The inspected item is functioning within the expected condition observed during inspection. No corrective action is currently recommended based on the inspection findings.</p>
+                </div>
+
+                <div class="rating-card attention">
+                    <h4>🟡 ATTENTION (Mandatory Rule Applied)</h4>
+                    <p>A fault, abnormal condition, wear, deterioration, or maintenance requirement was identified. The report must state <strong>the specific fault or finding, its significance, and the recommended corrective action or repair.</strong> “Attention” must never be used as a vague condition label.</p>
+                    <p><strong>Mandatory reporting rule:</strong> Every ATTENTION result must answer two questions: <strong>What is wrong?</strong> and <strong>What should be done about it?</strong></p>
+                    
+                    <div class="rating-example">
+                        <strong>Example 1 (Mechanical Condition &mdash; ATTENTION):</strong><br>
+                        • <strong>Finding:</strong> Minor oil leakage detected around the valve-cover area.<br>
+                        • <strong>Recommended Fix:</strong> Replace valve-cover gasket and recheck for leakage after repair.
+                    </div>
+
+                    <div class="rating-example">
+                        <strong>Example 2 (Suspension &mdash; ATTENTION):</strong><br>
+                        • <strong>Finding:</strong> Front lower control-arm bushings show excessive wear.<br>
+                        • <strong>Recommended Fix:</strong> Replace worn bushings/control arms and perform wheel-alignment check.
+                    </div>
+
+                    <div class="rating-example">
+                        <strong>Example 3 (Diagnostics &mdash; ATTENTION):</strong><br>
+                        • <strong>Finding:</strong> Pending DTC detected; further diagnostic testing required.<br>
+                        • <strong>Recommended Action:</strong> Complete circuit/component testing before vehicle approval.
+                    </div>
+                </div>
+
+                <div class="rating-card fail">
+                    <h4>🔴 FAIL</h4>
+                    <p>A significant fault, safety concern, or condition outside the acceptable Dreamland Verified criteria was identified. The inspection report must state <strong>the specific fault, the recommended corrective action, and why the vehicle cannot currently qualify for Dreamland Verified status.</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- The Six Core Inspection Areas -->
+        <div class="content-block">
+            <h2>The Inspection Standard <span>(Six Core Areas)</span></h2>
+            <p>Every vehicle undergoes rigorous evaluation across structured functional domains before receiving its status classification.</p>
+            
+            <div style="margin-top: 2rem;">
+                <h3 style="color: var(--primary); font-size: 1.15rem; margin-bottom: 0.5rem;">01 &mdash; Mechanical Condition</h3>
+                <p>Assesses engine condition, oil condition, cooling system integrity, cooling and fluid leaks, belts and components, performance, starting behavior, idle quality, abnormal noises, and transmission operation/output.</p>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid var(--border); margin: 1.5rem 0;">
+
+            <div>
+                <h3 style="color: var(--primary); font-size: 1.15rem; margin-bottom: 0.5rem;">02 &mdash; Computer Diagnostics</h3>
+                <p>One of Dreamland's strongest differentiators. Utilizing Dreamland Analyzer where appropriate, we scan ECU/ECMs for stored and pending DTCs, history codes, warning indicators, live sensor data, system communication, and readiness status.</p>
+                <p><em>Diagnostic results are interpreted in relation to the vehicle's actual symptoms, operating conditions and physical inspection findings.</em></p>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid var(--border); margin: 1.5rem 0;">
+
+            <div>
+                <h3 style="color: var(--primary); font-size: 1.15rem; margin-bottom: 0.5rem;">03 &mdash; Electrical & Electronic Systems</h3>
+                <p>Inspects the battery, charging and starting systems, exterior/interior lighting, power windows, central locking, instrument cluster, sensors, accessories, AC electrical operations, and network communications.</p>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid var(--border); margin: 1.5rem 0;">
+
+            <div>
+                <h3 style="color: var(--primary); font-size: 1.15rem; margin-bottom: 0.5rem;">04 &mdash; Body & Accident Assessment</h3>
+                <p>Checks for panel replacement, panel repairs, paintwork variations, overspray, uneven panel gaps, structural repair indicators, chassis/frame concerns, corrosion, and flood-related indicators.</p>
+                <p><em>Note: We do not claim “This car has never been in an accident.” Instead, our report states whether <strong>“No significant accident/structural repair evidence detected during inspection”</strong> if established by findings.</em></p>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid var(--border); margin: 1.5rem 0;">
+
+            <div>
+                <h3 style="color: var(--primary); font-size: 1.15rem; margin-bottom: 0.5rem;">05 &mdash; Chassis, Suspension & Braking</h3>
+                <p>Assesses suspension components, shock absorbers/struts, steering components, wheel bearings, brake condition and operation, tyres, wheel condition, and alignment-related observations.</p>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid var(--border); margin: 1.5rem 0;">
+
+            <div>
+                <h3 style="color: var(--primary); font-size: 1.15rem; margin-bottom: 0.5rem;">06 &mdash; Interior, Functional & Road Test</h3>
+                <p>Evaluates dashboard warning lights, seats, windows, locks, mirrors, infotainment, wipers, horn, lights, AC/heating, and major accessories. Safe vehicles undergo a road test assessing acceleration, gear shifts, braking, steering, and noise/vibration.</p>
+                <p><strong>Road Test Status:</strong> Passed / Passed with observations / Not completed</p>
+            </div>
+        </div>
+
+        <!-- Verification Status System -->
+        <div class="content-block">
+            <h2>Verification Status System</h2>
+            <div class="badge-status-container">
+                <div class="status-card green">
+                    <h4>&#128994; DREAMLAND VERIFIED</h4>
+                    <p>The vehicle meets the defined Dreamland Verified criteria based on the inspection performed.</p>
+                </div>
+                <div class="status-card yellow">
+                    <h4>&#128993; VERIFIED WITH NOTES</h4>
+                    <p>The vehicle may still be suitable for purchase, but significant observations, maintenance requirements or disclosed issues exist.</p>
+                </div>
+                <div class="status-card red">
+                    <h4>&#128308; NOT VERIFIED</h4>
+                    <p>The vehicle does not currently meet the Dreamland Verified criteria and should not be marketed under this badge.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Condition Rating Breakdown -->
+        <div class="content-block">
+            <h2>Condition Assessment Breakdown</h2>
+            <p>We separate overall verification status from individual component ratings so you can see precisely why a vehicle received its assessment rather than relying on a vague numerical score.</p>
+            
+            <table class="condition-table">
+                <thead>
+                    <tr>
+                        <th>Inspection Area</th>
+                        <th>Assessment Result</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Mechanical Condition</td>
+                        <td><strong>Good (Pass)</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Computer Diagnostics</td>
+                        <td><strong>Good (Pass)</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Electrical Systems</td>
+                        <td><strong>Good (Pass)</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Body & Paint</td>
+                        <td><strong>ATTENTION</strong><br>Finding: Previous minor repair identified.<br>Recommended Action: Document the repaired area and assess for any remaining structural, alignment, corrosion, or functional concerns.</td>
+                    </tr>
+                    <tr>
+                        <td>Chassis & Suspension</td>
+                        <td><strong>Good (Pass)</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Road Test Performance</td>
+                        <td><strong>Passed</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Disclosure Policy -->
+        <div class="content-block">
+            <h2>We Disclose What We Find</h2>
+            <p>Any significant faults or relevant observations identified during inspection are fully documented in the vehicle report. Disclosures may include:</p>
+            <ul class="checklist">
+                <li>Previous repairs or paintwork</li>
+                <li>Active or minor oil leaks</li>
+                <li>Worn suspension components</li>
+                <li>Logged diagnostic trouble codes</li>
+                <li>Tyre condition and wear patterns</li>
+                <li>Upcoming maintenance requirements</li>
+            </ul>
+            <p style="margin-top: 1rem;">Buyers should never have to discover a known issue after purchase.</p>
+        </div>
+
+        <!-- What Dreamland Verified Does NOT Mean -->
+        <div class="content-block">
+            <h2>What Dreamland Verified Does NOT Mean</h2>
+            <p>To protect brand integrity and maintain full transparency, please note that Dreamland Verified does not mean:</p>
+            <ul class="exclusion-list">
+                <li>The vehicle is brand new.</li>
+                <li>The vehicle will never develop a fault.</li>
+                <li>Every component has been dismantled and internally inspected.</li>
+                <li>Hidden defects that cannot reasonably be detected during inspection are impossible.</li>
+                <li>Future repairs are guaranteed to be unnecessary.</li>
+                <li>The vehicle has never been involved in any accident unless specifically supported by documented evidence.</li>
+            </ul>
+            
+            <div class="highlight-statement">
+                Dreamland Verified reflects the condition observed at the time of inspection.
+            </div>
+        </div>
+
+        <!-- Inspection Evidence Example -->
+        <div class="content-block">
+            <h2>Sample Inspection Record</h2>
+            <p><strong>Illustrative Sample — Not an Actual Vehicle Record.</strong> Every verified vehicle includes a transparent log of actual findings and dates.</p>
+            
+            <div class="evidence-box">
+                <h3>ILLUSTRATIVE SAMPLE — DREAMLAND VERIFIED REPORT FORMAT</h3>
+                <div class="evidence-grid">
+                    <div><strong>Vehicle ID:</strong> DV-001</div>
+                    <div><strong>Inspection Date:</strong> 09 August 2026</div>
+                    <div><strong>Inspector:</strong> Dreamland Motor Engineering Works</div>
+                    <div><strong>Mechanical:</strong> PASS</div>
+                    <div><strong>Diagnostics:</strong> PASS</div>
+                    <div><strong>Electrical:</strong> PASS</div>
+                    <div><strong>Body:</strong> ATTENTION — Finding: Minor previous repair identified. Recommended Action: Document repaired area and assess for any remaining concerns.</div>
+                    <div><strong>Chassis:</strong> PASS</div>
+                    <div><strong>Road Test:</strong> PASSED</div>
+                </div>
+                <div style="margin-top: 1rem; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 0.75rem;">
+                    <strong>Status:</strong> VERIFIED WITH NOTES (Inspection date is an integral part of validity).
+                </div>
+            </div>
+        </div>
+
+        <!-- Independent Inspection CTA -->
+        <div class="content-block" style="background: linear-gradient(135deg, var(--accent), var(--primary)); color: #fff; text-align: center; border: none;">
+            <h2 style="color: #fff; justify-content: center;">Buying a High-Value Vehicle?</h2>
+            <p style="color: #cbd5e1; max-width: 600px; margin: 0 auto 1.5rem auto;">We encourage buyers to conduct any additional independent inspection they consider appropriate before completing the purchase.</p>
+            <a href="ppi.html" class="btn btn-primary">Request a Pre-Purchase Inspection &rarr;</a>
+        </div>
+
+        <!-- Final CTA -->
+        <div style="text-align: center; margin-top: 4rem;">
+            <h2 class="section-title">Looking for a Vehicle You Can Buy With More Confidence?</h2>
+            <p style="color: var(--gray); margin-bottom: 1.5rem; max-width: 600px; margin-left: auto; margin-right: auto;">Browse available Dreamland Verified vehicles and review their inspection information before making your decision.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <a href="verified-cars.html" class="btn btn-primary">Browse Verified Cars &rarr;</a>
+                <a href="ppi.html" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary);">Request a PPI</a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-brand">Dreamland Motor Engineering Works</div>
+            <ul class="footer-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="services.html">Services</a></li>
+                <li><a href="verified-cars.html">Verified Cars</a></li>
+                <li><a href="ppi.html">PPI</a></li>
+                <li><a href="corporate.html">Corporate FleetCare</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+        </div>
+        <div class="footer-bottom">
+            &copy; 2026 Dreamland Motor Engineering Works. All rights reserved.
+        </div>
+    </footer>
+
+</body>
+</html>
