@@ -1,0 +1,32 @@
+<!-- Admin Vehicle Management Control Panel Snippet -->
+<div class="admin-actions-card" style="background:#ffffff; border:1px solid #cbd5e1; padding:16px; border-radius:8px; margin-top:20px;">
+    <h3>Inventory Control</h3>
+    <p>Current Status: <strong id="currentStatusDisplay" style="color:#2563eb;">PUBLISHED</strong></p>
+    
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+        <button type="button" onclick="confirmStatusChange('RESERVED')" style="flex:1; background:#ca8a04; color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer;">Mark Reserved</button>
+        <button type="button" onclick="confirmStatusChange('SOLD')" style="flex:1; background:#dc2626; color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer;">Mark Sold</button>
+    </div>
+</div>
+
+<script type="module">
+    import { updateVehicleSalesStatus } from './salesService.js'
+
+    window.confirmStatusChange = async function(targetStatus) {
+        const vehicleUuid = "ENTER_VEHICLE_UUID_HERE" // Retrieved from active admin view
+        const adminUserId = "ENTER_CURRENT_ADMIN_UUID" // Retrieved from Supabase auth session
+
+        const actionName = targetStatus === 'SOLD' ? 'SOLD' : 'RESERVED';
+        const confirmed = confirm(`Are you sure you want to mark this vehicle as ${actionName}?\n\nIt will immediately be removed from the public inventory catalogue.`);
+
+        if (!confirmed) return;
+
+        try {
+            await updateVehicleSalesStatus(vehicleUuid, targetStatus, adminUserId);
+            alert(`Vehicle successfully marked as ${targetStatus}.`);
+            window.location.reload();
+        } catch (err) {
+            alert(`Failed to update status: ${err.message}`);
+        }
+    }
+</script>
