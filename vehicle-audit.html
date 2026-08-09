@@ -1,0 +1,38 @@
+<div class="audit-container" style="background:#ffffff; border:1px solid #cbd5e1; padding:20px; border-radius:8px; margin-top:24px;">
+    <h3>Vehicle Audit History</h3>
+    <div id="auditTimeline">
+        <p style="color:#64748b; font-size:0.875rem;">Loading audit trail...</p>
+    </div>
+</div>
+
+<script type="module">
+    import { getVehicleAuditLogs } from './auditService.js'
+
+    async function renderAuditTrail(vehicleUuid) {
+        const timeline = document.getElementById('auditTimeline')
+        const logs = await getVehicleAuditLogs(vehicleUuid)
+
+        if (!logs || logs.length === 0) {
+            timeline.innerHTML = '<p style="font-size:0.875rem; color:#64748b;">No audit history recorded yet.</p>'
+            return
+        }
+
+        timeline.innerHTML = logs.map(log => {
+            const dateStr = new Date(log.created_at).toLocaleString('en-GB', {
+                day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            })
+            const userName = log.users ? log.users.name : 'System / Staff'
+
+            return `
+                <div style="border-left: 2px solid #2563eb; padding-left: 12px; margin-bottom: 16px;">
+                    <div style="font-size:0.75rem; color:#64748b;">${dateStr} • <strong>${userName}</strong></div>
+                    <div style="font-weight:600; font-size:0.875rem; color:#1e293b; margin-top:2px;">${log.action}</div>
+                    <div style="font-size:0.875rem; color:#475569; margin-top:2px;">${log.details || ''}</div>
+                </div>
+            `
+        }).join('')
+    }
+
+    // Call with specific vehicle UUID when viewing vehicle details in admin
+    // renderAuditTrail("VEHICLE_UUID_HERE")
+</script>
