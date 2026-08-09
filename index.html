@@ -164,6 +164,21 @@ body {
     margin: 20px auto;
 }
 
+.offer-timer {
+    font-size: 0.8em;
+    margin-top: 8px;
+    font-weight: normal;
+    color: #78350f;
+}
+
+.offer-timer span {
+    font-family: monospace;
+    font-weight: bold;
+    background: #fde68a;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
 /* Corporate Teaser Banner */
 .corporate-banner {
     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
@@ -444,7 +459,10 @@ footer a:hover {
 
 <!-- OFFER -->
 <div class="offer">
-    Full Diagnostic Scan — ₦5,000 (Limited Time Offer)
+    <div>Full Diagnostic Scan — <span style="color: #b45309;">₦25,000</span> <span style="text-decoration: line-through; color: #9ca3af; font-size: 0.85em;">₦15,000</span> (Limited Time Offer)</div>
+    <div class="offer-timer">
+        Price returns to ₦50,000 in: <span id="countdown">11h : 42m : 15s</span>
+    </div>
 </div>
 
 <!-- PROCESS -->
@@ -477,6 +495,29 @@ footer a:hover {
 </footer>
 
 <a href="https://wa.me/2349066616152" class="float" target="_blank">💬</a>
+
+<!-- COUNTDOWN TIMER SCRIPT -->
+<script>
+    let timeInSeconds = 12 * 60 * 60; // 12 hours countdown
+
+    function updateCountdown() {
+        const hours = Math.floor(timeInSeconds / 3600);
+        const minutes = Math.floor((timeInSeconds % 3600) / 60);
+        const seconds = timeInSeconds % 60;
+
+        document.getElementById("countdown").textContent = 
+            `${String(hours).padStart(2, '0')}h : ${String(minutes).padStart(2, '0')}m : ${String(seconds).padStart(2, '0')}s`;
+
+        if (timeInSeconds > 0) {
+            timeInSeconds--;
+        } else {
+            timeInSeconds = 12 * 60 * 60; 
+        }
+    }
+
+    setInterval(updateCountdown, 1000);
+    updateCountdown();
+</script>
 
 </body>
 </html>
