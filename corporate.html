@@ -528,6 +528,661 @@
                 <p style="text-align: left;">Do you operate company vehicles? Unplanned breakdowns, poor maintenance and repeated repairs increase operating costs. Fill out the form below to initiate your corporate partnership plan.</p>
             </div>
 
+            <form id="corporateProposalForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="company_name">Company Name</label>
+                        <input type="text" id="company_name" name="company_name" required placeholder="e.g., Logistics Ltd">
+                    </div>
+                    <div class="form-group">
+                        <label for="contact_person">Contact Person</label>
+                        <input type="text" id="contact_person" name="contact_person" required placeholder="Full Name">
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" name="phone" required placeholder="+234 ...">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" required placeholder="name@company.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="vehicle_count">Number of Vehicles</label>
+                        <input type="number" id="vehicle_count" name="vehicle_count" required placeholder="e.g., 15">
+                    </div>
+                    <div class="form-group">
+                        <label for="vehicle_types">Vehicle Types & Brands</label>
+                        <input type="text" id="vehicle_types" name="vehicle_types" placeholder="e.g., Toyota Hilux, Hiace, Camry">
+                    </div>
+                    <div class="form-group">
+                        <label for="current_maintenance">Current Maintenance Arrangement</label>
+                        <input type="text" id="current_maintenance" name="current_maintenance" placeholder="e.g., In-house mechanics, ad-hoc workshops">
+                    </div>
+                    <div class="form-group">
+                        <label for="location">Location of Vehicles</label>
+                        <input type="text" id="location" name="location" placeholder="City / State">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="main_problems">Main Fleet Problems</label>
+                        <textarea id="main_problems" name="main_problems" placeholder="Describe recurring breakdowns, maintenance delays, or reporting gaps..."></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="scope">What do you want Dreamland to manage?</label>
+                        <textarea id="scope" name="scope" placeholder="Outline your expectations for preventive maintenance, inspections, diagnostics, etc..."></textarea>
+                    </div>
+                </div>
+                <div class="form-submit">
+                    <button type="submit" class="btn">Submit Corporate Proposal Request</button>
+                    <p style="margin-top:1rem; color:var(--text-muted); font-size:0.9rem;">
+                        Your request will open WhatsApp with your proposal details ready to send.
+                    </p>
+                    <p style="margin-top:0.5rem; color:var(--text-muted); font-size:0.9rem;">
+                        Prefer email? <a href="mailto:dreamlandmotorworks@gmail.com">dreamlandmotorworks@gmail.com</a>
+                    </p>
+                </div>
+            </form>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 Dreamland Motor Engineering Works. All rights reserved. | Professional Fleet Health & Automotive Engineering.</p>
+    </footer>
+
+
+    <script>
+        document.getElementById("corporateProposalForm").addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            const form = event.target;
+
+            const company = document.getElementById("company_name").value.trim();
+            const contact = document.getElementById("contact_person").value.trim();
+            const phone = document.getElementById("phone").value.trim();
+            const email = document.getElementById("email").value.trim();
+            const vehicleCount = document.getElementById("vehicle_count").value.trim();
+            const vehicleTypes = document.getElementById("vehicle_types").value.trim();
+            const maintenance = document.getElementById("current_maintenance").value.trim();
+            const location = document.getElementById("location").value.trim();
+            const problems = document.getElementById("main_problems").value.trim();
+            const scope = document.getElementById("scope").value.trim();
+
+            const message =
+                "CORPORATE FLEETCARE PROPOSAL REQUEST\n\n" +
+                "Company Name: " + company + "\n" +
+                "Contact Person: " + contact + "\n" +
+                "Phone: " + phone + "\n" +
+                "Email: " + email + "\n" +
+                "Number of Vehicles: " + vehicleCount + "\n" +
+                "Vehicle Types & Brands: " + vehicleTypes + "\n" +
+                "Current Maintenance Arrangement: " + maintenance + "\n" +
+                "Location of Vehicles: " + location + "\n\n" +
+                "Main Fleet Problems:\n" + problems + "\n\n" +
+                "What They Want Dreamland to Manage:\n" + scope;
+
+            const whatsappUrl =
+                "https://wa.me/2349066616152?text=" + encodeURIComponent(message);
+
+            const mailSubject = "Corporate FleetCare Proposal Request - " + company;
+            const mailBody = message;
+
+            // Open WhatsApp with the completed proposal.
+            window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+
+            // Prepare an email draft as an alternative.
+            setTimeout(function () {
+                window.location.href =
+                    "mailto:dreamlandmotorworks@gmail.com" +
+                    "?subject=" + encodeURIComponent(mailSubject) +
+                    "&body=" + encodeURIComponent(mailBody);
+            }, 800);
+
+            form.reset();
+
+            // Show successful submission message.
+            const successMessage = document.createElement("div");
+            successMessage.textContent = "Form submitted successfully, we will get back to you shortly.";
+            successMessage.style.cssText =
+                "margin-top:20px;padding:16px;background:#dcfce7;" +
+                "border:1px solid #86efac;color:#166534;border-radius:6px;" +
+                "font-weight:600;text-align:center;";
+            form.parentNode.insertBefore(successMessage, form);
+            form.style.display = "none";
+        });
+    </script>
+
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corporate FleetCare | Dreamland Motor Engineering Works</title>
+    <style>
+        :root {
+            --primary: #1e293b;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --bg-light: #f8fafc;
+            --text-main: #334155;
+            --text-muted: #64748b;
+            --white: #ffffff;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            color: var(--text-main);
+            background-color: var(--bg-light);
+            line-height: 1.6;
+        }
+
+        /* Header & Navigation */
+        header {
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-weight: 800;
+            font-size: 1.25rem;
+            color: var(--primary);
+            text-decoration: none;
+            letter-spacing: -0.5px;
+        }
+
+        .logo span {
+            color: var(--accent);
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-main);
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        nav a:hover, nav a.active {
+            color: var(--accent);
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, var(--primary) 0%, #0f172a 100%);
+            color: var(--white);
+            padding: 5rem 2rem;
+            text-align: center;
+        }
+
+        .hero-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 2.75rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            letter-spacing: -1px;
+            line-height: 1.2;
+        }
+
+        .hero p {
+            font-size: 1.15rem;
+            color: #cbd5e1;
+            margin-bottom: 2.5rem;
+            line-height: 1.7;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: var(--accent);
+            color: var(--primary);
+            font-weight: 700;
+            padding: 0.85rem 2rem;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        /* Section Titles */
+        .section-header {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 3rem auto;
+        }
+
+        .section-header h2 {
+            font-size: 2.25rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            letter-spacing: -0.5px;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+        }
+
+        /* Pricing / Packages Grid */
+        .packages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .package-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 2.5rem 2rem;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .package-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+        }
+
+        .package-card.featured {
+            border-color: var(--accent);
+            border-width: 2px;
+        }
+
+        .package-card h3 {
+            font-size: 1.35rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .package-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            min-height: 40px;
+        }
+
+        .package-features {
+            list-style: none;
+            margin-bottom: 2rem;
+            flex-grow: 1;
+        }
+
+        .package-features li {
+            font-size: 0.9rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--bg-light);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .package-features li::before {
+            content: "✓";
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        /* Custom Contract Box */
+        .custom-contract {
+            background: var(--primary);
+            color: var(--white);
+            border-radius: 8px;
+            padding: 3rem;
+            text-align: center;
+            margin-bottom: 5rem;
+        }
+
+        .custom-contract h3 {
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .custom-contract p {
+            color: #cbd5e1;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Fleet Health Dashboard Preview */
+        .dashboard-section {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 3rem 2rem;
+            margin-bottom: 5rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+        }
+
+        .dashboard-intro {
+            margin-bottom: 2rem;
+        }
+
+        .dashboard-intro h3 {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: var(--bg-light);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        /* Proposal Form Section */
+        .proposal-section {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 3.5rem;
+            max-width: 800px;
+            margin: 0 auto;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group.full-width {
+            grid-column: span 2;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            background-color: var(--bg-light);
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            background-color: var(--white);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .form-submit {
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .form-submit button {
+            width: 100%;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        /* Footer */
+        footer {
+            background: #0f172a;
+            color: #94a3b8;
+            text-align: center;
+            padding: 3rem 2rem;
+            font-size: 0.9rem;
+            border-top: 1px solid #1e293b;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .form-group.full-width {
+                grid-column: span 1;
+            }
+            .hero h1 {
+                font-size: 2.1rem;
+            }
+            nav ul {
+                display: none;
+            }
+            .proposal-section {
+                padding: 2rem 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header & Navigation -->
+    <header>
+        <div class="nav-container">
+            <a href="index.html" class="logo">DREAMLAND <span>MOTOR ENGINEERING</span></a>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="services.html">Services</a></li>
+                    <li><a href="ppi.html">PPI</a></li>
+                    <li><a href="corporate.html" class="active">Corporate FleetCare</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Keep Your Fleet Moving. Let Dreamland Manage Its Health.</h1>
+            <p>Dreamland Motor Engineering Works provides structured vehicle maintenance, advanced diagnostics, inspection, and repair support for companies that depend on reliable vehicles.</p>
+            <a href="#proposal-form" class="btn">Request Corporate Proposal</a>
+        </div>
+    </section>
+
+    <!-- Main Content Container -->
+    <main class="container">
+
+        <!-- Subscription Packages -->
+        <div class="section-header">
+            <h2>Corporate FleetCare Packages</h2>
+            <p>Structured maintenance plans designed to maximize vehicle uptime, prevent sudden breakdowns, and control operating costs.</p>
+        </div>
+
+        <div class="packages-grid">
+            <!-- Essential -->
+            <div class="package-card">
+                <h3>Essential FleetCare</h3>
+                <p class="package-desc">For small businesses and organizations operating local fleets.</p>
+                <ul class="package-features">
+                    <li>Scheduled preventive maintenance</li>
+                    <li>Routine vehicle inspections</li>
+                    <li>Computer diagnostics</li>
+                    <li>Basic electrical diagnosis</li>
+                    <li>Brake and suspension checks</li>
+                    <li>Service reminders & records</li>
+                    <li>Priority workshop scheduling</li>
+                </ul>
+            </div>
+
+            <!-- Professional -->
+            <div class="package-card featured">
+                <h3>Professional FleetCare</h3>
+                <p class="package-desc">For companies with a growing fleet requiring deeper insights.</p>
+                <ul class="package-features">
+                    <li>Everything in Essential, plus:</li>
+                    <li>Advanced diagnostics</li>
+                    <li>Live-data analysis</li>
+                    <li>Comprehensive periodic inspections</li>
+                    <li>Fault investigation & root-cause diagnosis</li>
+                    <li>Digital vehicle history & reporting</li>
+                    <li>Priority breakdown support</li>
+                </ul>
+            </div>
+
+            <!-- Enterprise -->
+            <div class="package-card">
+                <h3>Enterprise FleetCare</h3>
+                <p class="package-desc">For organizations that depend heavily on continuous fleet mobility.</p>
+                <ul class="package-features">
+                    <li>Everything in Professional, plus:</li>
+                    <li>Dedicated fleet maintenance program</li>
+                    <li>Periodic fleet health assessments</li>
+                    <li>Fleet-wide diagnostic analysis</li>
+                    <li>Maintenance forecasting</li>
+                    <li>Monthly management reports</li>
+                    <li>Corporate account & SLA management</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Custom Fleet Contract Callout -->
+        <div class="custom-contract">
+            <h3>Custom Fleet Contract</h3>
+            <p>Your fleet is different. Your maintenance program should be too. Let us tailor a solution around your specific operational demands.</p>
+            <a href="#proposal-form" class="btn">Request a Corporate Proposal</a>
+        </div>
+
+        <!-- Fleet Health Reporting Section -->
+        <div class="dashboard-section">
+            <div class="dashboard-intro">
+                <h3>Data-Driven Fleet Health Reporting</h3>
+                <p>Distinguish your operations from generic repair workshops. Our corporate dashboard gives complete transparency into every asset's condition, risk factors, and next actions.</p>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Vehicle</th>
+                            <th>Status</th>
+                            <th>Major Issue</th>
+                            <th>Priority</th>
+                            <th>Next Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Toyota Camry</strong></td>
+                            <td><span class="badge">🟢 Healthy</span></td>
+                            <td>None</td>
+                            <td>Normal</td>
+                            <td>Service due 2,000 km</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Toyota Hiace</strong></td>
+                            <td><span class="badge">🟡 Attention</span></td>
+                            <td>Brake wear</td>
+                            <td>Medium</td>
+                            <td>Inspect / Replace</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Hilux</strong></td>
+                            <td><span class="badge">🟠 Watch</span></td>
+                            <td>Cooling system</td>
+                            <td>High</td>
+                            <td>Diagnose</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Corolla</strong></td>
+                            <td><span class="badge">🔴 Critical</span></td>
+                            <td>Engine fault</td>
+                            <td>Immediate</td>
+                            <td>Repair</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Proposal Form Section / Funnel -->
+        <div class="proposal-section" id="proposal-form">
+            <div class="section-header" style="margin-bottom: 2rem;">
+                <h2>Request Corporate Proposal</h2>
+                <p style="text-align: left;">Do you operate company vehicles? Unplanned breakdowns, poor maintenance and repeated repairs increase operating costs. Fill out the form below to initiate your corporate partnership plan.</p>
+            </div>
+
             <form action="#" method="POST">
                 <div class="form-grid">
                     <div class="form-group">
