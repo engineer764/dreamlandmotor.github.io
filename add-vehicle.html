@@ -1,3 +1,13 @@
+import { requireAuth } from './supabaseClient.js'
+
+// Run authentication guard on page load
+const authData = await requireAuth()
+if (!authData) {
+    // Execution stops and user is redirected to login.html automatically
+} else {
+    console.log(`Logged in as: ${authData.profile.name} (${authData.profile.role})`)
+}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
