@@ -1,0 +1,254 @@
+-- ============================================================-- DREAMLAND VERIFIED CARS-- FRESH INSTALL / RESET SCRIPT-- ============================================================-- IMPORTANT:-- This script removes the Dreamland Verified Cars tables, functions,-- triggers, policies and enum types before recreating them.-- Do NOT run this reset version if you already have production data-- that must be preserved.-- ============================================================create extension if not exists "uuid-ossp";-- -------------------------------------------------------------- Remove existing policies/tables/types/functions so this script-- can be run again without "already exists" errors.-- ------------------------------------------------------------drop table if exists public.audit_logs cascade;drop table if exists public.vehicle_documents cascade;drop table if exists public.finding_photos cascade;drop table if exists public.inspection_findings cascade;drop table if exists public.inspections cascade;drop table if exists public.vehicle_photos cascade;drop table if exists public.vehicles cascade;drop table if exists public.users cascade;drop function if exists public.generate_vehicle_id() cascade;drop function if exists public.set_updated_at() cascade;drop function if exists public.is_staff() cascade;drop function if exists public.is_admin() cascade;drop type if exists user_role_enum cascade;drop type if exists finding_rating_enum cascade;drop type if exists verification_status_enum cascade;drop type if exists sales_status_enum cascade;-- ============================================================-- ENUMS-- ============================================================create type sales_status_enum as enum (
+  'DRAFT',
+  'UNDER_INSPECTION',
+  'PUBLISHED',
+  'RESERVED',
+  'SOLD',
+  'ARCHIVED'
+);create type verification_status_enum as enum (
+  'PENDING',
+  'DREAMLAND_VERIFIED',
+  'VERIFIED_WITH_NOTES',
+  'NOT_VERIFIED'
+);create type finding_rating_enum as enum (
+  'PASS',
+  'ATTENTION',
+  'FAIL'
+);create type user_role_enum as enum (
+  'ADMINISTRATOR',
+  'INSPECTOR'
+);-- ============================================================-- USERS-- ============================================================create table public.users (
+  id uuid references auth.users on delete cascade primary key,
+  name text not null,
+  email text unique not null,
+  role user_role_enum not null default 'INSPECTOR',
+  active boolean not null default true,
+  created_at timestamptz default timezone('utc'::text, now()) not null
+);-- ============================================================-- VEHICLES-- ============================================================create table public.vehicles (
+  id uuid default uuid_generate_v4() primary key,
+  vehicle_id text unique not null,
+  make text not null,
+  model text not null,
+  trim text,
+  year integer not null,
+  mileage integer not null,
+  engine text not null,
+  transmission text not null,
+  fuel_type text not null,
+  colour text not null,
+  body_type text,
+  vin text,
+  registration_number text,
+  location text not null,
+  price numeric(12, 2) not null,
+  sales_status sales_status_enum default 'DRAFT' not null,
+  verification_status verification_status_enum default 'PENDING' not null,
+  inspection_date date,
+  published_at timestamptz,
+  reserved_at timestamptz,
+  sold_at timestamptz,
+  created_at timestamptz default timezone('utc'::text, now()) not null,
+  updated_at timestamptz default timezone('utc'::text, now()) not null
+);-- ============================================================-- VEHICLE PHOTOS-- ============================================================create table public.vehicle_photos (
+  id uuid default uuid_generate_v4() primary key,
+  vehicle_id uuid references public.vehicles(id) on delete cascade not null,
+  category text not null,
+  storage_path text not null,
+  caption text,
+  sort_order integer default 0,
+  is_primary boolean default false,
+  created_at timestamptz default timezone('utc'::text, now()) not null
+);-- ============================================================-- INSPECTIONS-- ============================================================create table public.inspections (
+  id uuid default uuid_generate_v4() primary key,
+  vehicle_id uuid references public.vehicles(id) on delete cascade not null,
+  inspector_id uuid references public.users(id),
+  inspection_date date not null,
+  mileage integer not null,
+  overall_status verification_status_enum default 'PENDING' not null,
+  report_path text,
+  created_at timestamptz default timezone('utc'::text, now()) not null,
+  updated_at timestamptz default timezone('utc'::text, now()) not null
+);-- ============================================================-- INSPECTION FINDINGS-- ============================================================create table public.inspection_findings (
+  id uuid default uuid_generate_v4() primary key,
+  inspection_id uuid references public.inspections(id) on delete cascade not null,
+  area text not null,
+  rating finding_rating_enum not null,
+  finding text,
+  significance text,
+  recommended_action text,
+  created_at timestamptz default timezone('utc'::text, now()) not null,
+  updated_at timestamptz default timezone('utc'::text, now()) not null
+);-- ============================================================-- FINDING PHOTOS-- ============================================================create table public.finding_photos (
+  id uuid default uuid_generate_v4() primary key,
+  finding_id uuid references public.inspection_findings(id) on delete cascade not null,
+  storage_path text not null,
+  caption text,
+  sort_order integer default 0,
+  created_at timestamptz default timezone('utc'::text, now()) not null
+);-- ============================================================-- VEHICLE DOCUMENTS-- ============================================================create table public.vehicle_documents (
+  id uuid default uuid_generate_v4() primary key,
+  vehicle_id uuid references public.vehicles(id) on delete cascade not null,
+  document_type text not null,
+  storage_path text not null,
+  visibility text default 'PRIVATE' not null,
+  created_at timestamptz default timezone('utc'::text, now()) not null
+);-- ============================================================-- AUDIT LOG-- ============================================================create table public.audit_logs (
+  id uuid default uuid_generate_v4() primary key,
+  vehicle_id uuid references public.vehicles(id) on delete set null,
+  user_id uuid references public.users(id) on delete set null,
+  action text not null,
+  details text,
+  created_at timestamptz default timezone('utc'::text, now()) not null
+);-- ============================================================-- INDEXES-- ============================================================create index idx_vehicles_sales_status
+  on public.vehicles(sales_status);create index idx_vehicles_verification_status
+  on public.vehicles(verification_status);create index idx_vehicle_photos_vehicle_id
+  on public.vehicle_photos(vehicle_id);create index idx_inspection_findings_inspection_id
+  on public.inspection_findings(inspection_id);-- ============================================================-- RLS-- ============================================================alter table public.users enable row level security;alter table public.vehicles enable row level security;alter table public.vehicle_photos enable row level security;alter table public.inspections enable row level security;alter table public.inspection_findings enable row level security;alter table public.finding_photos enable row level security;alter table public.vehicle_documents enable row level security;alter table public.audit_logs enable row level security;-- ============================================================-- SECURITY FUNCTIONS-- ============================================================create or replace function public.is_staff()returns booleanlanguage sql
+security definerset search_path = public
+stableas $$
+  select exists (
+    select 1
+    from public.users u
+    where u.id = auth.uid()
+      and u.active = true
+      and u.role in ('ADMINISTRATOR', 'INSPECTOR')
+  );
+$$;create or replace function public.is_admin()returns booleanlanguage sql
+security definerset search_path = public
+stableas $$
+  select exists (
+    select 1
+    from public.users u
+    where u.id = auth.uid()
+      and u.active = true
+      and u.role = 'ADMINISTRATOR'
+  );
+$$;-- ============================================================-- PUBLIC POLICIES-- ============================================================create policy "Public can view published vehicles"
+  on public.vehicles for select
+  using (sales_status = 'PUBLISHED');create policy "Public can view photos of published vehicles"
+  on public.vehicle_photos for select
+  using (
+    exists (
+      select 1
+      from public.vehicles v
+      where v.id = vehicle_photos.vehicle_id
+        and v.sales_status = 'PUBLISHED'
+    )
+  );create policy "Public can view inspections of published vehicles"
+  on public.inspections for select
+  using (
+    exists (
+      select 1
+      from public.vehicles v
+      where v.id = inspections.vehicle_id
+        and v.sales_status = 'PUBLISHED'
+    )
+  );create policy "Public can view findings of published vehicles"
+  on public.inspection_findings for select
+  using (
+    exists (
+      select 1
+      from public.inspections i
+      join public.vehicles v on v.id = i.vehicle_id
+      where i.id = inspection_findings.inspection_id
+        and v.sales_status = 'PUBLISHED'
+    )
+  );create policy "Public can view finding evidence of published vehicles"
+  on public.finding_photos for select
+  using (
+    exists (
+      select 1
+      from public.inspection_findings f
+      join public.inspections i on i.id = f.inspection_id
+      join public.vehicles v on v.id = i.vehicle_id
+      where f.id = finding_photos.finding_id
+        and v.sales_status = 'PUBLISHED'
+    )
+  );-- ============================================================-- STAFF POLICIES-- ============================================================create policy "Staff can manage vehicles"
+  on public.vehicles for all
+  using (public.is_staff())
+  with check (public.is_staff());create policy "Staff can manage vehicle photos"
+  on public.vehicle_photos for all
+  using (public.is_staff())
+  with check (public.is_staff());create policy "Staff can manage inspections"
+  on public.inspections for all
+  using (public.is_staff())
+  with check (public.is_staff());create policy "Staff can manage findings"
+  on public.inspection_findings for all
+  using (public.is_staff())
+  with check (public.is_staff());create policy "Staff can manage finding photos"
+  on public.finding_photos for all
+  using (public.is_staff())
+  with check (public.is_staff());create policy "Staff can manage vehicle documents"
+  on public.vehicle_documents for all
+  using (public.is_staff())
+  with check (public.is_staff());create policy "Staff can view audit logs"
+  on public.audit_logs for select
+  using (public.is_staff());create policy "Admins can create audit logs"
+  on public.audit_logs for insert
+  with check (public.is_admin());create policy "Admins can view users"
+  on public.users for select
+  using (public.is_admin());create policy "Admins can update users"
+  on public.users for update
+  using (public.is_admin())
+  with check (public.is_admin());-- ============================================================-- DATA INTEGRITY-- ============================================================-- ATTENTION and FAIL must state the fault, significance,-- and recommended corrective action.alter table public.inspection_findings
+  add constraint finding_details_required
+  check (
+    rating = 'PASS'
+    or (
+      nullif(trim(finding), '') is not null
+      and nullif(trim(significance), '') is not null
+      and nullif(trim(recommended_action), '') is not null
+    )
+  );-- Only verified vehicles may be published.alter table public.vehicles
+  add constraint published_vehicle_verification_required
+  check (
+    sales_status <> 'PUBLISHED'
+    or verification_status in (
+      'DREAMLAND_VERIFIED',
+      'VERIFIED_WITH_NOTES'
+    )
+  );-- SOLD vehicles require sold_at.alter table public.vehicles
+  add constraint sold_timestamp_consistency
+  check (
+    (sales_status = 'SOLD' and sold_at is not null)
+    or
+    (sales_status <> 'SOLD' and sold_at is null)
+  );-- ============================================================-- VEHICLE ID GENERATION-- ============================================================create or replace function public.generate_vehicle_id()returns triggerlanguage plpgsqlas $$declare
+  next_id integer;begin
+  if new.vehicle_id is null or trim(new.vehicle_id) = '' then
+
+    select coalesce(
+      max(
+        case
+          when vehicle_id ~ '^DV-[0-9]+$'
+          then substring(vehicle_id from 4)::integer
+          else 0
+        end
+      ),
+      0
+    ) + 1
+    into next_id
+    from public.vehicles;
+
+    new.vehicle_id :=
+      'DV-' || lpad(next_id::text, 3, '0');
+  end if;
+
+  return new;end;
+$$;create trigger set_vehicle_id_trigger
+  before insert on public.vehicles
+  for each row
+  execute function public.generate_vehicle_id();-- ============================================================-- UPDATED_AT-- ============================================================create or replace function public.set_updated_at()returns triggerlanguage plpgsqlas $$begin
+  new.updated_at = timezone('utc'::text, now());
+  return new;end;
+$$;create trigger vehicles_set_updated_at
+  before update on public.vehicles
+  for each row
+  execute function public.set_updated_at();create trigger inspections_set_updated_at
+  before update on public.inspections
+  for each row
+  execute function public.set_updated_at();create trigger findings_set_updated_at
+  before update on public.inspection_findings
+  for each row
+  execute function public.set_updated_at();
