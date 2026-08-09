@@ -1,13 +1,8 @@
-import { createClient } from '@supabase/supabase-js'
-
-const SUPABASE_URL = 'https://xvzocwcchjdiyudrqorq.supabase.co'
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY' // Replace with your public anon/service key
-
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+import { supabase } from './supabaseClient.js'
 
 /**
- * Creates a new vehicle draft in the database.
- * The database trigger will automatically assign the next DV-XXX identifier.
+ * Creates a new vehicle draft. 
+ * The database trigger automatically assigns sequential IDs like DV-001.
  */
 export async function createVehicle(vehicleData) {
   const { data, error } = await supabase
