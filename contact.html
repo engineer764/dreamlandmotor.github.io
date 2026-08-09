@@ -1,274 +1,57 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="canonical" href="https://dreamlandmotor.com.ng/yourpage.html" />
-<title>Contact Dreamland Motor Engineering Works</title>
-<meta name="description" content="Visit our workshop in Lagos for professional auto repairs and diagnostics. Contact us for bookings and inquiries.">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Contact Dreamland Motor Engineering Works – Lagos’ leading digital mechanic workshop. Visit us at Illubirin Mechanic Village or chat directly for expert diagnostics and car repairs.">
-  <title>Contact Dreamland Motor Engineering Works</title>
+<form id="contactForm">
+  <input type="text" id="name" placeholder="Your Full Name" required>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Poppins', sans-serif;
-      background-color: #0b0c10;
-      color: #eaf6ff;
-      scroll-behavior: smooth;
-    }
+  <input type="email" id="email" placeholder="Your Email" required>
 
-    /* ===== NAVBAR ===== */
-    nav {
-      background: linear-gradient(90deg, #00b4ff, #0066ff);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem 2rem;
-      box-shadow: 0 0 20px #00b4ff80;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    nav .logo {
-      color: white;
-      font-size: 1.6em;
-      font-weight: bold;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      text-shadow: 0 0 10px #00b4ff;
-    }
-    nav ul {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      gap: 25px;
-    }
-    nav ul li a {
-      text-decoration: none;
-      color: white;
-      font-weight: 500;
-      transition: color 0.3s ease, text-shadow 0.3s ease;
-    }
-    nav ul li a:hover {
-      color: #00e0ff;
-      text-shadow: 0 0 10px #00e0ff;
-    }
-    .menu-toggle {
-      display: none;
-      flex-direction: column;
-      cursor: pointer;
-    }
-    .bar {
-      height: 3px;
-      width: 25px;
-      background-color: white;
-      margin: 4px 0;
-      transition: 0.4s;
-    }
-    @media (max-width: 768px) {
-      nav ul {
-        display: none;
-        flex-direction: column;
-        background: #0b0c10;
-        position: absolute;
-        top: 70px;
-        right: 0;
-        width: 200px;
-        text-align: right;
-        padding: 1rem;
-        border-left: 2px solid #00b4ff80;
-      }
-      nav ul.active { display: flex; }
-      .menu-toggle { display: flex; }
-    }
+  <input type="tel" id="phone" placeholder="Your Phone / WhatsApp Number" required>
 
-    /* ===== CONTACT SECTION ===== */
-    .contact-section {
-      max-width: 900px;
-      margin: 60px auto;
-      padding: 20px;
-      text-align: center;
-    }
-    h2 {
-      color: #00b4ff;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 30px;
-    }
-    .contact-info {
-      background: #11131a;
-      border-radius: 10px;
-      padding: 25px;
-      border: 1px solid #00b4ff40;
-      box-shadow: 0 0 15px #00b4ff40;
-      margin-bottom: 40px;
-    }
-    .contact-info p {
-      font-size: 1.05em;
-      line-height: 1.8;
-    }
-    .contact-info a {
-      color: #00e0ff;
-      text-decoration: none;
-    }
+  <input type="text" id="vehicle" placeholder="Vehicle Make & Model (e.g. Toyota Camry 2012)" required>
 
-    form {
-      display: grid;
-      gap: 15px;
-      max-width: 600px;
-      margin: 0 auto;
-      background: #11131a;
-      padding: 25px;
-      border-radius: 10px;
-      border: 1px solid #00b4ff40;
-      box-shadow: 0 0 20px #00b4ff40;
-    }
-    input, textarea {
-      width: 100%;
-      padding: 12px;
-      border-radius: 6px;
-      border: none;
-      background: #0b0c10;
-      color: white;
-      font-size: 1em;
-      border: 1px solid #00b4ff60;
-      outline: none;
-    }
-    input:focus, textarea:focus {
-      border-color: #00e0ff;
-      box-shadow: 0 0 10px #00b4ff80;
-    }
-    button {
-      background: linear-gradient(90deg, #00b4ff, #0078ff);
-      border: none;
-      color: white;
-      font-weight: 600;
-      padding: 12px;
-      border-radius: 30px;
-      cursor: pointer;
-      box-shadow: 0 0 15px #00b4ff70;
-      transition: 0.3s;
-    }
-    button:hover {
-      transform: scale(1.05);
-      box-shadow: 0 0 25px #00b4ffb0;
-    }
+  <textarea id="message" rows="5" placeholder="Describe the problem or service you need..." required></textarea>
 
-    iframe {
-      border: 0;
-      width: 100%;
-      height: 300px;
-      margin-top: 30px;
-      border-radius: 10px;
-      box-shadow: 0 0 20px #00b4ff40;
-    }
+  <button type="submit">Send Message via WhatsApp 💬</button>
 
-    footer {
-      text-align: center;
-      padding: 20px;
-      color: #99bce2;
-      border-top: 1px solid #00b4ff30;
-      margin-top: 40px;
-    }
+  <p id="formStatus" style="display:none; margin-top:15px; color:#166534; font-weight:600;">
+    Form submitted successfully, we will get back to you shortly.
+  </p>
 
-    /* ===== FLOATING WHATSAPP BUTTON ===== */
-    .whatsapp-float {
-      position: fixed;
-      width: 60px;
-      height: 60px;
-      bottom: 25px;
-      right: 25px;
-      background-color: #25D366;
-      color: white;
-      border-radius: 50%;
-      text-align: center;
-      font-size: 32px;
-      box-shadow: 0 0 20px #25D36690;
-      z-index: 1000;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .whatsapp-float:hover {
-      transform: scale(1.1);
-      box-shadow: 0 0 30px #25D366b0;
-    }
-    .whatsapp-icon {
-      margin-top: 14px;
-    }
-  </style>
-</head>
-<body>
+  <p style="margin-top:10px;">
+    Prefer email?
+    <a href="mailto:dreamlandmotorworks@gmail.com">
+      dreamlandmotorworks@gmail.com
+    </a>
+  </p>
+</form>
 
-  <nav>
-    <div class="logo">Dreamland Motor’s ⚙️</div>
-    <div class="menu-toggle" id="menu-toggle">
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-    </div>
-    <ul id="nav-links">
-      <li><a href="index.html">Home</a></li>
-      <li><a href="analyzer.html">Analyzer</a></li>
-      <li><a href="services.html">Services</a></li>
-      <li><a href="about.html">About</a></li>
-      <li><a href="contact.html" style="color:#00e0ff;text-shadow:0 0 8px #00e0ff;">Contact</a></li>
-    </ul>
-  </nav>
+<script>
+document.getElementById("contactForm").addEventListener("submit", function(event) {
+    event.preventDefault();
 
-  <section class="contact-section">
-    <h2>Contact Dreamland Motor</h2>
-    <div class="contact-info">
-      <p><strong>📍 Address:</strong> Workshop A015, Illubirin Mechanic Village, Lafiaji, Lagos</p>
-      <p><strong>📞 Phone:</strong> <a href="tel:+2349066616152">+234 906 661 6152</a></p>
-      <p><strong>📧 Email:</strong> <a href="mailto:dreamlandmotorworks@gmail.com">dreamlandmotorworks@gmail.com</a></p>
-      <p><strong>🕓 Working Hours:</strong> Mon–Sat: 8:00am – 6:00pm</p>
-    </div>
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+    const vehicle = document.getElementById("vehicle").value.trim();
+    const message = document.getElementById("message").value.trim();
 
-    <form id="contactForm">
-      <input type="text" id="name" placeholder="Your Full Name" required>
-      <input type="email" id="email" placeholder="Your Email" required>
-      <textarea id="message" rows="5" placeholder="Your Message..." required></textarea>
-      <button type="submit">Send Message via WhatsApp 💬</button>
-    </form>
-<iframe
-  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3940.4063779080593!2d3.403!3d6.439!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x103b8a4035f7aabf%3A0xf04d71e5ec48bda2!2sDreamland%20Motor%20Engineering%20Works!5e0!3m2!1sen!2sng!4v1696789000000!5m2!1sen!2sng"
-  width="100%"
-  height="350"
-  style="border:0; border-radius:15px;"
-  allowfullscreen=""
-  loading="lazy"
-  referrerpolicy="no-referrer-when-downgrade">
-</iframe>
-  </section>
+    const whatsappMessage =
+        "NEW CUSTOMER ENQUIRY\n\n" +
+        "Name: " + name + "\n" +
+        "Email: " + email + "\n" +
+        "Phone / WhatsApp: " + phone + "\n" +
+        "Vehicle: " + vehicle + "\n\n" +
+        "Message:\n" + message;
 
-  <!-- FLOATING WHATSAPP BUTTON -->
-  <a href="https://wa.me/2349066616152" target="_blank" class="whatsapp-float" title="Chat with Dreamland on WhatsApp">
-    <i class="whatsapp-icon">💬</i>
-  </a>
+    const whatsappURL =
+        "https://wa.me/2349066616152?text=" +
+        encodeURIComponent(whatsappMessage);
 
-  <footer>
-    <p>© 2025 Dreamland Motor Engineering Works. Powered by Dreamland Analyzer ⚙️</p>
-  </footer>
+    // Open WhatsApp with the customer's completed enquiry
+    window.open(whatsappURL, "_blank");
 
-  <script>
-    // Mobile menu toggle
-    const menuToggle = document.getElementById('menu-toggle');
-    const navLinks = document.getElementById('nav-links');
-    menuToggle.addEventListener('click', () => {
-      navLinks.classList.toggle('active');
-    });
+    // Show confirmation
+    document.getElementById("formStatus").style.display = "block";
 
-    // WhatsApp auto-message from form
-    document.getElementById('contactForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const name = document.getElementById('name').value;
-      const email = document.getElementById('email').value;
-      const message = document.getElementById('message').value;
-      const phoneNumber = "2349066616152";
-      const text = `Hello Dreamland Motor's 👋,%0A%0AI'm ${name}.%0AEmail: ${email}%0A%0A${message}%0A%0AKindly assist.`;
-      const url = `https://wa.me/${phoneNumber}?text=${text}`;
-      window.open(url, "_blank");
-    });
-  </script>
-</body>
-      </html>
+    // Clear the form
+    this.reset();
+});
+</script>
