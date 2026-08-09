@@ -3,585 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dreamland Verified Cars | Inspected & Verified Vehicles in Lagos</title>
-    <meta name="description" content="Browse inspected and verified used cars in Lagos. Every vehicle undergoes a structured Dreamland inspection covering mechanical, diagnostic, electrical, and body condition.">
+    <title>Dreamland Verified Cars — Lagos</title>
     <style>
         :root {
-            --primary: #1a1a2e;
-            --secondary: #e94560;
-            --accent: #0f3460;
-            --light: #f4f6f9;
-            --dark: #121212;
-            --gray: #6c757d;
-            --border: #dee2e6;
-            --success: #2e7d32;
-            --warning: #ed6c02;
-            --danger: #d32f2f;
-            --whatsapp: #25d366;
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --verified-green: #16a34a;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
         }
-
-        * {
-            box-sizing: border-box;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--primary);
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
-
-        body {
-            background-color: var(--light);
-            color: var(--dark);
-            line-height: 1.6;
-        }
-
-        /* Header & Navigation */
         header {
-            background-color: var(--primary);
-            color: #fff;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: var(--primary);
+            color: white;
+            padding: 20px 16px;
+            text-align: center;
         }
+        header h1 { margin: 0; font-size: 1.5rem; letter-spacing: 0.5px; }
+        header p { margin: 6px 0 0 0; font-size: 0.875rem; color: #94a3b8; }
 
-        .nav-container {
+        .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 1rem 2rem;
+            padding: 20px 16px;
+        }
+        
+        /* Search & Filter Bar */
+        .filter-bar {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+        @media(min-width: 768px) {
+            .filter-bar { grid-template-columns: 3fr 1fr; }
+        }
+        input, select {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+        }
+
+        /* Vehicle Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        @media(min-width: 640px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+        @media(min-width: 1024px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+        .card:hover { transform: translateY(-3px); }
+        
+        .card-img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: #e2e8f0;
+        }
+        .card-body { padding: 16px; }
+        
+        .badge {
+            display: inline-block;
+            background: #dcfce7;
+            color: var(--verified-green);
+            font-size: 0.75rem;
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        
+        .car-title { font-size: 1.125rem; font-weight: bold; margin: 0 0 4px 0; }
+        .car-id { font-size: 0.75rem; color: #64748b; margin-bottom: 12px; }
+        
+        .car-meta {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #fff;
-            text-decoration: none;
-            letter-spacing: 0.5px;
-        }
-
-        .nav-links {
-            list-style: none;
-            display: flex;
-            gap: 1.5rem;
-            align-items: center;
-        }
-
-        .nav-links a {
-            color: #cbd5e1;
-            text-decoration: none;
-            font-size: 0.95rem;
-            transition: color 0.2s;
-        }
-
-        .nav-links a:hover, .nav-links a.active {
-            color: #fff;
-            font-weight: 600;
-        }
-
-        .whatsapp-btn-nav {
-            background-color: var(--whatsapp);
-            color: #fff !important;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-
-        /* Hero Section */
-        .hero {
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color: #fff;
-            padding: 5rem 2rem;
-            text-align: center;
-        }
-
-        .hero-content {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .hero h1 {
-            font-size: 2.75rem;
-            margin-bottom: 1.25rem;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-        }
-
-        .hero p {
-            font-size: 1.15rem;
-            color: #cbd5e1;
-            margin-bottom: 2rem;
-            line-height: 1.7;
-        }
-
-        .hero-cta-group {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 0.75rem 1.5rem;
-            border-radius: 4px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: background-color 0.2s, transform 0.1s;
-        }
-
-        .btn-primary {
-            background-color: var(--secondary);
-            color: #fff;
-        }
-
-        .btn-primary:hover {
-            background-color: #d63851;
-        }
-
-        .btn-outline {
-            background-color: transparent;
-            color: #fff;
-            border: 2px solid rgba(255,255,255,0.4);
-        }
-
-        .btn-outline:hover {
-            border-color: #fff;
-            background-color: rgba(255,255,255,0.05);
-        }
-
-        /* What Dreamland Verified Means */
-        .definition-section {
-            max-width: 1200px;
-            margin: 4rem auto;
-            padding: 0 2rem;
-        }
-
-        .section-title {
-            text-align: center;
-            font-size: 2rem;
-            margin-bottom: 2.5rem;
-            color: var(--primary);
-            font-weight: 700;
-        }
-
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .info-card {
-            background: #fff;
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.03);
-            border-top: 4px solid var(--accent);
-        }
-
-        .info-card h3 {
-            font-size: 1.1rem;
-            margin-bottom: 0.75rem;
-            color: var(--primary);
-        }
-
-        .info-card p {
-            font-size: 0.95rem;
-            color: var(--gray);
-        }
-
-        /* Status System Legend */
-        .status-legend {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 2rem;
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            flex-wrap: wrap;
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.85rem;
-            font-weight: 600;
-            padding: 0.4rem 0.8rem;
-            border-radius: 50px;
-            background: #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        }
-
-        .status-green { color: var(--success); border: 1px solid rgba(46, 125, 50, 0.2); }
-        .status-yellow { color: var(--warning); border: 1px solid rgba(237, 108, 2, 0.2); }
-        .status-red { color: var(--danger); border: 1px solid rgba(211, 47, 47, 0.2); }
-
-        /* Marketplace & Filters */
-        .marketplace-container {
-            max-width: 1200px;
-            margin: 4rem auto;
-            padding: 0 2rem;
-        }
-
-        .filter-bar {
-            background: #fff;
-            padding: 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.03);
-            margin-bottom: 2rem;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.4rem;
-        }
-
-        .filter-group label {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--gray);
-        }
-
-        .filter-group input, .filter-group select {
-            padding: 0.6rem;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            font-size: 0.9rem;
-            background: #fff;
-        }
-
-        /* Empty State */
-        .empty-inventory {
-            background: #fff;
-            padding: 4rem 2rem;
-            text-align: center;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.03);
-        }
-
-        .empty-inventory h3 {
-            font-size: 1.5rem;
-            margin-bottom: 0.75rem;
-            color: var(--primary);
-        }
-
-        .empty-inventory p {
-            color: var(--gray);
-            max-width: 500px;
-            margin: 0 auto 1.5rem auto;
-            font-size: 1rem;
-        }
-
-        /* Trust Section */
-        .trust-section {
-            background-color: #fff;
-            padding: 5rem 2rem;
+            font-size: 0.875rem;
+            color: #475569;
             border-top: 1px solid var(--border);
             border-bottom: 1px solid var(--border);
+            padding: 8px 0;
+            margin-bottom: 12px;
         }
-
-        .trust-container {
-            max-width: 1000px;
-            margin: 0 auto;
+        
+        .price { font-size: 1.25rem; font-weight: 800; color: var(--primary); margin-bottom: 12px; }
+        
+        .view-btn {
+            display: block;
+            width: 100%;
+            background: var(--accent);
+            color: white;
             text-align: center;
-        }
-
-        .trust-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-top: 2.5rem;
-            text-align: left;
-        }
-
-        .trust-item {
-            background: var(--light);
-            padding: 1.25rem;
+            padding: 10px;
             border-radius: 6px;
-            font-size: 0.95rem;
-            font-weight: 500;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .trust-item::before {
-            content: "✓";
-            color: var(--success);
-            font-weight: 700;
-        }
-
-        /* Relationship with PPI */
-        .ppi-cross-promo {
-            max-width: 900px;
-            margin: 4rem auto;
-            padding: 3rem 2rem;
-            background: linear-gradient(135deg, var(--accent), var(--primary));
-            color: #fff;
-            border-radius: 8px;
-            text-align: center;
-        }
-
-        .ppi-cross-promo h2 {
-            font-size: 1.8rem;
-            margin-bottom: 1rem;
-        }
-
-        .ppi-cross-promo p {
-            color: #cbd5e1;
-            margin-bottom: 1.5rem;
-            font-size: 1.05rem;
-        }
-
-        /* Buyer CTA Section */
-        .buyer-cta {
-            max-width: 800px;
-            margin: 0 auto 4rem auto;
-            padding: 0 2rem;
-            text-align: center;
-        }
-
-        .buyer-cta h2 {
-            font-size: 1.75rem;
-            margin-bottom: 1.5rem;
-            color: var(--primary);
-        }
-
-        .cta-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .btn-call {
-            background-color: var(--primary);
-            color: #fff;
-        }
-
-        .btn-call:hover {
-            background-color: var(--dark);
-        }
-
-        /* Footer */
-        footer {
-            background-color: var(--primary);
-            color: #94a3b8;
-            padding: 3rem 2rem 2rem 2rem;
-            border-top: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .footer-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .footer-brand {
-            color: #fff;
-            font-weight: 700;
-            font-size: 1.1rem;
-        }
-
-        .footer-links {
-            list-style: none;
-            display: flex;
-            gap: 1.5rem;
-            flex-wrap: wrap;
-        }
-
-        .footer-links a {
-            color: #94a3b8;
             text-decoration: none;
-            font-size: 0.9rem;
+            font-weight: bold;
+            box-sizing: border-box;
         }
-
-        .footer-links a:hover {
-            color: #fff;
-        }
-
-        .footer-bottom {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding-top: 1.5rem;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            text-align: center;
-            font-size: 0.85rem;
-        }
-
-        @media (max-width: 768px) {
-            .nav-links {
-                display: none;
-            }
-            .hero h1 {
-                font-size: 2rem;
-            }
-        }
+        .view-btn:hover { background: #1d4ed8; }
     </style>
 </head>
 <body>
 
-    <!-- Header / Navigation -->
-    <header>
-        <div class="nav-container">
-            <a href="index.html" class="logo">Dreamland Motor Engineering Works</a>
-            <ul class="nav-links">
-                <li><a href="index.html">Home</a></li>
-                <li><a href="services.html">Services</a></li>
-                <li><a href="verified-cars.html" class="active">Verified Cars</a></li>
-                <li><a href="ppi.html">PPI</a></li>
-                <li><a href="corporate.html">Corporate FleetCare</a></li>
-                <li><a href="contact.html">Contact</a></li>
-                <li><a href="https://wa.me/2349066616152" target="_blank" class="whatsapp-btn-nav">WhatsApp</a></li>
-            </ul>
-        </div>
-    </header>
+<header>
+    <h1>DREAMLAND VERIFIED CARS</h1>
+    <p>Inspected once. Evidence documented. Certified transparent.</p>
+</header>
 
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="hero-content">
-            <h1>Buy With Confidence. Buy Dreamland Verified.</h1>
-            <p>Every vehicle listed here has undergone a structured Dreamland inspection covering mechanical condition, computer diagnostics, electrical systems, body condition, chassis, and road-test performance.</p>
-            <div class="hero-cta-group">
-                <a href="#inventory" class="btn btn-primary">Browse Verified Cars</a>
-                <a href="verification-standard.html" class="btn btn-outline">How We Verify &rarr;</a>
-            </div>
-        </div>
-    </section>
-
-    <!-- Verification Status Legend -->
-    <div class="status-legend">
-        <span class="status-badge status-green">&#128994; DREAMLAND VERIFIED</span>
-        <span class="status-badge status-yellow">&#128993; VERIFIED WITH NOTES</span>
-        <span class="status-badge status-red">&#128308; NOT VERIFIED</span>
+<div class="container">
+    <div class="filter-bar">
+        <input type="text" id="searchInput" placeholder="Search by make, model, or keyword...">
+        <select id="sortSelect">
+            <option value="newest">Newest First</option>
+            <option value="price-low">Price: Low to High</option>
+            <option value="price-high">Price: High to Low</option>
+        </select>
     </div>
 
-    <!-- What Dreamland Verified Means -->
-    <section class="definition-section">
-        <h2 class="section-title">What Does Dreamland Verified Mean?</h2>
-        <div class="cards-grid">
-            <div class="info-card">
-                <h3>Professionally Inspected</h3>
-                <p>Every vehicle undergoes a structured inspection before receiving its verification status.</p>
-            </div>
-            <div class="info-card">
-                <h3>Diagnostics Checked</h3>
-                <p>Vehicle computer systems, fault codes and relevant live data are assessed.</p>
-            </div>
-            <div class="info-card">
-                <h3>Condition Disclosed</h3>
-                <p>Known faults and maintenance requirements are documented rather than hidden.</p>
-            </div>
-            <div class="info-card">
-                <h3>Evidence-Based</h3>
-                <p>The verification is based on inspection findings, not simply the seller's description.</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- Vehicle Inventory & Filters -->
-    <section class="marketplace-container" id="inventory">
-        <h2 class="section-title">Available Dreamland Verified Cars</h2>
-        
-        <!-- Filters (Framework ready for inventory growth) -->
-        <div class="filter-bar">
-            <div class="filter-group">
-                <label for="search">Search</label>
-                <input type="text" id="search" placeholder="Search make, model or ID">
-            </div>
-            <div class="filter-group">
-                <label for="make">Make</label>
-                <select id="make">
-                    <option value="">All Makes</option>
-                    <option value="toyota">Toyota</option>
-                    <option value="honda">Honda</option>
-                    <option value="lexus">Lexus</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="status">Verification Status</label>
-                <select id="status">
-                    <option value="">All Statuses</option>
-                    <option value="verified">Dreamland Verified</option>
-                    <option value="notes">Verified with Notes</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Inventory State (Empty State Template for DV-001 launch preparedness) -->
-        <div class="empty-inventory">
-            <h3>No Vehicles Currently Available</h3>
-            <p>We are currently inspecting our next batch of vehicles. Every car must pass our rigorous multi-point evaluation before publication.</p>
-            <a href="ppi.html" class="btn btn-primary">Need an inspection for a car you found? Request PPI</a>
-        </div>
-    </section>
-
-    <!-- Trust Section -->
-    <section class="trust-section">
-        <div class="trust-container">
-            <h2 class="section-title" style="margin-bottom: 1rem;">Why Buy a Dreamland Verified Car?</h2>
-            <p style="color: var(--gray); max-width: 700px; margin: 0 auto;">Unlike a normal used-car listing, Dreamland provides documented inspection information so you know exactly what you're buying.</p>
-            
-            <div class="trust-grid">
-                <div class="trust-item">Mechanical inspection</div>
-                <div class="trust-item">Diagnostic inspection</div>
-                <div class="trust-item">Body inspection</div>
-                <div class="trust-item">Electrical inspection</div>
-                <div class="trust-item">Road test performance</div>
-                <div class="trust-item">Known faults disclosed</div>
-                <div class="trust-item">Maintenance recommendations</div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Relationship with PPI -->
-    <div class="ppi-cross-promo">
-        <h2>Want an independent assessment before purchase?</h2>
-        <p>You can request a comprehensive Dreamland Pre-Purchase Inspection for any vehicle you are considering outside our inventory.</p>
-        <a href="ppi.html" class="btn btn-primary">Learn About PPI &rarr;</a>
+    <div class="grid" id="vehicleGrid">
+        <!-- Dynamically injected from Supabase -->
     </div>
+</div>
 
-    <!-- Buyer CTA -->
-    <section class="buyer-cta">
-        <h2>Found a vehicle you're interested in?</h2>
-        <p style="color: var(--gray); margin-bottom: 1.5rem;">Speak with Dreamland about availability, viewing, inspection and purchase.</p>
-        <div class="cta-buttons">
-            <a href="https://wa.me/2349066616152?text=Hello%20Dreamland,%20I%20am%20interested%20in%20learning%20more%20about%20your%20verified%20cars." target="_blank" class="whatsapp-btn-nav" style="padding: 0.75rem 1.5rem; font-size: 1rem;">Enquire on WhatsApp</a>
-            <a href="tel:+2349066616152" class="btn btn-call">Call Dreamland</a>
-        </div>
-    </section>
+<script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
 
-    <!-- Footer -->
-    <footer>
-        <div class="footer-container">
-            <div class="footer-brand">Dreamland Motor Engineering Works</div>
-            <ul class="footer-links">
-                <li><a href="index.html">Home</a></li>
-                <li><a href="services.html">Services</a></li>
-                <li><a href="verified-cars.html">Verified Cars</a></li>
-                <li><a href="ppi.html">PPI</a></li>
-                <li><a href="corporate.html">Corporate FleetCare</a></li>
-                <li><a href="contact.html">Contact</a></li>
-            </ul>
-        </div>
-        <div class="footer-bottom">
-            &copy; 2026 Dreamland Motor Engineering Works. All rights reserved.
-        </div>
-    </footer>
+    const SUPABASE_URL = 'https://xvzocwcchjdiyudrqorq.supabase.co'
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY' // Replace with your public anon key
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+    async function loadPublishedVehicles() {
+        const grid = document.getElementById('vehicleGrid')
+        grid.innerHTML = '<p style="text-align:center; grid-column: 1/-1;">Loading verified inventory...</p>'
+
+        // Only query PUBLISHED vehicles (enforced by RLS + explicit filter)
+        const { data: vehicles, error } = await supabase
+            .from('vehicles')
+            .select(`
+                *,
+                vehicle_photos (storage_path, is_category)
+            `)
+            .eq('sales_status', 'PUBLISHED')
+            .order('published_at', { ascending: false })
+
+        if (error) {
+            grid.innerHTML = `<p style="color:red; text-align:center;">Failed to load vehicles: ${error.message}</p>`
+            return
+        }
+
+        if (!vehicles || vehicles.length === 0) {
+            grid.innerHTML = '<p style="text-align:center; grid-column: 1/-1; color:#64748b;">No verified vehicles currently available in catalogue.</p>'
+            return
+        }
+
+        grid.innerHTML = ''
+        vehicles.forEach(car => {
+            const formattedPrice = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(car.price)
+            const formattedMileage = new Intl.NumberFormat().format(car.mileage)
+
+            const card = document.createElement('div')
+            card.className = 'card'
+            card.innerHTML = `
+                <img src="https://xvzocwcchjdiyudrqorq.supabase.co/storage/v1/object/public/verified-cars/placeholder.jpg" class="card-img" alt="${car.make} ${car.model}">
+                <div class="card-body">
+                    <div class="badge">🟢 DREAMLAND VERIFIED</div>
+                    <div class="car-title">${car.year} ${car.make} ${car.model} ${car.trim || ''}</div>
+                    <div class="car-id">ID: ${car.vehicle_id}</div>
+                    <div class="car-meta">
+                        <span>${formattedMileage} km</span>
+                        <span>${car.transmission}</span>
+                        <span>${car.location}</span>
+                    </div>
+                    <div class="price">${formattedPrice}</div>
+                    <a href="vehicle.html?id=${car.vehicle_id}" class="view-btn">View Inspection & Details</a>
+                </div>
+            `
+            grid.appendChild(card)
+        })
+    }
+
+    loadPublishedVehicles()
+</script>
 
 </body>
 </html>
