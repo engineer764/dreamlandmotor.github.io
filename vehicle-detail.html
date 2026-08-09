@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Management — Dreamland Admin</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --success: #16a34a;
+            --warning: #ca8a04;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #cbd5e1;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--primary);
+            margin: 0;
+            padding: 16px;
+        }
+        .container { max-width: 700px; margin: 0 auto; }
+        .back-link { display: inline-block; margin-bottom: 16px; color: var(--accent); text-decoration: none; font-weight: 600; font-size: 0.875rem; }
+        
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        h2 { margin-top: 0; font-size: 1.25rem; }
+        
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            margin-bottom: 16px;
+        }
+        .meta-label { color: #64748b; font-size: 0.75rem; display: block; }
+        .meta-value { font-weight: bold; }
+
+        .action-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 12px;
+        }
+        button, .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.875rem;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            box-sizing: border-box;
+        }
+        .btn-publish { background: var(--success); color: white; grid-column: span 2; }
+        .btn-reserve { background: var(--warning); color: white; }
+        .btn-sold { background: var(--danger); color: white; }
+        .btn-inspect { background: var(--accent); color: white; grid-column: span 2; }
+    </style>
+
+    <script type="module">
+        import { requireAuth } from './supabaseClient.js'
+        await requireAuth()
+    </script>
+</head>
+<body>
+
+<div class="container">
+    <a href="admin-dashboard.html" class="back-link">← Back to Dashboard</a>
+
+    <div class="card" id="vehicleCard">
+        <p style="text-align:center; color:#64748b;">Loading vehicle details...</p>
+    </div>
+</div>
+
+<script type="module">
+    import { supabase } from './supabaseClient.js'
+    import { updateVehicleSalesStatus } from './salesService.js'
+
+    const urlParams = new URLSearchParams(window.location.search)
+    const vehicleUuid = urlParams.get('id')
+
+    async function loadVehicleManagement() {
+        const container = document.getElementById('vehicleCard')
+
+        if (!vehicleUuid) {
+            container.innerHTML = '<p style="color:red;">No vehicle specified.</p>'
+            return
+        }
+
+        const { data: car, error } = await supabase
+            .from('vehicles')
+            .select('*')
+            .eq('id', vehicleUuid)
+            .single()
+
+        if (error || !car) {
+            container.innerHTML = '<p style="color:red;">Vehicle record not found.</p>'
+            return
+        }
+
+        const formattedPrice = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(car.price)
+
+        container.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                    <span style="font-size:0.75rem; color:var(--accent); font-weight:bold;">${car.vehicle_id}</span>
+                    <h2>${car.year} ${car.make} ${car.model} ${car.trim || ''}</h2>
+                </div>
+                <span style="font-size:0.75rem; font-weight:bold; padding:4px 8px; border-radius:4px; background:#e2e8f0;">${car.sales_status}</span>
+            </div>
+
+            <div class="meta-grid" style="margin-top:16px;">
+                <div><span class="meta-label">Price</span><span class="meta-value">${formattedPrice}</span></div>
+                <div><span class="meta-label">Mileage</span><span class="meta-value">${Number(car.mileage).toLocaleString()} km</span></div>
+                <div><span class="meta-label">Verification Status</span><span class="meta-value">${car.verification_status}</span></div>
+                <div><span class="meta-label">Location</span><span class="meta-value">${car.location}</span></div>
+            </div>
+
+            <div style="margin-top:20px;">
+                <strong>Inventory & Publication Controls</strong>
+                <div class="action-group" style="margin-top:10px;">
+                    <a href="inspection.html?vehicleId=${car.id}" class="btn btn-inspect">Perform / Edit Inspection</a>
+                    <button class="btn btn-publish" onclick="changeStatus('PUBLISHED')">Publish to Marketplace</button>
+                    <button class="btn btn-reserve" onclick="changeStatus('RESERVED')">Mark Reserved</button>
+                    <button class="btn btn-sold" onclick="changeStatus('SOLD')">Mark as Sold</button>
+                </div>
+            </div>
+        `
+    }
+
+    window.changeStatus = async function(newStatus) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return alert('Session expired.')
+
+        const confirmed = confirm(`Change sales status to ${newStatus}?`)
+        if (!confirmed) return
+
+        try {
+            await updateVehicleSalesStatus(vehicleUuid, newStatus, session.user.id)
+            alert(`Status updated successfully to ${newStatus}.`)
+            window.location.reload()
+        } catch (err) {
+            alert(`Failed to update status: ${err.message}`)
+        }
+    }
+
+    loadVehicleManagement()
+</script>
+
+</body>
+</html>
