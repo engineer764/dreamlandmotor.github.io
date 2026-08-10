@@ -145,61 +145,60 @@
 </div>
 
 <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+    import { vehicleService } from './vehicleService.js';
 
-    const SUPABASE_URL = 'https://xvzocwcchjdiyudrqorq.supabase.co'
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2em9jd2NjaGpkaXl1ZHJxb3JxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyOTQzOTYsImV4cCI6MjEwMTg3MDM5Nn0.2xG_Xqd0WDZEtuZAnWXJmjedlde2Omb-9JshXMVGFGs' // Replace with your public anon key
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    const grid = document.getElementById('vehicleGrid')
+    const searchInput = document.getElementById('searchInput')
 
-    async function loadPublishedVehicles() {
-        const grid = document.getElementById('vehicleGrid')
+    async function loadPublishedVehicles(filters = {}) {
         grid.innerHTML = '<p style="text-align:center; grid-column: 1/-1;">Loading verified inventory...</p>'
 
-        // Only query PUBLISHED vehicles (enforced by RLS + explicit filter)
-        const { data: vehicles, error } = await supabase
-            .from('vehicles')
-            .select(`
-                *,
-                vehicle_photos (storage_path, is_category)
-            `)
-            .eq('sales_status', 'PUBLISHED')
-            .order('published_at', { ascending: false })
+        try {
+            const vehicles = await vehicleService.getVerifiedVehicles(filters);
 
-        if (error) {
-            grid.innerHTML = `<p style="color:red; text-align:center;">Failed to load vehicles: ${error.message}</p>`
-            return
-        }
+            if (!vehicles || vehicles.length === 0) {
+                grid.innerHTML = '<p style="text-align:center; grid-column: 1/-1; color:#64748b;">No verified vehicles currently available in catalogue.</p>'
+                return
+            }
 
-        if (!vehicles || vehicles.length === 0) {
-            grid.innerHTML = '<p style="text-align:center; grid-column: 1/-1; color:#64748b;">No verified vehicles currently available in catalogue.</p>'
-            return
-        }
+            grid.innerHTML = ''
+            vehicles.forEach(car => {
+                const formattedPrice = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(car.price)
+                const formattedMileage = new Intl.NumberFormat().format(car.mileage)
+                const photoUrl = car.primary_photo_url || 'https://xvzocwcchjdiyudrqorq.supabase.co/storage/v1/object/public/verified-cars/placeholder.jpg'
 
-        grid.innerHTML = ''
-        vehicles.forEach(car => {
-            const formattedPrice = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(car.price)
-            const formattedMileage = new Intl.NumberFormat().format(car.mileage)
-
-            const card = document.createElement('div')
-            card.className = 'card'
-            card.innerHTML = `
-                <img src="https://xvzocwcchjdiyudrqorq.supabase.co/storage/v1/object/public/verified-cars/placeholder.jpg" class="card-img" alt="${car.make} ${car.model}">
-                <div class="card-body">
-                    <div class="badge">🟢 DREAMLAND VERIFIED</div>
-                    <div class="car-title">${car.year} ${car.make} ${car.model} ${car.trim || ''}</div>
-                    <div class="car-id">ID: ${car.vehicle_id}</div>
-                    <div class="car-meta">
-                        <span>${formattedMileage} km</span>
-                        <span>${car.transmission}</span>
-                        <span>${car.location}</span>
+                const card = document.createElement('div')
+                card.className = 'card'
+                card.innerHTML = `
+                    <img src="${photoUrl}" class="card-img" alt="${car.make} ${car.model}">
+                    <div class="card-body">
+                        <div class="badge">🟢 DREAMLAND VERIFIED</div>
+                        <div class="car-title">${car.year} ${car.make} ${car.model} ${car.trim || ''}</div>
+                        <div class="car-id">CODE: ${car.vehicle_code}</div>
+                        <div class="car-meta">
+                            <span>${formattedMileage} km</span>
+                            <span>${car.transmission || 'Automatic'}</span>
+                            <span>${car.location}</span>
+                        </div>
+                        <div class="price">${formattedPrice}</div>
+                        <a href="vehicle-details.html?id=${car.id}" class="view-btn">View Inspection & Details</a>
                     </div>
-                    <div class="price">${formattedPrice}</div>
-                    <a href="vehicle.html?id=${car.vehicle_id}" class="view-btn">View Inspection & Details</a>
-                </div>
-            `
-            grid.appendChild(card)
-        })
+                `
+                grid.appendChild(card)
+            })
+        } catch (error) {
+            grid.innerHTML = `<p style="color:red; text-align:center;">Failed to load vehicles: ${error.message}</p>`
+        }
     }
+
+    // Live search listener
+    let searchTimeout;
+    searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            loadPublishedVehicles({ search: e.target.value });
+        }, 300);
+    });
 
     loadPublishedVehicles()
 </script>
