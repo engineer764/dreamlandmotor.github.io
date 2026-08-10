@@ -8,19 +8,17 @@ const hasValue = (value) => value !== undefined && value !== null && value !== '
 
 const toFiniteNumber = (value, fieldName) => {
   const number = Number(value);
-  if (!Number.isFinite(number)) {
-    throw new Error(`Invalid ${fieldName}.`);
-  }
+  if (!Number.isFinite(number)) throw new Error(`Invalid ${fieldName}.`);
   return number;
 };
 
 const toFiniteInteger = (value, fieldName) => {
   const number = Number(value);
-  if (!Number.isInteger(number)) {
-    throw new Error(`Invalid ${fieldName}. Must be a whole number.`);
-  }
+  if (!Number.isInteger(number)) throw new Error(`Invalid ${fieldName}. Must be a whole number.`);
   return number;
 };
+
+const sanitizeSearchTerm = (term) => term.replace(/[^a-zA-Z0-9-]/g, '');
 
 export const vehicleService = {
   // ==========================================
@@ -33,11 +31,20 @@ export const vehicleService = {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (filters.make) query = query.ilike('make', `%${filters.make}%`);
-    if (filters.model) query = query.ilike('model', `%${filters.model}%`);
+    // Tokenized Search: (make OR model) AND (make OR model)
+    if (filters.search) {
+      const rawSearch = String(filters.search || '').trim().slice(0, 100);
+      const terms = rawSearch.split(/\s+/).map(sanitizeSearchTerm).filter(Boolean);
+      
+      if (terms.length > 0) {
+        const groups = terms.map(term => `or(make.ilike.%${term}%,model.ilike.%${term}%)`);
+        query = query.or(`and(${groups.join(',')})`);
+      }
+    }
+
     if (filters.location) query = query.eq('location', filters.location);
     
-    // Price range bounds and safety validation
+    // Price range bounds
     const minPrice = hasValue(filters.minPrice) ? toFiniteNumber(filters.minPrice, 'minimum price') : null;
     const maxPrice = hasValue(filters.maxPrice) ? toFiniteNumber(filters.maxPrice, 'maximum price') : null;
 
@@ -62,7 +69,6 @@ export const vehicleService = {
   async getPublicVehicleDetails(vehicleId) {
     if (!vehicleId) throw new Error('A valid vehicle identifier is required.');
 
-    // 1. Fetch core verified vehicle record
     const { data: vehicle, error: vError } = await supabase
       .from('public_verified_vehicles')
       .select('*')
@@ -70,13 +76,10 @@ export const vehicleService = {
       .single();
     
     if (vError) {
-      if (vError.code === 'PGRST116') {
-        throw new Error('This vehicle is no longer available or verification has expired.');
-      }
+      if (vError.code === 'PGRST116') throw new Error('This vehicle is no longer available.');
       throw vError;
     }
 
-    // 2. Fetch marketing photos with deterministic sorting
     const { data: photos, error: pError } = await supabase
       .from('public_vehicle_photos')
       .select('*')
@@ -84,7 +87,6 @@ export const vehicleService = {
       .order('sort_order', { ascending: true });
     if (pError) throw pError;
 
-    // 3. Fetch the official verification inspection (with fallback ordering)
     let inspectionQuery = supabase
       .from('public_vehicle_inspections')
       .select('*')
@@ -104,7 +106,6 @@ export const vehicleService = {
     if (inspections && inspections.length > 0) {
       const inspectionIds = inspections.map(i => i.id);
 
-      // Fetch findings ordered deterministically by severity (highest impact first)
       const { data: findings, error: fError } = await supabase
         .from('public_inspection_findings')
         .select('*')
@@ -115,8 +116,6 @@ export const vehicleService = {
       let enrichedFindings = [];
       if (findings && findings.length > 0) {
         const findingIds = findings.map(f => f.id);
-
-        // Fetch finding photos with deterministic sort order
         const { data: findingPhotos, error: fpError } = await supabase
           .from('public_finding_photos')
           .select('*')
@@ -148,11 +147,7 @@ export const vehicleService = {
       }));
     }
 
-    return { 
-      ...vehicle, 
-      photos: photos || [], 
-      inspections: enrichedInspections 
-    };
+    return { ...vehicle, photos: photos || [], inspections: enrichedInspections };
   },
 
   // ==========================================
@@ -183,21 +178,13 @@ export const vehicleService = {
     if (!vehicleData.location?.trim()) throw new Error('Vehicle storage/workshop location is required.');
     
     const year = toFiniteInteger(vehicleData.year, 'manufacturing year');
-    if (year < 1900 || year > new Date().getFullYear() + 1) {
-      throw new Error('Please enter a valid manufacturing year.');
-    }
-
     const mileage = toFiniteInteger(vehicleData.mileage, 'mileage');
-    if (mileage < 0) {
-      throw new Error('Mileage cannot be negative.');
-    }
-
     const price = toFiniteNumber(vehicleData.price, 'price');
-    if (price <= 0) {
-      throw new Error('Price must be greater than zero.');
-    }
+    
+    if (year < 1900 || year > new Date().getFullYear() + 1) throw new Error('Invalid year.');
+    if (mileage < 0) throw new Error('Mileage cannot be negative.');
+    if (price <= 0) throw new Error('Price must be greater than zero.');
 
-    // Call authoritative database RPC
     const { data, error } = await supabase.rpc('create_vehicle', {
       p_make: vehicleData.make.trim(),
       p_model: vehicleData.model.trim(),
@@ -225,63 +212,63 @@ export const vehicleService = {
   // SECURE STATE-TRANSITION RPC WRAPPERS
   // ==========================================
 
-  async verifyVehicle(vehicleId) {
-    const { data, error } = await supabase.rpc('verify_vehicle', { p_vehicle_id: vehicleId });
+  async verifyVehicle(id) {
+    const { data, error } = await supabase.rpc('verify_vehicle', { p_vehicle_id: id });
     if (error) throw error;
     return data;
   },
 
-  async rejectVehicle(vehicleId, reason) {
+  async rejectVehicle(id, reason) {
     if (!reason?.trim()) throw new Error('A rejection reason is required.');
-    const { data, error } = await supabase.rpc('reject_vehicle', { p_vehicle_id: vehicleId, p_reason: reason.trim() });
+    const { data, error } = await supabase.rpc('reject_vehicle', { p_vehicle_id: id, p_reason: reason.trim() });
     if (error) throw error;
     return data;
   },
 
-  async publishVehicle(vehicleId) {
-    const { data, error } = await supabase.rpc('publish_vehicle', { p_vehicle_id: vehicleId });
+  async publishVehicle(id) {
+    const { data, error } = await supabase.rpc('publish_vehicle', { p_vehicle_id: id });
     if (error) throw error;
     return data;
   },
 
-  async unpublishVehicle(vehicleId) {
-    const { data, error } = await supabase.rpc('unpublish_vehicle', { p_vehicle_id: vehicleId });
+  async unpublishVehicle(id) {
+    const { data, error } = await supabase.rpc('unpublish_vehicle', { p_vehicle_id: id });
     if (error) throw error;
     return data;
   },
 
-  async reserveVehicle(vehicleId) {
-    const { data, error } = await supabase.rpc('reserve_vehicle', { p_vehicle_id: vehicleId });
+  async reserveVehicle(id) {
+    const { data, error } = await supabase.rpc('reserve_vehicle', { p_vehicle_id: id });
     if (error) throw error;
     return data;
   },
 
-  async markAvailable(vehicleId) {
-    const { data, error } = await supabase.rpc('mark_vehicle_available', { p_vehicle_id: vehicleId });
+  async markAvailable(id) {
+    const { data, error } = await supabase.rpc('mark_vehicle_available', { p_vehicle_id: id });
     if (error) throw error;
     return data;
   },
 
-  async markSold(vehicleId) {
-    const { data, error } = await supabase.rpc('mark_vehicle_sold', { p_vehicle_id: vehicleId });
+  async markSold(id) {
+    const { data, error } = await supabase.rpc('mark_vehicle_sold', { p_vehicle_id: id });
     if (error) throw error;
     return data;
   },
 
-  async archiveVehicle(vehicleId) {
-    const { data, error } = await supabase.rpc('archive_vehicle', { p_vehicle_id: vehicleId });
+  async archiveVehicle(id) {
+    const { data, error } = await supabase.rpc('archive_vehicle', { p_vehicle_id: id });
     if (error) throw error;
     return data;
   },
 
-  async updatePrice(vehicleId, newPrice, reason) {
-    const parsedPrice = toFiniteNumber(newPrice, 'price');
-    if (parsedPrice <= 0) throw new Error('Price must be greater than zero.');
+  async updatePrice(id, price, reason) {
+    const p = toFiniteNumber(price, 'price');
+    if (p <= 0) throw new Error('Price must be greater than zero.');
     if (!reason?.trim()) throw new Error('A mandatory audit reason is required for price changes.');
 
     const { data, error } = await supabase.rpc('update_vehicle_price', {
-      p_vehicle_id: vehicleId,
-      p_new_price: parsedPrice,
+      p_vehicle_id: id,
+      p_new_price: p,
       p_reason: reason.trim()
     });
     if (error) throw error;
