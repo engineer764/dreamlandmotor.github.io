@@ -1,277 +1,158 @@
 import { supabase } from './supabaseClient.js';
 
-// ==========================================
-// PRIVATE VALIDATION & HELPER UTILITIES
-// ==========================================
-
-const hasValue = (value) => value !== undefined && value !== null && value !== '';
-
-const toFiniteNumber = (value, fieldName) => {
-  const number = Number(value);
-  if (!Number.isFinite(number)) throw new Error(`Invalid ${fieldName}.`);
-  return number;
-};
-
-const toFiniteInteger = (value, fieldName) => {
-  const number = Number(value);
-  if (!Number.isInteger(number)) throw new Error(`Invalid ${fieldName}. Must be a whole number.`);
-  return number;
-};
-
-const sanitizeSearchTerm = (term) => term.replace(/[^a-zA-Z0-9-]/g, '');
-
 export const vehicleService = {
-  // ==========================================
-  // PUBLIC-FACING CATALOG (Masked Views & Filters)
-  // ==========================================
-  
-  async getVerifiedVehicles(filters = {}) {
-    let query = supabase
-      .from('public_verified_vehicles')
-      .select('*')
-      .order('created_at', { ascending: false });
+    /**
+     * Fetches published and verified vehicles for the public catalog with filtering and search.
+     */
+    async getVerifiedVehicles(filters = {}) {
+        let query = supabase
+            .from('public_verified_vehicles')
+            .select('*')
+            .order('published_at', { ascending: false });
 
-    // Tokenized Search: (make OR model) AND (make OR model)
-    if (filters.search) {
-      const rawSearch = String(filters.search || '').trim().slice(0, 100);
-      const terms = rawSearch.split(/\s+/).map(sanitizeSearchTerm).filter(Boolean);
-      
-      if (terms.length > 0) {
-        const groups = terms.map(term => `or(make.ilike.%${term}%,model.ilike.%${term}%)`);
-        query = query.or(`and(${groups.join(',')})`);
-      }
+        if (filters.search) {
+            query = query.or(`make.ilike.%${filters.search}%,model.ilike.%${filters.search}%,vehicle_code.ilike.%${filters.search}%`);
+        }
+
+        if (filters.location) {
+            query = query.eq('location', filters.location);
+        }
+
+        const { data, error } = await query;
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    /**
+     * Fetches all vehicles for the admin portal.
+     */
+    async getAdminVehicles() {
+        const { data, error } = await supabase
+            .from('vehicles')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    /**
+     * Creates a new vehicle draft in the database.
+     */
+    async createVehicle(vehicleData) {
+        const { data, error } = await supabase
+            .from('vehicles')
+            .insert([{
+                ...vehicleData,
+                verification_status: 'PENDING',
+                publication_status: 'UNPUBLISHED',
+                sales_status: 'AVAILABLE'
+            }])
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    /**
+     * Attaches a photo to a vehicle record.
+     */
+    async addVehiclePhoto(vehicleId, photoData) {
+        const { data, error } = await supabase
+            .from('vehicle_photos')
+            .insert([{
+                vehicle_id: vehicleId,
+                storage_path: photoData.storage_path || 'external/custom_upload.jpg',
+                public_url: photoData.public_url,
+                category: photoData.category || 'EXTERIOR',
+                is_primary: photoData.is_primary || false
+            }])
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    /**
+     * Verifies a vehicle via RPC.
+     */
+    async verifyVehicle(id) {
+        const { error } = await supabase.rpc('verify_vehicle', { vehicle_uuid: id });
+        if (error) throw new Error(error.message);
+        return true;
+    },
+
+    /**
+     * Rejects a vehicle inspection.
+     */
+    async rejectVehicle(id) {
+        const { error } = await supabase
+            .from('vehicles')
+            .update({ verification_status: 'REJECTED' })
+            .eq('id', id);
+        if (error) throw new Error(error.message);
+        return true;
+    },
+
+    /**
+     * Publishes a verified vehicle to the live catalog.
+     */
+    async publishVehicle(id) {
+        const { error } = await supabase.rpc('publish_vehicle', { vehicle_uuid: id });
+        if (error) throw new Error(error.message);
+        return true;
+    },
+
+    /**
+     * Unpublishes a vehicle from the catalog.
+     */
+    async unpublishVehicle(id) {
+        const { error } = await supabase.rpc('unpublish_vehicle', { vehicle_uuid: id });
+        if (error) throw new Error(error.message);
+        return true;
+    },
+
+    /**
+     * Reserves a vehicle.
+     */
+    async reserveVehicle(id) {
+        const { error } = await supabase
+            .from('vehicles')
+            .update({ sales_status: 'RESERVED' })
+            .eq('id', id);
+        if (error) throw new Error(error.message);
+        return true;
+    },
+
+    /**
+     * Marks a reserved or sold vehicle back to available.
+     */
+    async markAvailable(id) {
+        const { error } = await supabase
+            .from('vehicles')
+            .update({ sales_status: 'AVAILABLE' })
+            .eq('id', id);
+        if (error) throw new Error(error.message);
+        return true;
+    },
+
+    /**
+     * Marks a vehicle as sold.
+     */
+    async markSold(id) {
+        const { error } = await supabase.rpc('mark_vehicle_sold', { vehicle_uuid: id });
+        if (error) throw new Error(error.message);
+        return true;
+    },
+
+    /**
+     * Archives a vehicle record preserving audit history.
+     */
+    async archiveVehicle(id) {
+        const { error } = await supabase.rpc('archive_vehicle', { vehicle_uuid: id });
+        if (error) throw new Error(error.message);
+        return true;
     }
-
-    if (filters.location) query = query.eq('location', filters.location);
-    
-    // Price range bounds
-    const minPrice = hasValue(filters.minPrice) ? toFiniteNumber(filters.minPrice, 'minimum price') : null;
-    const maxPrice = hasValue(filters.maxPrice) ? toFiniteNumber(filters.maxPrice, 'maximum price') : null;
-
-    if (minPrice !== null && minPrice < 0) throw new Error('Minimum price cannot be negative.');
-    if (maxPrice !== null && maxPrice < 0) throw new Error('Maximum price cannot be negative.');
-    if (minPrice !== null && maxPrice !== null && minPrice > maxPrice) {
-      throw new Error('Minimum price cannot exceed maximum price.');
-    }
-
-    if (minPrice !== null) query = query.gte('price', minPrice);
-    if (maxPrice !== null) query = query.lte('price', maxPrice);
-
-    if (hasValue(filters.year)) {
-      query = query.eq('year', toFiniteInteger(filters.year, 'manufacturing year'));
-    }
-
-    const { data, error } = await query;
-    if (error) throw error;
-    return data;
-  },
-
-  async getPublicVehicleDetails(vehicleId) {
-    if (!vehicleId) throw new Error('A valid vehicle identifier is required.');
-
-    const { data: vehicle, error: vError } = await supabase
-      .from('public_verified_vehicles')
-      .select('*')
-      .eq('id', vehicleId)
-      .single();
-    
-    if (vError) {
-      if (vError.code === 'PGRST116') throw new Error('This vehicle is no longer available.');
-      throw vError;
-    }
-
-    const { data: photos, error: pError } = await supabase
-      .from('public_vehicle_photos')
-      .select('*')
-      .eq('vehicle_id', vehicleId)
-      .order('sort_order', { ascending: true });
-    if (pError) throw pError;
-
-    let inspectionQuery = supabase
-      .from('public_vehicle_inspections')
-      .select('*')
-      .eq('vehicle_id', vehicleId)
-      .order('inspection_date', { ascending: false });
-
-    if (vehicle.verification_inspection_id) {
-      inspectionQuery = inspectionQuery.eq('id', vehicle.verification_inspection_id);
-    } else {
-      inspectionQuery = inspectionQuery.limit(1);
-    }
-
-    const { data: inspections, error: iError } = await inspectionQuery;
-    if (iError) throw iError;
-
-    let enrichedInspections = [];
-    if (inspections && inspections.length > 0) {
-      const inspectionIds = inspections.map(i => i.id);
-
-      const { data: findings, error: fError } = await supabase
-        .from('public_inspection_findings')
-        .select('*')
-        .in('inspection_id', inspectionIds)
-        .order('severity', { ascending: false });
-      if (fError) throw fError;
-
-      let enrichedFindings = [];
-      if (findings && findings.length > 0) {
-        const findingIds = findings.map(f => f.id);
-        const { data: findingPhotos, error: fpError } = await supabase
-          .from('public_finding_photos')
-          .select('*')
-          .in('finding_id', findingIds)
-          .order('sort_order', { ascending: true });
-        if (fpError) throw fpError;
-
-        const photosByFindingId = (findingPhotos || []).reduce((acc, photo) => {
-          if (!acc[photo.finding_id]) acc[photo.finding_id] = [];
-          acc[photo.finding_id].push(photo);
-          return acc;
-        }, {});
-
-        enrichedFindings = findings.map(finding => ({
-          ...finding,
-          photos: photosByFindingId[finding.id] || []
-        }));
-      }
-
-      const findingsByInspectionId = enrichedFindings.reduce((acc, finding) => {
-        if (!acc[finding.inspection_id]) acc[finding.inspection_id] = [];
-        acc[finding.inspection_id].push(finding);
-        return acc;
-      }, {});
-
-      enrichedInspections = inspections.map(inspection => ({
-        ...inspection,
-        findings: findingsByInspectionId[inspection.id] || []
-      }));
-    }
-
-    return { ...vehicle, photos: photos || [], inspections: enrichedInspections };
-  },
-
-  // ==========================================
-  // ADMIN & STAFF MANAGEMENT
-  // ==========================================
-
-  async getAdminVehicles() {
-    const { data, error } = await supabase
-      .from('vehicles')
-      .select(`
-        id, vehicle_code, verification_reference, make, model, trim, year, 
-        mileage, location, price, currency, sales_status, verification_status, 
-        publication_status, created_at,
-        vehicle_photos(public_url, is_primary)
-      `)
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return data;
-  },
-
-  async createVehicle(vehicleData) {
-    if (!vehicleData.make?.trim()) throw new Error('Vehicle make is required.');
-    if (!vehicleData.model?.trim()) throw new Error('Vehicle model is required.');
-    if (!vehicleData.engine?.trim()) throw new Error('Vehicle engine specification is required.');
-    if (!vehicleData.transmission?.trim()) throw new Error('Transmission type is required.');
-    if (!vehicleData.fuel_type?.trim()) throw new Error('Fuel type is required.');
-    if (!vehicleData.colour?.trim()) throw new Error('Vehicle colour is required.');
-    if (!vehicleData.location?.trim()) throw new Error('Vehicle storage/workshop location is required.');
-    
-    const year = toFiniteInteger(vehicleData.year, 'manufacturing year');
-    const mileage = toFiniteInteger(vehicleData.mileage, 'mileage');
-    const price = toFiniteNumber(vehicleData.price, 'price');
-    
-    if (year < 1900 || year > new Date().getFullYear() + 1) throw new Error('Invalid year.');
-    if (mileage < 0) throw new Error('Mileage cannot be negative.');
-    if (price <= 0) throw new Error('Price must be greater than zero.');
-
-    const { data, error } = await supabase.rpc('create_vehicle', {
-      p_make: vehicleData.make.trim(),
-      p_model: vehicleData.model.trim(),
-      p_trim: vehicleData.trim?.trim() || null,
-      p_year: year,
-      p_mileage: mileage,
-      p_engine: vehicleData.engine.trim(),
-      p_transmission: vehicleData.transmission.trim(),
-      p_fuel_type: vehicleData.fuel_type.trim(),
-      p_colour: vehicleData.colour.trim(),
-      p_body_type: vehicleData.body_type?.trim() || null,
-      p_vin: vehicleData.vin?.trim() || null,
-      p_registration_number: vehicleData.registration_number?.trim() || null,
-      p_location: vehicleData.location.trim(),
-      p_price: price,
-      p_currency: vehicleData.currency || 'NGN',
-      p_description: vehicleData.description?.trim() || null
-    });
-    
-    if (error) throw error;
-    return data;
-  },
-
-  // ==========================================
-  // SECURE STATE-TRANSITION RPC WRAPPERS
-  // ==========================================
-
-  async verifyVehicle(id) {
-    const { data, error } = await supabase.rpc('verify_vehicle', { p_vehicle_id: id });
-    if (error) throw error;
-    return data;
-  },
-
-  async rejectVehicle(id, reason) {
-    if (!reason?.trim()) throw new Error('A rejection reason is required.');
-    const { data, error } = await supabase.rpc('reject_vehicle', { p_vehicle_id: id, p_reason: reason.trim() });
-    if (error) throw error;
-    return data;
-  },
-
-  async publishVehicle(id) {
-    const { data, error } = await supabase.rpc('publish_vehicle', { p_vehicle_id: id });
-    if (error) throw error;
-    return data;
-  },
-
-  async unpublishVehicle(id) {
-    const { data, error } = await supabase.rpc('unpublish_vehicle', { p_vehicle_id: id });
-    if (error) throw error;
-    return data;
-  },
-
-  async reserveVehicle(id) {
-    const { data, error } = await supabase.rpc('reserve_vehicle', { p_vehicle_id: id });
-    if (error) throw error;
-    return data;
-  },
-
-  async markAvailable(id) {
-    const { data, error } = await supabase.rpc('mark_vehicle_available', { p_vehicle_id: id });
-    if (error) throw error;
-    return data;
-  },
-
-  async markSold(id) {
-    const { data, error } = await supabase.rpc('mark_vehicle_sold', { p_vehicle_id: id });
-    if (error) throw error;
-    return data;
-  },
-
-  async archiveVehicle(id) {
-    const { data, error } = await supabase.rpc('archive_vehicle', { p_vehicle_id: id });
-    if (error) throw error;
-    return data;
-  },
-
-  async updatePrice(id, price, reason) {
-    const p = toFiniteNumber(price, 'price');
-    if (p <= 0) throw new Error('Price must be greater than zero.');
-    if (!reason?.trim()) throw new Error('A mandatory audit reason is required for price changes.');
-
-    const { data, error } = await supabase.rpc('update_vehicle_price', {
-      p_vehicle_id: id,
-      p_new_price: p,
-      p_reason: reason.trim()
-    });
-    if (error) throw error;
-    return data;
-  }
 };
