@@ -36,25 +36,32 @@ export const vehicleService = {
         return data;
     },
 
-    /**
-     * Creates a new vehicle draft in the database.
+   /**
+     * Creates a new vehicle draft in the database with property mapping.
      */
     async createVehicle(vehicleData) {
+        // Map any frontend camelCase fields to database snake_case columns
+        const payload = {
+            ...vehicleData,
+            verification_status: 'PENDING',
+            publication_status: 'UNPUBLISHED',
+            sales_status: 'AVAILABLE'
+        };
+
+        if (payload.bodyType !== undefined) {
+            payload.body_type = payload.bodyType;
+            delete payload.bodyType;
+        }
+
         const { data, error } = await supabase
             .from('vehicles')
-            .insert([{
-                ...vehicleData,
-                verification_status: 'PENDING',
-                publication_status: 'UNPUBLISHED',
-                sales_status: 'AVAILABLE'
-            }])
+            .insert([payload])
             .select()
             .single();
 
         if (error) throw new Error(error.message);
         return data;
     },
-
     /**
      * Attaches a photo to a vehicle record.
      */
