@@ -91,11 +91,10 @@ export const vehicleService = {
     },
 
     async rejectVehicle(id, reason) {
-        const { error } = await supabase
-            .from('vehicles')
-            .update({ verification_status: 'REJECTED' })
-            .eq('id', id);
-
+        const { error } = await supabase.rpc('reject_vehicle', { 
+            vehicle_uuid: id, 
+            reason: reason || 'Rejected by admin' 
+        });
         if (error) throw new Error(error.message);
         return true;
     },
@@ -113,19 +112,13 @@ export const vehicleService = {
     },
 
     async reserveVehicle(id) {
-        const { error } = await supabase
-            .from('vehicles')
-            .update({ sales_status: 'RESERVED' })
-            .eq('id', id);
+        const { error } = await supabase.rpc('reserve_vehicle', { vehicle_uuid: id });
         if (error) throw new Error(error.message);
         return true;
     },
 
     async markAvailable(id) {
-        const { error } = await supabase
-            .from('vehicles')
-            .update({ sales_status: 'AVAILABLE' })
-            .eq('id', id);
+        const { error } = await supabase.rpc('mark_vehicle_available', { vehicle_uuid: id });
         if (error) throw new Error(error.message);
         return true;
     },
