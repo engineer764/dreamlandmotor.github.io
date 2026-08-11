@@ -1,9 +1,6 @@
 import { supabase } from './supabaseClient.js';
 
 export const vehicleService = {
-    /**
-     * Fetches published and verified vehicles for the public catalog with filtering and search.
-     */
     async getVerifiedVehicles(filters = {}) {
         let query = supabase
             .from('public_verified_vehicles')
@@ -23,9 +20,6 @@ export const vehicleService = {
         return data;
     },
 
-    /**
-     * Fetches all vehicles for the admin portal.
-     */
     async getAdminVehicles() {
         const { data, error } = await supabase
             .from('vehicles')
@@ -36,11 +30,10 @@ export const vehicleService = {
         return data;
     },
 
-   /**
-     * Creates a new vehicle draft in the database with property mapping.
+    /**
+     * Automatically maps all frontend camelCase form properties to database snake_case columns.
      */
     async createVehicle(vehicleData) {
-        // Map any frontend camelCase fields to database snake_case columns
         const payload = {
             ...vehicleData,
             verification_status: 'PENDING',
@@ -48,10 +41,21 @@ export const vehicleService = {
             sales_status: 'AVAILABLE'
         };
 
-        if (payload.bodyType !== undefined) {
-            payload.body_type = payload.bodyType;
-            delete payload.bodyType;
-        }
+        const mapField = (camel, snake) => {
+            if (payload[camel] !== undefined) {
+                payload[snake] = payload[camel];
+                delete payload[camel];
+            }
+        };
+
+        // Map all common camelCase fields sent from the form
+        mapField('bodyType', 'body_type');
+        mapField('fuelType', 'fuel_type');
+        mapField('driveType', 'drive_type');
+        mapField('engineSize', 'engine_size');
+        mapField('exteriorColor', 'exterior_color');
+        mapField('interiorColor', 'interior_color');
+        mapField('transmissionType', 'transmission_type');
 
         const { data, error } = await supabase
             .from('vehicles')
@@ -62,9 +66,7 @@ export const vehicleService = {
         if (error) throw new Error(error.message);
         return data;
     },
-    /**
-     * Attaches a photo to a vehicle record.
-     */
+
     async addVehiclePhoto(vehicleId, photoData) {
         const { data, error } = await supabase
             .from('vehicle_photos')
@@ -82,18 +84,12 @@ export const vehicleService = {
         return data;
     },
 
-    /**
-     * Verifies a vehicle via RPC.
-     */
     async verifyVehicle(id) {
         const { error } = await supabase.rpc('verify_vehicle', { vehicle_uuid: id });
         if (error) throw new Error(error.message);
         return true;
     },
 
-    /**
-     * Rejects a vehicle inspection with a required reason.
-     */
     async rejectVehicle(id, reason) {
         const { error } = await supabase
             .from('vehicles')
@@ -104,27 +100,18 @@ export const vehicleService = {
         return true;
     },
 
-    /**
-     * Publishes a verified vehicle to the live catalog.
-     */
     async publishVehicle(id) {
         const { error } = await supabase.rpc('publish_vehicle', { vehicle_uuid: id });
         if (error) throw new Error(error.message);
         return true;
     },
 
-    /**
-     * Unpublishes a vehicle from the catalog.
-     */
     async unpublishVehicle(id) {
         const { error } = await supabase.rpc('unpublish_vehicle', { vehicle_uuid: id });
         if (error) throw new Error(error.message);
         return true;
     },
 
-    /**
-     * Reserves a vehicle.
-     */
     async reserveVehicle(id) {
         const { error } = await supabase
             .from('vehicles')
@@ -134,9 +121,6 @@ export const vehicleService = {
         return true;
     },
 
-    /**
-     * Marks a reserved or sold vehicle back to available.
-     */
     async markAvailable(id) {
         const { error } = await supabase
             .from('vehicles')
@@ -146,18 +130,12 @@ export const vehicleService = {
         return true;
     },
 
-    /**
-     * Marks a vehicle as sold.
-     */
     async markSold(id) {
         const { error } = await supabase.rpc('mark_vehicle_sold', { vehicle_uuid: id });
         if (error) throw new Error(error.message);
         return true;
     },
 
-    /**
-     * Archives a vehicle record preserving audit history.
-     */
     async archiveVehicle(id) {
         const { error } = await supabase.rpc('archive_vehicle', { vehicle_uuid: id });
         if (error) throw new Error(error.message);
@@ -165,7 +143,6 @@ export const vehicleService = {
     }
 };
 
-// --- TOP-LEVEL NAMED EXPORTS FOR ADMIN DASHBOARD COMPATIBILITY ---
 export const getAdminVehicles = vehicleService.getAdminVehicles;
 export const createVehicle = vehicleService.createVehicle;
 export const verifyVehicle = vehicleService.verifyVehicle;
