@@ -30,9 +30,6 @@ export const vehicleService = {
         return data;
     },
 
-    /**
-     * Creates a new vehicle draft securely via database RPC.
-     */
     async createVehicle(vehicleData) {
         const payload = { ...vehicleData };
 
@@ -52,6 +49,36 @@ export const vehicleService = {
         mapField('transmissionType', 'transmission_type');
 
         const { data, error } = await supabase.rpc('create_vehicle', { p_data: payload });
+
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    /**
+     * Updates an existing vehicle securely via database RPC.
+     */
+    async updateVehicle(id, vehicleData) {
+        const payload = { ...vehicleData };
+
+        const mapField = (camel, snake) => {
+            if (payload[camel] !== undefined) {
+                payload[snake] = payload[camel];
+                delete payload[camel];
+            }
+        };
+
+        mapField('bodyType', 'body_type');
+        mapField('fuelType', 'fuel_type');
+        mapField('driveType', 'drive_type');
+        mapField('engineSize', 'engine_size');
+        mapField('exteriorColor', 'exterior_color');
+        mapField('interiorColor', 'interior_color');
+        mapField('transmissionType', 'transmission_type');
+
+        const { data, error } = await supabase.rpc('update_vehicle', { 
+            vehicle_uuid: id, 
+            p_data: payload 
+        });
 
         if (error) throw new Error(error.message);
         return data;
@@ -128,6 +155,7 @@ export const vehicleService = {
 
 export const getAdminVehicles = vehicleService.getAdminVehicles;
 export const createVehicle = vehicleService.createVehicle;
+export const updateVehicle = vehicleService.updateVehicle;
 export const verifyVehicle = vehicleService.verifyVehicle;
 export const rejectVehicle = vehicleService.rejectVehicle;
 export const publishVehicle = vehicleService.publishVehicle;
