@@ -56,7 +56,8 @@ export async function requireAuth() {
     .eq('id', session.user.id)
     .single()
 
-  if (!profile || !profile.active || (profile.role !== 'ADMINISTRATOR' && profile.role !== 'INSPECTOR')) {
+  // Updated to match your database enum ('ADMIN', 'SUPER_ADMIN', 'INSPECTOR')
+  if (!profile || !profile.active || (profile.role !== 'ADMIN' && profile.role !== 'SUPER_ADMIN' && profile.role !== 'INSPECTOR')) {
     alert('Unauthorized access.')
     await supabase.auth.signOut()
     window.location.href = 'login.html'
