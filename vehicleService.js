@@ -30,6 +30,20 @@ export const vehicleService = {
         return data;
     },
 
+    /**
+     * Fetches a single vehicle and its related photos/inspections by ID for the detail page.
+     */
+    async getVehicleById(id) {
+        const { data, error } = await supabase
+            .from('vehicles')
+            .select('*, vehicle_photos(*), inspections(*)')
+            .eq('id', id)
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
     async createVehicle(vehicleData) {
         const payload = { ...vehicleData };
 
@@ -154,6 +168,7 @@ export const vehicleService = {
 };
 
 export const getAdminVehicles = vehicleService.getAdminVehicles;
+export const getVehicleById = vehicleService.getVehicleById;
 export const createVehicle = vehicleService.createVehicle;
 export const updateVehicle = vehicleService.updateVehicle;
 export const verifyVehicle = vehicleService.verifyVehicle;
