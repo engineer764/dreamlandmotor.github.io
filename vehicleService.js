@@ -56,7 +56,7 @@ export const vehicleService = {
     },
 
     /**
-     * Attaches a photo to a vehicle record (Fully implemented).
+     * Attaches a photo to a vehicle record.
      */
     async addVehiclePhoto(vehicleId, photoData) {
         const { data, error } = await supabase
@@ -157,3 +157,15 @@ export const vehicleService = {
         return true;
     }
 };
+
+// --- TOP-LEVEL NAMED EXPORTS FOR ADMIN DASHBOARD COMPATIBILITY ---
+export const getAdminVehicles = vehicleService.getAdminVehicles;
+export const createVehicle = vehicleService.createVehicle;
+export const verifyVehicle = vehicleService.verifyVehicle;
+export const rejectVehicle = vehicleService.rejectVehicle;
+export const publishVehicle = vehicleService.publishVehicle;
+export const unpublishVehicle = vehicleService.unpublishVehicle;
+export const reserveVehicle = vehicleService.reserveVehicle;
+export const markAvailable = vehicleService.markAvailable;
+export const markSold = vehicleService.markSold;
+export const archiveVehicle = vehicleService.archiveVehicle;
