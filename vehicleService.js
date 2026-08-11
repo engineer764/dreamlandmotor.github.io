@@ -31,15 +31,10 @@ export const vehicleService = {
     },
 
     /**
-     * Automatically maps all frontend camelCase form properties to database snake_case columns.
+     * Creates a new vehicle draft securely via database RPC.
      */
     async createVehicle(vehicleData) {
-        const payload = {
-            ...vehicleData,
-            verification_status: 'PENDING',
-            publication_status: 'UNPUBLISHED',
-            sales_status: 'AVAILABLE'
-        };
+        const payload = { ...vehicleData };
 
         const mapField = (camel, snake) => {
             if (payload[camel] !== undefined) {
@@ -48,7 +43,6 @@ export const vehicleService = {
             }
         };
 
-        // Map all common camelCase fields sent from the form
         mapField('bodyType', 'body_type');
         mapField('fuelType', 'fuel_type');
         mapField('driveType', 'drive_type');
@@ -57,11 +51,7 @@ export const vehicleService = {
         mapField('interiorColor', 'interior_color');
         mapField('transmissionType', 'transmission_type');
 
-        const { data, error } = await supabase
-            .from('vehicles')
-            .insert([payload])
-            .select()
-            .single();
+        const { data, error } = await supabase.rpc('create_vehicle', { p_data: payload });
 
         if (error) throw new Error(error.message);
         return data;
