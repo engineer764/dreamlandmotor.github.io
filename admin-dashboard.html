@@ -3,206 +3,498 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard — Dreamland Verified</title>
+    <title>Dreamland Admin Portal — Lifecycle Operations</title>
     <style>
         :root {
             --primary: #0f172a;
             --accent: #2563eb;
+            --verified-green: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
             --bg: #f8fafc;
             --card-bg: #ffffff;
-            --border: #cbd5e1;
-            --success: #16a34a;
+            --border: #e2e8f0;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: var(--bg);
             color: var(--primary);
             margin: 0;
-            padding: 16px;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
+            padding: 0;
         }
         header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             background: var(--primary);
             color: white;
-            padding: 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        header h2 { margin: 0; font-size: 1.125rem; }
-        .logout-btn { background: #dc2626; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-
-        .add-btn {
-            display: block;
-            background: var(--accent);
-            color: white;
-            text-align: center;
-            padding: 14px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 1rem;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        /* Filter Chips */
-        .filters {
-            display: flex;
-            gap: 8px;
-            overflow-x: auto;
-            padding-bottom: 12px;
-            margin-bottom: 16px;
-        }
-        .filter-chip {
-            background: white;
-            border: 1px solid var(--border);
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-        .filter-chip.active {
-            background: var(--accent);
-            color: white;
-            border-color: var(--accent);
-        }
-
-        /* Vehicle List Cards */
-        .vehicle-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 12px;
+            padding: 16px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+        }
+        header h1 { margin: 0; font-size: 1.25rem; }
+        .user-info { font-size: 0.875rem; color: #94a3b8; display: flex; gap: 16px; align-items: center; }
+        .logout-btn { background: #334155; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .logout-btn:hover { background: var(--danger); }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 16px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .card h2 { margin-top: 0; font-size: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+
+        form {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+        @media(min-width: 768px) {
+            form { grid-template-columns: repeat(4, 1fr); }
+            .full-width { grid-column: span 4; }
+        }
+
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        label { font-size: 0.8125rem; font-weight: bold; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
+        input, select, textarea {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+            box-sizing: border-box;
+            outline: none;
+        }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
             cursor: pointer;
-            transition: transform 0.1s ease, box-shadow 0.1s ease;
+            transition: background 0.2s;
         }
-        .vehicle-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        .btn:hover { background: #1d4ed8; }
+        .btn-success { background: var(--verified-green); }
+        .btn-success:hover { background: #15803d; }
+        .btn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        /* Inventory Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 0.875rem;
         }
-        .vehicle-info h4 { margin: 0 0 4px 0; font-size: 1rem; }
-        .vehicle-meta { font-size: 0.75rem; color: #64748b; }
+        th, td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        th { background: #f1f5f9; font-weight: bold; color: #334155; }
         
-        .status-badge {
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
             font-size: 0.7rem;
             font-weight: bold;
-            padding: 4px 8px;
-            border-radius: 4px;
-            background: #e2e8f0;
-            color: #334155;
+            text-transform: uppercase;
         }
-        .status-badge.published { background: #dcfce7; color: var(--success); }
-        .status-badge.draft { background: #f1f5f9; color: #475569; }
-        .status-badge.sold { background: #fee2e2; color: #dc2626; }
-    </style>
+        .badge-verified { background: #dcfce7; color: var(--verified-green); }
+        .badge-pending { background: #fef9c3; color: #a16207; }
+        .badge-rejected { background: #fee2e2; color: var(--danger); }
+        .badge-published { background: #e0f2fe; color: #0369a1; }
+        .badge-unpublished { background: #f1f5f9; color: #475569; }
+        .badge-sales { background: #f3e8ff; color: #6b21a8; }
+        .badge-reserved { background: #ffedd5; color: #c2410c; }
+        .badge-sold { background: #f1f5f9; color: #334155; }
+        .badge-archived { background: #e2e8f0; color: #64748b; }
 
-    <script type="module">
-        import { requireAuth } from './supabaseClient.js'
-        await requireAuth() // Enforce secure admin session
-    </script>
+        .action-cell { display: flex; flex-wrap: wrap; gap: 6px; }
+        .action-btn { padding: 5px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: white; cursor: pointer; font-weight: 600; }
+        .action-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+        .btn-verify { color: var(--verified-green); border-color: #bbf7d0; }
+        .btn-reject { color: var(--danger); border-color: #fca5a5; }
+        .btn-publish { color: #0284c7; border-color: #bae6fd; }
+        .btn-reserve { color: #c2410c; border-color: #fed7aa; }
+        .btn-sold { color: #475569; border-color: #cbd5e1; }
+        .btn-archive { color: #64748b; border-color: #cbd5e1; }
+    </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <div>
-            <h2>Dreamland Admin</h2>
-            <span id="userNameDisplay" style="font-size:0.75rem; color:#94a3b8;">Loading user...</span>
-        </div>
+<header>
+    <h1>Dreamland Admin Portal</h1>
+    <div class="user-info">
+        <span id="userEmail">Loading session...</span>
         <button class="logout-btn" id="logoutBtn">Logout</button>
-    </header>
+    </div>
+</header>
 
-    <a href="add-vehicle.html" class="add-btn">+ ADD NEW VEHICLE</a>
+<div class="container">
+    <!-- Add Vehicle Form Card -->
+    <div class="card">
+        <h2>Register New Vehicle Draft</h2>
+        <form id="vehicleForm">
+            <div class="form-group">
+                <label>Make *</label>
+                <input type="text" id="make" required placeholder="e.g. Toyota">
+            </div>
+            <div class="form-group">
+                <label>Model *</label>
+                <input type="text" id="model" required placeholder="e.g. Camry">
+            </div>
+            <div class="form-group">
+                <label>Trim</label>
+                <input type="text" id="trim" placeholder="e.g. XLE">
+            </div>
+            <div class="form-group">
+                <label>Year *</label>
+                <input type="number" id="year" required placeholder="2020" min="1990" max="2035">
+            </div>
+            <div class="form-group">
+                <label>Mileage (km) *</label>
+                <input type="number" id="mileage" required placeholder="45000">
+            </div>
+            <div class="form-group">
+                <label>Engine Spec *</label>
+                <input type="text" id="engine" required placeholder="2.5L 4-Cylinder">
+            </div>
+            <div class="form-group">
+                <label>Body Type</label>
+                <select id="body_type">
+                    <option value="Sedan">Sedan</option>
+                    <option value="SUV">SUV</option>
+                    <option value="Hatchback">Hatchback</option>
+                    <option value="Coupe">Coupe</option>
+                    <option value="Pickup">Pickup</option>
+                    <option value="Van">Van</option>
+                    <option value="Crossover">Crossover</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Transmission</label>
+                <select id="transmission">
+                    <option value="Automatic">Automatic</option>
+                    <option value="Manual">Manual</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Fuel Type</label>
+                <select id="fuel_type">
+                    <option value="Petrol">Petrol</option>
+                    <option value="Diesel">Diesel</option>
+                    <option value="Hybrid">Hybrid</option>
+                    <option value="Electric">Electric</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Colour</label>
+                <input type="text" id="colour" placeholder="Midnight Black">
+            </div>
+            <div class="form-group">
+                <label>Location</label>
+                <input type="text" id="location" value="Lagos Workshop">
+            </div>
+            <div class="form-group">
+                <label>Price (₦) *</label>
+                <input type="number" id="price" required placeholder="14500000">
+            </div>
+            <div class="form-group full-width">
+               <label>Primary Photo</label>
 
-    <div class="filters" id="filterContainer">
-        <div class="filter-chip active" data-status="ALL">All</div>
-        <div class="filter-chip" data-status="DRAFT">Draft</div>
-        <div class="filter-chip" data-status="PUBLISHED">Published</div>
-        <div class="filter-chip" data-status="RESERVED">Reserved</div>
-        <div class="filter-chip" data-status="SOLD">Sold</div>
+<div class="photo-picker">
+    <button type="button" id="cameraPhotoBtn">
+        Camera
+    </button>
+
+    <button type="button" id="galleryPhotoBtn">
+        Choose from Gallery
+    </button>
+
+    <input
+        type="file"
+        id="cameraPhotoInput"
+        accept="image/*"
+        capture="environment"
+        hidden
+    >
+
+    <input
+        type="file"
+        id="galleryPhotoInput"
+        accept="image/*"
+        hidden
+    >
+
+    <div id="photoPreviewContainer" style="margin-top:12px;">
+        <img
+            id="photoPreview"
+            alt="Selected vehicle photo"
+            hidden
+            style="max-width:100%; max-height:250px; border-radius:8px;"
+        >
+
+        <div id="photoFilename">
+            No photo selected
+        </div>
+    </div>
+</div>
+            </div>
+            <div class="form-group full-width">
+                <label>Initial Inspection Notes / Description</label>
+                <textarea id="description" rows="2" placeholder="Single owner, clean engine bay, awaiting full inspection..."></textarea>
+            </div>
+            <div class="form-group">
+                <button type="submit" id="submitBtn" class="btn btn-success">Save as Draft</button>
+            </div>
+        </form>
     </div>
 
-    <div id="vehicleList">
-        <p style="text-align:center; color:#64748b;">Loading inventory...</p>
+    <!-- Inventory Management List Card -->
+    <div class="card">
+        <h2>Inventory Lifecycle Management</h2>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Vehicle</th>
+                        <th>Price</th>
+                        <th>Verification</th>
+                        <th>Publication</th>
+                        <th>Sales Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="adminInventoryTable">
+                    <tr><td colspan="7" style="text-align: center; color: #64748b;">Loading inventory through service layer...</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 <script type="module">
-    import { supabase, logoutStaff } from './supabaseClient.js'
-    import { getAdminVehicles } from './vehicleService.js'
+    import { requireAuth, logoutStaff } from './supabaseClient.js';
+    import { vehicleService } from './vehicleService.js';
+    import { getSelectedPhoto, clearSelectedPhoto } from './photo.js';
 
-    document.getElementById('logoutBtn').addEventListener('click', logoutStaff)
+    async function init() {
+        const auth = await requireAuth();
+        if (!auth) return;
 
-    async function initDashboard() {
-        // Display user info
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session) {
-            const { data: profile } = await supabase.from('users').select('name').eq('id', session.user.id).single()
-            if (profile) document.getElementById('userNameDisplay').textContent = profile.name
-        }
+        document.getElementById('userEmail').textContent = `${auth.profile.full_name || auth.profile.email} (${auth.profile.role})`;
 
-        loadVehicles('ALL')
+        document.getElementById('logoutBtn').addEventListener('click', logoutStaff);
+        document.getElementById('vehicleForm').addEventListener('submit', handleCreateVehicle);
+
+        loadInventory();
     }
 
-    async function loadVehicles(status) {
-        const listContainer = document.getElementById('vehicleList')
-        listContainer.innerHTML = '<p style="text-align:center; color:#64748b;">Loading records...</p>'
+    async function loadInventory() {
+        const tbody = document.getElementById('adminInventoryTable');
+        
+        try {
+            const vehicles = await vehicleService.getAdminVehicles();
 
-        const vehicles = await getAdminVehicles(status)
-
-        if (!vehicles || vehicles.length === 0) {
-            listContainer.innerHTML = '<p style="text-align:center; color:#64748b;">No vehicles found for this filter.</p>'
-            return
-        }
-
-        listContainer.innerHTML = ''
-        vehicles.forEach(car => {
-            const card = document.createElement('div')
-            card.className = 'vehicle-card'
-            
-            // Make card clickable to open vehicle detail management page
-            card.onclick = () => {
-                window.location.href = `vehicle-detail.html?id=${car.id}`
+            if (!vehicles || vehicles.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#64748b;">No vehicles in database. Use the form above to add a draft.</td></tr>`;
+                return;
             }
-            
-            const badgeClass = car.sales_status === 'PUBLISHED' ? 'published' : car.sales_status === 'SOLD' ? 'sold' : 'draft'
-            
-            card.innerHTML = `
-                <div class="vehicle-info">
-                    <span style="font-size:0.75rem; color:#2563eb; font-weight:bold;">${car.vehicle_id}</span>
-                    <h4>${car.year} ${car.make} ${car.model} ${car.trim || ''}</h4>
-                    <div class="vehicle-meta">₦${Number(car.price).toLocaleString()} • ${car.location}</div>
-                </div>
-                <div>
-                    <span class="status-badge ${badgeClass}">${car.sales_status}</span>
-                </div>
-            `
-            listContainer.appendChild(card)
-        })
+
+            tbody.innerHTML = '';
+            vehicles.forEach(car => {
+                const formattedPrice = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(car.price);
+                
+                const vBadge = car.verification_status === 'VERIFIED' ? 'badge-verified' : car.verification_status === 'REJECTED' ? 'badge-rejected' : 'badge-pending';
+                const pBadge = car.publication_status === 'PUBLISHED' ? 'badge-published' : 'badge-unpublished';
+                
+                let sBadgeClass = 'badge-sales';
+                if (car.sales_status === 'RESERVED') sBadgeClass = 'badge-reserved';
+                if (car.sales_status === 'SOLD') sBadgeClass = 'badge-sold';
+                if (car.sales_status === 'ARCHIVED') sBadgeClass = 'badge-archived';
+
+                // Render contextual state machine actions
+                let actionButtons = '';
+
+                if (car.sales_status === 'ARCHIVED') {
+                    actionButtons = `<span style="color:#64748b; font-size:0.75rem;">Locked (Archived)</span>`;
+                } else if (car.sales_status === 'SOLD') {
+                    // Sold vehicles can still be archived to preserve audit trail
+                    actionButtons += `<button class="action-btn btn-archive" onclick="runAction('archive', '${car.id}')">Archive</button>`;
+                } else {
+                    // Verification actions
+                    if (car.verification_status === 'PENDING' || car.verification_status === 'IN_REVIEW') {
+                        actionButtons += `<button class="action-btn btn-verify" onclick="runAction('verify', '${car.id}')">Verify</button>`;
+                        actionButtons += `<button class="action-btn btn-reject" onclick="runAction('reject', '${car.id}')">Reject</button>`;
+                    }
+
+                    // Publication actions (Only if verified)
+                    if (car.verification_status === 'VERIFIED') {
+                        if (car.publication_status === 'PUBLISHED') {
+                            actionButtons += `<button class="action-btn" onclick="runAction('unpublish', '${car.id}')">Unpublish</button>`;
+                        } else {
+                            actionButtons += `<button class="action-btn btn-publish" onclick="runAction('publish', '${car.id}')">Publish</button>`;
+                        }
+                    }
+
+                    // Sales status actions
+                    if (car.sales_status === 'AVAILABLE') {
+                        actionButtons += `<button class="action-btn btn-reserve" onclick="runAction('reserve', '${car.id}')">Reserve</button>`;
+                        actionButtons += `<button class="action-btn btn-sold" onclick="runAction('sold', '${car.id}')">Mark Sold</button>`;
+                    } else if (car.sales_status === 'RESERVED') {
+                        actionButtons += `<button class="action-btn" onclick="runAction('available', '${car.id}')">Make Available</button>`;
+                        actionButtons += `<button class="action-btn btn-sold" onclick="runAction('sold', '${car.id}')">Mark Sold</button>`;
+                    }
+
+                    // Archive option
+                    actionButtons += `<button class="action-btn btn-archive" onclick="runAction('archive', '${car.id}')">Archive</button>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><code>${car.vehicle_code || car.id.substring(0,8)}</code></td>
+                    <td><strong>${car.year} ${car.make} ${car.model}</strong><br><small style="color:#64748b">${car.trim || ''} • ${car.mileage.toLocaleString()} km</small></td>
+                    <td>${formattedPrice}</td>
+                    <td><span class="badge ${vBadge}">${car.verification_status}</span></td>
+                    <td><span class="badge ${pBadge}">${car.publication_status}</span></td>
+                    <td><span class="badge ${sBadgeClass}">${car.sales_status}</span></td>
+                    <td><div class="action-cell">${actionButtons}</div></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (error) {
+            tbody.innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">Error loading inventory: ${error.message}</td></tr>`;
+        }
     }
 
-    // Filter chip click handlers
-    document.querySelectorAll('.filter-chip').forEach(chip => {
-        chip.addEventListener('click', (e) => {
-            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'))
-            e.target.classList.add('active')
-            loadVehicles(e.target.dataset.status)
-        })
-    })
+    async function handleCreateVehicle(e) {
+        e.preventDefault();
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving Draft...';
 
-    initDashboard()
+        const vehicleData = {
+            make: document.getElementById('make').value.trim(),
+            model: document.getElementById('model').value.trim(),
+            trim: document.getElementById('trim').value.trim(),
+            year: parseInt(document.getElementById('year').value),
+            mileage: parseInt(document.getElementById('mileage').value),
+            engine: document.getElementById('engine').value.trim(),
+            body_type: document.getElementById('body_type').value,
+            transmission: document.getElementById('transmission').value,
+            fuel_type: document.getElementById('fuel_type').value,
+            colour: document.getElementById('colour').value.trim(),
+            location: document.getElementById('location').value.trim(),
+            price: parseFloat(document.getElementById('price').value),
+            description: document.getElementById('description').value.trim(),
+            currency: 'NGN'
+        };
+
+       const photoFile = getSelectedPhoto();
+
+try {
+    const newCar = await vehicleService.createVehicle(vehicleData);
+
+    if (photoFile && newCar && newCar.id) {
+        try {
+            await vehicleService.addVehiclePhoto(
+                newCar.id,
+                photoFile,
+                {
+                    category: 'EXTERIOR',
+                    is_primary: true
+                }
+            );
+        } catch (photoErr) {
+            console.warn(
+                'Vehicle created, but photo upload failed:',
+                photoErr.message
+            );
+
+            alert(
+                'Vehicle draft created successfully, but the photo upload failed. ' +
+                'You can add photos later.'
+            );
+        }
+    } else {
+        alert('Vehicle draft created successfully!');
+    }
+
+    document.getElementById('vehicleForm').reset();
+
+    clearSelectedPhoto();
+
+    loadInventory();
+
+} catch (error) {
+    alert('Failed to create vehicle: ' + error.message);
+
+} finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Save as Draft';
+}
+    }
+    // Centralized lifecycle action dispatcher with confirmation and error catching
+    window.runAction = async function(action, id) {
+        try {
+            switch (action) {
+                case 'verify':
+                    if (!confirm('Mark this vehicle as VERIFIED?')) return;
+                    await vehicleService.verifyVehicle(id);
+                    break;
+                case 'reject': {
+                    const reason = prompt('Enter the rejection reason:');
+                    if (!reason || !reason.trim()) return;
+                    await vehicleService.rejectVehicle(id, reason.trim());
+                    break;
+                }
+                case 'publish':
+                    if (!confirm('Publish this verified vehicle to the live catalog?')) return;
+                    await vehicleService.publishVehicle(id);
+                    break;
+                case 'unpublish':
+                    if (!confirm('Unpublish this vehicle from the live catalog?')) return;
+                    await vehicleService.unpublishVehicle(id);
+                    break;
+                case 'reserve':
+                    if (!confirm('Mark this vehicle as RESERVED?')) return;
+                    await vehicleService.reserveVehicle(id);
+                    break;
+                case 'available':
+                    if (!confirm('Return this vehicle to AVAILABLE status?')) return;
+                    await vehicleService.markAvailable(id);
+                    break;
+                case 'sold':
+                    if (!confirm('Mark this vehicle as SOLD?')) return;
+                    await vehicleService.markSold(id);
+                    break;
+                case 'archive':
+                    if (!confirm('Archive this vehicle record? This preserves audit history.')) return;
+                    await vehicleService.archiveVehicle(id);
+                    break;
+            }
+            loadInventory();
+        } catch (err) {
+            alert('Action failed: ' + err.message);
+        }
+    };
+
+    init();
 </script>
 
 </body>
