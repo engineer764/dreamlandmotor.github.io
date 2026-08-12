@@ -291,6 +291,7 @@
 <script type="module">
     import { requireAuth, logoutStaff } from './supabaseClient.js';
     import { vehicleService } from './vehicleService.js';
+    import { getSelectedPhoto, clearSelectedPhoto } from './photo.js';
 
     async function init() {
         const auth = await requireAuth();
@@ -404,36 +405,49 @@
             currency: 'NGN'
         };
 
-        const photoUrl = document.getElementById('primary_photo_url').value.trim();
+       const photoFile = getSelectedPhoto();
 
+try {
+    const newCar = await vehicleService.createVehicle(vehicleData);
+
+    if (photoFile && newCar && newCar.id) {
         try {
-            const newCar = await vehicleService.createVehicle(vehicleData);
-
-            if (photoUrl && newCar && newCar.id) {
-                try {
-                    await vehicleService.addVehiclePhoto(newCar.id, {
-                        storage_path: 'external/custom_upload.jpg',
-                        public_url: photoUrl,
-                        category: 'EXTERIOR',
-                        is_primary: true
-                    });
-                } catch (photoErr) {
-                    console.warn('Vehicle created, but photo attachment failed:', photoErr.message);
-                    alert('Vehicle draft created successfully, but attaching the primary photo failed. You can add photos later.');
+            await vehicleService.addVehiclePhoto(
+                newCar.id,
+                photoFile,
+                {
+                    category: 'EXTERIOR',
+                    is_primary: true
                 }
-            } else {
-                alert('Vehicle draft created successfully!');
-            }
+            );
+        } catch (photoErr) {
+            console.warn(
+                'Vehicle created, but photo upload failed:',
+                photoErr.message
+            );
 
-            document.getElementById('vehicleForm').reset();
-            loadInventory();
-        } catch (error) {
-            alert('Failed to create vehicle: ' + error.message);
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Save as Draft';
+            alert(
+                'Vehicle draft created successfully, but the photo upload failed. ' +
+                'You can add photos later.'
+            );
         }
+    } else {
+        alert('Vehicle draft created successfully!');
     }
+
+    document.getElementById('vehicleForm').reset();
+
+    clearSelectedPhoto();
+
+    loadInventory();
+
+} catch (error) {
+    alert('Failed to create vehicle: ' + error.message);
+
+} finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Save as Draft';
+}
 
     // Centralized lifecycle action dispatcher with confirmation and error catching
     window.runAction = async function(action, id) {
