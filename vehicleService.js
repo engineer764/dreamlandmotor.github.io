@@ -1,189 +1,192 @@
-/**
- * Dreamland Vehicle Photo Picker
- *
- * Handles only:
- *
- * Camera / Gallery
- *       ↓
- * raw browser File
- *       ↓
- * preview
- *
- * Supabase upload is handled by vehicleService.js.
- */
+import { supabase } from './supabaseClient.js';
 
-export function createPhotoPicker(options = {}) {
-    const cameraButton =
-        document.getElementById(
-            options.cameraButtonId ||
-            'cameraPhotoBtn'
-        );
+export const vehicleService = {
+    async getVerifiedVehicles(filters = {}) {
+        let query = supabase
+            .from('public_verified_vehicles')
+            .select('*')
+            .order('published_at', { ascending: false });
 
-    const galleryButton =
-        document.getElementById(
-            options.galleryButtonId ||
-            'galleryPhotoBtn'
-        );
-
-    const cameraInput =
-        document.getElementById(
-            options.cameraInputId ||
-            'cameraPhotoInput'
-        );
-
-    const galleryInput =
-        document.getElementById(
-            options.galleryInputId ||
-            'galleryPhotoInput'
-        );
-
-    const preview =
-        document.getElementById(
-            options.previewId ||
-            'photoPreview'
-        );
-
-    const filename =
-        document.getElementById(
-            options.filenameId ||
-            'photoFilename'
-        );
-
-    if (
-        !cameraButton ||
-        !galleryButton ||
-        !cameraInput ||
-        !galleryInput ||
-        !preview
-    ) {
-        throw new Error(
-            'Vehicle photo picker elements are missing from admin.html.'
-        );
-    }
-
-    let selectedFile = null;
-    let previewUrl = null;
-
-    function selectFile(file) {
-        if (!file) {
-            return;
+        if (filters.search) {
+            query = query.or(`make.ilike.%${filters.search}%,model.ilike.%${filters.search}%,vehicle_code.ilike.%${filters.search}%`);
         }
 
-        if (
-            !file.type ||
-            !file.type.startsWith('image/')
-        ) {
-            alert(
-                'Please select an image file.'
-            );
-            return;
+        if (filters.location) {
+            query = query.eq('location', filters.location);
         }
 
-        const maxSize =
-            15 * 1024 * 1024;
+        const { data, error } = await query;
+        if (error) throw new Error(error.message);
+        return data;
+    },
 
-        if (file.size > maxSize) {
-            alert(
-                'Photo is too large. Please select an image smaller than 15 MB.'
-            );
-            return;
-        }
+    async getAdminVehicles() {
+        const { data, error } = await supabase
+            .from('vehicles')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-        selectedFile = file;
+        if (error) throw new Error(error.message);
+        return data;
+    },
 
-        if (previewUrl) {
-            URL.revokeObjectURL(
-                previewUrl
-            );
-        }
+    async getVehicleById(id) {
+        const { data, error } = await supabase
+            .from('vehicles')
+            .select('*, vehicle_photos(*), inspections(*)')
+            .eq('id', id)
+            .single();
 
-        previewUrl =
-            URL.createObjectURL(file);
+        if (error) throw new Error(error.message);
+        return data;
+    },
 
-        preview.src = previewUrl;
-        preview.hidden = false;
+    /**
+     * Creates a new vehicle draft securely via database RPC with proper field mapping.
+     */
+    async createVehicle(vehicleData) {
+        const payload = { ...vehicleData };
 
-        if (filename) {
-            filename.textContent =
-                file.name ||
-                'Photo selected';
-        }
-    }
-
-    cameraButton.addEventListener(
-        'click',
-        () => {
-            cameraInput.click();
-        }
-    );
-
-    galleryButton.addEventListener(
-        'click',
-        () => {
-            galleryInput.click();
-        }
-    );
-
-    cameraInput.addEventListener(
-        'change',
-        () => {
-            selectFile(
-                cameraInput.files &&
-                cameraInput.files[0]
-            );
-
-            cameraInput.value = '';
-        }
-    );
-
-    galleryInput.addEventListener(
-        'change',
-        () => {
-            selectFile(
-                galleryInput.files &&
-                galleryInput.files[0]
-            );
-
-            galleryInput.value = '';
-        }
-    );
-
-    return {
-
-        getFile() {
-            return selectedFile;
-        },
-
-        hasFile() {
-            return Boolean(
-                selectedFile
-            );
-        },
-
-        clear() {
-            selectedFile = null;
-
-            if (previewUrl) {
-                URL.revokeObjectURL(
-                    previewUrl
-                );
-
-                previewUrl = null;
+        const mapField = (camel, snake) => {
+            if (payload[camel] !== undefined) {
+                payload[snake] = payload[camel];
+                delete payload[camel];
             }
+        };
 
-            preview.removeAttribute(
-                'src'
-            );
+        mapField('bodyType', 'body_type');
+        mapField('fuelType', 'fuel_type');
+        mapField('exteriorColor', 'colour');
+        mapField('transmissionType', 'transmission');
 
-            preview.hidden = true;
+        const { data, error } = await supabase.rpc('create_vehicle', { p_data: payload });
 
-            if (filename) {
-                filename.textContent =
-                    'No photo selected';
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    /**
+     * Updates an existing vehicle's ordinary details securely via database RPC (excluding price).
+     */
+    async updateVehicle(id, vehicleData) {
+        const payload = { ...vehicleData };
+
+        const mapField = (camel, snake) => {
+            if (payload[camel] !== undefined) {
+                payload[snake] = payload[camel];
+                delete payload[camel];
             }
+        };
 
-            cameraInput.value = '';
-            galleryInput.value = '';
-        }
-    };
-}
+        mapField('bodyType', 'body_type');
+        mapField('fuelType', 'fuel_type');
+        mapField('exteriorColor', 'colour');
+        mapField('transmissionType', 'transmission');
+
+        const { data, error } = await supabase.rpc('update_vehicle', { 
+            p_vehicle_id: id, 
+            p_data: payload 
+        });
+
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    /**
+     * Updates vehicle price through the dedicated secure price-management channel.
+     */
+    async updateVehiclePrice(id, newPrice) {
+        const { error } = await supabase.rpc('update_vehicle_price', { 
+            p_vehicle_id: id, 
+            p_new_price: newPrice 
+        });
+
+        if (error) throw new Error(error.message);
+        return true;
+    },
+
+    async addVehiclePhoto(vehicleId, photoData) {
+        const { data, error } = await supabase
+            .from('vehicle_photos')
+            .insert([{
+                vehicle_id: vehicleId,
+                storage_path: photoData.storage_path || 'external/custom_upload.jpg',
+                public_url: photoData.public_url,
+                category: photoData.category || 'EXTERIOR',
+                is_primary: photoData.is_primary || false
+            }])
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    async verifyVehicle(id) {
+        const { error } = await supabase.rpc('verify_vehicle', { p_vehicle_id: id });
+        if (error) throw new Error(error.message);
+        return true;
+    },
+
+    async rejectVehicle(id, reason) {
+        const { error } = await supabase.rpc('reject_vehicle', { 
+            p_vehicle_id: id, 
+            p_reason: reason || 'Rejected by admin' 
+        });
+        if (error) throw new Error(error.message);
+        return true;
+    },
+
+    async publishVehicle(id) {
+        const { error } = await supabase.rpc('publish_vehicle', { p_vehicle_id: id });
+        if (error) throw new Error(error.message);
+        return true;
+    },
+
+    async unpublishVehicle(id) {
+        const { error } = await supabase.rpc('unpublish_vehicle', { p_vehicle_id: id });
+        if (error) throw new Error(error.message);
+        return true;
+    },
+
+    async reserveVehicle(id) {
+        const { error } = await supabase.rpc('reserve_vehicle', { p_vehicle_id: id });
+        if (error) throw new Error(error.message);
+        return true;
+    },
+
+    async markAvailable(id) {
+        const { error } = await supabase.rpc('mark_vehicle_available', { p_vehicle_id: id });
+        if (error) throw new Error(error.message);
+        return true;
+    },
+
+    async markSold(id) {
+        const { error } = await supabase.rpc('mark_vehicle_sold', { p_vehicle_id: id });
+        if (error) throw new Error(error.message);
+        return true;
+    },
+
+    async archiveVehicle(id) {
+        const { error } = await supabase.rpc('archive_vehicle', { p_vehicle_id: id });
+        if (error) throw new Error(error.message);
+        return true;
+    }
+};
+
+// --- TOP-LEVEL NAMED EXPORTS ---
+export const getVerifiedVehicles = vehicleService.getVerifiedVehicles;
+export const getAdminVehicles = vehicleService.getAdminVehicles;
+export const getVehicleById = vehicleService.getVehicleById;
+export const createVehicle = vehicleService.createVehicle;
+export const updateVehicle = vehicleService.updateVehicle;
+export const updateVehiclePrice = vehicleService.updateVehiclePrice;
+export const addVehiclePhoto = vehicleService.addVehiclePhoto;
+export const verifyVehicle = vehicleService.verifyVehicle;
+export const rejectVehicle = vehicleService.rejectVehicle;
+export const publishVehicle = vehicleService.publishVehicle;
+export const unpublishVehicle = vehicleService.unpublishVehicle;
+export const reserveVehicle = vehicleService.reserveVehicle;
+export const markAvailable = vehicleService.markAvailable;
+export const markSold = vehicleService.markSold;
+export const archiveVehicle = vehicleService.archiveVehicle;
