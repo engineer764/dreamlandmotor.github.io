@@ -329,6 +329,7 @@
 <script type="module">
     import { requireAuth, logoutStaff } from './supabaseClient.js';
     import { vehicleService } from './vehicleService.js';
+    import { createPhotoPicker } from './photo.js';
 
     async function init() {
         const auth = await requireAuth();
