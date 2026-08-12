@@ -20,15 +20,15 @@ export const vehicleService = {
         return data;
     },
 
-    async getAdminVehicles() {
-        const { data, error } = await supabase
-            .from('vehicles')
-            .select('*')
-            .order('created_at', { ascending: false });
+   async getAdminVehicles() {
+    const { data, error } = await supabase
+        .from('vehicles')
+        .select('*, vehicle_photos(*)')
+        .order('created_at', { ascending: false });
 
-        if (error) throw new Error(error.message);
-        return data;
-    },
+    if (error) throw new Error(error.message);
+    return data;
+},
 
     async getVehicleById(id) {
         const { data, error } = await supabase
