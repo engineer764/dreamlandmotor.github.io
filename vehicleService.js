@@ -105,23 +105,95 @@ export const vehicleService = {
         return true;
     },
 
-    async addVehiclePhoto(vehicleId, photoData) {
-        const { data, error } = await supabase
-            .from('vehicle_photos')
-            .insert([{
-                vehicle_id: vehicleId,
-                storage_path: photoData.storage_path || 'external/custom_upload.jpg',
-                public_url: photoData.public_url,
-                category: photoData.category || 'EXTERIOR',
-                is_primary: photoData.is_primary || false
-            }])
-            .select()
-            .single();
+   async addVehiclePhoto(vehicleId, file, photoData = {}) {
+    if (!vehicleId) {
+        throw new Error('Vehicle ID is required.');
+    }
 
-        if (error) throw new Error(error.message);
-        return data;
-    },
+    if (!file) {
+        throw new Error('Please select or take a vehicle photo first.');
+    }
 
+    if (typeof File !== 'undefined' && !(file instanceof File)) {
+        throw new Error('Invalid photo file. Please select the photo again.');
+    }
+
+    if (!file.type || !file.type.startsWith('image/')) {
+        throw new Error('Only image files can be uploaded.');
+    }
+
+    const extension =
+        (file.name || 'vehicle-photo.jpg')
+            .split('.')
+            .pop()
+            .toLowerCase();
+
+    const safeExtension =
+        /^[a-z0-9]+$/.test(extension)
+            ? extension
+            : 'jpg';
+
+    const storagePath =
+        `vehicles/${vehicleId}/${crypto.randomUUID()}.${safeExtension}`;
+
+    // 1. Upload actual image file to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+        .from('vehicle-photos')
+        .upload(storagePath, file, {
+            cacheControl: '3600',
+            contentType: file.type,
+            upsert: false
+        });
+
+    if (uploadError) {
+        throw new Error(
+            `Photo upload failed: ${uploadError.message}`
+        );
+    }
+
+    // 2. Generate public URL
+    const { data: urlData } = supabase.storage
+        .from('vehicle-photos')
+        .getPublicUrl(storagePath);
+
+    const publicUrl = urlData?.publicUrl;
+
+    if (!publicUrl) {
+        await supabase.storage
+            .from('vehicle-photos')
+            .remove([storagePath]);
+
+        throw new Error(
+            'Photo uploaded, but a public URL could not be generated.'
+        );
+    }
+
+    // 3. Save photo record in vehicle_photos
+    const { data, error } = await supabase
+        .from('vehicle_photos')
+        .insert([{
+            vehicle_id: vehicleId,
+            storage_path: storagePath,
+            public_url: publicUrl,
+            category: photoData.category || 'EXTERIOR',
+            is_primary: photoData.is_primary === true
+        }])
+        .select()
+        .single();
+
+    // 4. Clean up Storage if database insert fails
+    if (error) {
+        await supabase.storage
+            .from('vehicle-photos')
+            .remove([storagePath]);
+
+        throw new Error(
+            `Photo record failed: ${error.message}`
+        );
+    }
+
+    return data;
+},
     async verifyVehicle(id) {
         const { error } = await supabase.rpc('verify_vehicle', { p_vehicle_id: id });
         if (error) throw new Error(error.message);
