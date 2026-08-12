@@ -126,6 +126,50 @@
         .action-cell { display: flex; flex-wrap: wrap; gap: 6px; }
         .action-btn { padding: 5px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: white; cursor: pointer; font-weight: 600; }
         .action-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+        .photo-picker {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            padding: 14px;
+            border: 1px dashed #cbd5e1;
+            border-radius: 10px;
+            background: #f8fafc;
+        }
+        .photo-picker .photo-btn {
+            background: white;
+            color: var(--primary);
+            border: 1px solid var(--border);
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .photo-picker .photo-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .photo-meta {
+            flex: 1;
+            min-width: 180px;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+        .photo-preview-wrap {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .photo-preview {
+            width: 120px;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #e2e8f0;
+        }
+        .action-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
         .btn-verify { color: var(--verified-green); border-color: #bbf7d0; }
         .btn-reject { color: var(--danger); border-color: #fca5a5; }
         .btn-publish { color: #0284c7; border-color: #bae6fd; }
@@ -214,8 +258,39 @@
                 <input type="number" id="price" required placeholder="14500000">
             </div>
             <div class="form-group full-width">
-                <label>Primary Photo URL</label>
-                <input type="url" id="primary_photo_url" placeholder="https://images.unsplash.com/...">
+                <label>Primary Vehicle Photo</label>
+                <div class="photo-picker">
+                    <button type="button" class="photo-btn" id="cameraPhotoBtn">Take Photo</button>
+                    <button type="button" class="photo-btn" id="galleryPhotoBtn">Choose from Gallery</button>
+
+                    <input
+                        type="file"
+                        id="cameraPhotoInput"
+                        accept="image/*"
+                        capture="environment"
+                        hidden
+                    >
+                    <input
+                        type="file"
+                        id="galleryPhotoInput"
+                        accept="image/*"
+                        hidden
+                    >
+
+                    <div class="photo-meta">
+                        <strong id="photoFilename">No photo selected</strong><br>
+                        Select a raw vehicle photo. The system uploads it automatically.
+                    </div>
+                </div>
+
+                <div class="photo-preview-wrap">
+                    <img
+                        id="photoPreview"
+                        class="photo-preview"
+                        alt="Selected vehicle photo preview"
+                        hidden
+                    >
+                </div>
             </div>
             <div class="form-group full-width">
                 <label>Initial Inspection Notes / Description</label>
@@ -263,6 +338,15 @@
 
         document.getElementById('logoutBtn').addEventListener('click', logoutStaff);
         document.getElementById('vehicleForm').addEventListener('submit', handleCreateVehicle);
+
+        window.vehiclePhotoPicker = createPhotoPicker({
+            cameraButtonId: 'cameraPhotoBtn',
+            galleryButtonId: 'galleryPhotoBtn',
+            cameraInputId: 'cameraPhotoInput',
+            galleryInputId: 'galleryPhotoInput',
+            previewId: 'photoPreview',
+            filenameId: 'photoFilename'
+        });
 
         loadInventory();
     }
@@ -367,28 +451,32 @@
             currency: 'NGN'
         };
 
-        const photoUrl = document.getElementById('primary_photo_url').value.trim();
+        const primaryPhoto = window.vehiclePhotoPicker?.getFile() || null;
 
         try {
             const newCar = await vehicleService.createVehicle(vehicleData);
 
-            if (photoUrl && newCar && newCar.id) {
+            let photoMessage = '';
+
+            if (primaryPhoto && newCar && newCar.id) {
                 try {
-                    await vehicleService.addVehiclePhoto(newCar.id, {
-                        storage_path: 'external/custom_upload.jpg',
-                        public_url: photoUrl,
+                    await vehicleService.addVehiclePhoto(newCar.id, primaryPhoto, {
                         category: 'EXTERIOR',
                         is_primary: true
                     });
+                    photoMessage = ' Primary photo uploaded successfully.';
                 } catch (photoErr) {
-                    console.warn('Vehicle created, but photo attachment failed:', photoErr.message);
-                    alert('Vehicle draft created successfully, but attaching the primary photo failed. You can add photos later.');
+                    console.warn('Vehicle created, but photo upload failed:', photoErr.message);
+                    photoMessage = ` Photo upload failed: ${photoErr.message}`;
                 }
-            } else {
-                alert('Vehicle draft created successfully!');
+            } else if (!primaryPhoto) {
+                photoMessage = ' No primary photo was selected.';
             }
 
+            alert(`Vehicle draft created successfully.${photoMessage}`);
+
             document.getElementById('vehicleForm').reset();
+            window.vehiclePhotoPicker?.clear();
             loadInventory();
         } catch (error) {
             alert('Failed to create vehicle: ' + error.message);
