@@ -132,6 +132,48 @@
         .btn-reserve { color: #c2410c; border-color: #fed7aa; }
         .btn-sold { color: #475569; border-color: #cbd5e1; }
         .btn-archive { color: #64748b; border-color: #cbd5e1; }
+
+        /* Vehicle photo picker */
+        .photo-picker {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            padding: 14px;
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            background: #f8fafc;
+        }
+
+        .photo-picker-btn {
+            background: white;
+            color: var(--primary);
+            border: 1px solid var(--border);
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .photo-picker-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .photo-filename {
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+
+        .photo-preview {
+            display: block;
+            width: 140px;
+            height: 100px;
+            object-fit: cover;
+            margin-top: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
     </style>
 </head>
 <body>
@@ -214,8 +256,43 @@
                 <input type="number" id="price" required placeholder="14500000">
             </div>
             <div class="form-group full-width">
-                <label>Primary Photo URL</label>
-                <input type="url" id="primary_photo_url" placeholder="https://images.unsplash.com/...">
+                <label>Primary Vehicle Photo</label>
+
+                <div class="photo-picker">
+                    <button type="button" class="photo-picker-btn" id="cameraPhotoBtn">
+                        Take Photo
+                    </button>
+
+                    <button type="button" class="photo-picker-btn" id="galleryPhotoBtn">
+                        Choose from File
+                    </button>
+
+                    <span class="photo-filename" id="photoFilename">
+                        No photo selected
+                    </span>
+
+                    <input
+                        type="file"
+                        id="cameraPhotoInput"
+                        accept="image/*"
+                        capture="environment"
+                        hidden
+                    >
+
+                    <input
+                        type="file"
+                        id="galleryPhotoInput"
+                        accept="image/*"
+                        hidden
+                    >
+                </div>
+
+                <img
+                    id="photoPreview"
+                    class="photo-preview"
+                    alt="Selected vehicle photo preview"
+                    hidden
+                >
             </div>
             <div class="form-group full-width">
                 <label>Initial Inspection Notes / Description</label>
@@ -254,6 +331,7 @@
 <script type="module">
     import { requireAuth, logoutStaff } from './supabaseClient.js';
     import { vehicleService } from './vehicleService.js';
+    import { createPhotoPicker } from './photo.js';
 
     async function init() {
         const auth = await requireAuth();
@@ -263,6 +341,8 @@
 
         document.getElementById('logoutBtn').addEventListener('click', logoutStaff);
         document.getElementById('vehicleForm').addEventListener('submit', handleCreateVehicle);
+
+        window.vehiclePhotoPicker = createPhotoPicker();
 
         loadInventory();
     }
@@ -367,28 +447,37 @@
             currency: 'NGN'
         };
 
-        const photoUrl = document.getElementById('primary_photo_url').value.trim();
+        const primaryPhoto = window.vehiclePhotoPicker?.getFile() || null;
 
         try {
             const newCar = await vehicleService.createVehicle(vehicleData);
 
-            if (photoUrl && newCar && newCar.id) {
+            if (primaryPhoto && newCar && newCar.id) {
                 try {
-                    await vehicleService.addVehiclePhoto(newCar.id, {
-                        storage_path: 'external/custom_upload.jpg',
-                        public_url: photoUrl,
-                        category: 'EXTERIOR',
-                        is_primary: true
-                    });
+                    await vehicleService.addVehiclePhoto(
+                        newCar.id,
+                        primaryPhoto,
+                        {
+                            category: 'EXTERIOR',
+                            is_primary: true
+                        }
+                    );
                 } catch (photoErr) {
-                    console.warn('Vehicle created, but photo attachment failed:', photoErr.message);
-                    alert('Vehicle draft created successfully, but attaching the primary photo failed. You can add photos later.');
+                    console.warn(
+                        'Vehicle created, but photo upload failed:',
+                        photoErr.message
+                    );
+                    alert(
+                        'Vehicle draft created successfully, but the photo upload failed: ' +
+                        photoErr.message
+                    );
                 }
             } else {
                 alert('Vehicle draft created successfully!');
             }
 
             document.getElementById('vehicleForm').reset();
+            window.vehiclePhotoPicker?.clear();
             loadInventory();
         } catch (error) {
             alert('Failed to create vehicle: ' + error.message);
