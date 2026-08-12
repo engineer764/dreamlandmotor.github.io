@@ -30,9 +30,6 @@ export const vehicleService = {
         return data;
     },
 
-    /**
-     * Fetches a single vehicle and its related photos/inspections by ID for the detail page.
-     */
     async getVehicleById(id) {
         const { data, error } = await supabase
             .from('vehicles')
@@ -68,9 +65,6 @@ export const vehicleService = {
         return data;
     },
 
-    /**
-     * Updates an existing vehicle securely via database RPC.
-     */
     async updateVehicle(id, vehicleData) {
         const payload = { ...vehicleData };
 
@@ -116,61 +110,64 @@ export const vehicleService = {
     },
 
     async verifyVehicle(id) {
-        const { error } = await supabase.rpc('verify_vehicle', { vehicle_uuid: id });
+        const { error } = await supabase.rpc('verify_vehicle', { p_vehicle_id: id });
         if (error) throw new Error(error.message);
         return true;
     },
 
     async rejectVehicle(id, reason) {
         const { error } = await supabase.rpc('reject_vehicle', { 
-            vehicle_uuid: id, 
-            reason: reason || 'Rejected by admin' 
+            p_vehicle_id: id, 
+            p_reason: reason || 'Rejected by admin' 
         });
         if (error) throw new Error(error.message);
         return true;
     },
 
     async publishVehicle(id) {
-        const { error } = await supabase.rpc('publish_vehicle', { vehicle_uuid: id });
+        const { error } = await supabase.rpc('publish_vehicle', { p_vehicle_id: id });
         if (error) throw new Error(error.message);
         return true;
     },
 
     async unpublishVehicle(id) {
-        const { error } = await supabase.rpc('unpublish_vehicle', { vehicle_uuid: id });
+        const { error } = await supabase.rpc('unpublish_vehicle', { p_vehicle_id: id });
         if (error) throw new Error(error.message);
         return true;
     },
 
     async reserveVehicle(id) {
-        const { error } = await supabase.rpc('reserve_vehicle', { vehicle_uuid: id });
+        const { error } = await supabase.rpc('reserve_vehicle', { p_vehicle_id: id });
         if (error) throw new Error(error.message);
         return true;
     },
 
     async markAvailable(id) {
-        const { error } = await supabase.rpc('mark_vehicle_available', { vehicle_uuid: id });
+        const { error } = await supabase.rpc('mark_vehicle_available', { p_vehicle_id: id });
         if (error) throw new Error(error.message);
         return true;
     },
 
     async markSold(id) {
-        const { error } = await supabase.rpc('mark_vehicle_sold', { vehicle_uuid: id });
+        const { error } = await supabase.rpc('mark_vehicle_sold', { p_vehicle_id: id });
         if (error) throw new Error(error.message);
         return true;
     },
 
     async archiveVehicle(id) {
-        const { error } = await supabase.rpc('archive_vehicle', { vehicle_uuid: id });
+        const { error } = await supabase.rpc('archive_vehicle', { p_vehicle_id: id });
         if (error) throw new Error(error.message);
         return true;
     }
 };
 
+// --- TOP-LEVEL NAMED EXPORTS ---
+export const getVerifiedVehicles = vehicleService.getVerifiedVehicles;
 export const getAdminVehicles = vehicleService.getAdminVehicles;
 export const getVehicleById = vehicleService.getVehicleById;
 export const createVehicle = vehicleService.createVehicle;
 export const updateVehicle = vehicleService.updateVehicle;
+export const addVehiclePhoto = vehicleService.addVehiclePhoto;
 export const verifyVehicle = vehicleService.verifyVehicle;
 export const rejectVehicle = vehicleService.rejectVehicle;
 export const publishVehicle = vehicleService.publishVehicle;
