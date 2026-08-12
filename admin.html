@@ -3,434 +3,448 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Dreamland Verified Cars</title>
-    <!-- Tailwind CSS for modern styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Dreamland Admin Portal — Lifecycle Operations</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --verified-green: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--primary);
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 { margin: 0; font-size: 1.25rem; }
+        .user-info { font-size: 0.875rem; color: #94a3b8; display: flex; gap: 16px; align-items: center; }
+        .logout-btn { background: #334155; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .logout-btn:hover { background: var(--danger); }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 16px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .card h2 { margin-top: 0; font-size: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+
+        form {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+        @media(min-width: 768px) {
+            form { grid-template-columns: repeat(4, 1fr); }
+            .full-width { grid-column: span 4; }
+        }
+
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        label { font-size: 0.8125rem; font-weight: bold; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
+        input, select, textarea {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+            box-sizing: border-box;
+            outline: none;
+        }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #1d4ed8; }
+        .btn-success { background: var(--verified-green); }
+        .btn-success:hover { background: #15803d; }
+        .btn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        /* Inventory Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 0.875rem;
+        }
+        th, td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        th { background: #f1f5f9; font-weight: bold; color: #334155; }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .badge-verified { background: #dcfce7; color: var(--verified-green); }
+        .badge-pending { background: #fef9c3; color: #a16207; }
+        .badge-rejected { background: #fee2e2; color: var(--danger); }
+        .badge-published { background: #e0f2fe; color: #0369a1; }
+        .badge-unpublished { background: #f1f5f9; color: #475569; }
+        .badge-sales { background: #f3e8ff; color: #6b21a8; }
+        .badge-reserved { background: #ffedd5; color: #c2410c; }
+        .badge-sold { background: #f1f5f9; color: #334155; }
+        .badge-archived { background: #e2e8f0; color: #64748b; }
+
+        .action-cell { display: flex; flex-wrap: wrap; gap: 6px; }
+        .action-btn { padding: 5px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: white; cursor: pointer; font-weight: 600; }
+        .action-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+        .btn-verify { color: var(--verified-green); border-color: #bbf7d0; }
+        .btn-reject { color: var(--danger); border-color: #fca5a5; }
+        .btn-publish { color: #0284c7; border-color: #bae6fd; }
+        .btn-reserve { color: #c2410c; border-color: #fed7aa; }
+        .btn-sold { color: #475569; border-color: #cbd5e1; }
+        .btn-archive { color: #64748b; border-color: #cbd5e1; }
+    </style>
 </head>
-<body class="bg-gray-100 font-sans antialiased">
+<body>
 
-    <!-- App Wrapper -->
-    <div id="app" class="min-h-screen flex flex-col">
+<header>
+    <h1>Dreamland Admin Portal</h1>
+    <div class="user-info">
+        <span id="userEmail">Loading session...</span>
+        <button class="logout-btn" id="logoutBtn">Logout</button>
+    </div>
+</header>
 
-        <!-- Top Navigation Bar -->
-        <header class="bg-slate-900 text-white shadow-md">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <i class="fa-solid fa-car-shield text-blue-500 text-2xl"></i>
-                    <span class="font-bold text-lg tracking-wide">Dreamland Admin Portal</span>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <span id="admin-user-email" class="text-sm text-slate-300 hidden sm:inline">Loading user...</span>
-                    <button id="logout-btn" class="bg-slate-800 hover:bg-red-600 text-slate-200 hover:text-white px-3 py-1.5 rounded text-sm transition-colors duration-200 flex items-center space-x-1.5">
-                        <i class="fa-solid fa-right-from-bracket"></i>
-                        <span>Logout</span>
-                    </button>
-                </div>
+<div class="container">
+    <!-- Add Vehicle Form Card -->
+    <div class="card">
+        <h2>Register New Vehicle Draft</h2>
+        <form id="vehicleForm">
+            <div class="form-group">
+                <label>Make *</label>
+                <input type="text" id="make" required placeholder="e.g. Toyota">
             </div>
-        </header>
-
-        <!-- Main Content Area -->
-        <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            
-            <!-- Dashboard Header & Action bar -->
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
-                <div>
-                    <h1 class="text-2xl font-bold text-slate-900">Inventory Lifecycle Management</h1>
-                    <p class="text-sm text-slate-600 mt-1">Manage, verify, publish, and track vehicle inspection workflows.</p>
-                </div>
-                <div class="flex items-center space-x-3">
-                    <button id="open-create-modal-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors flex items-center space-x-2">
-                        <i class="fa-solid fa-plus"></i>
-                        <span>New Vehicle Draft</span>
-                    </button>
-                    <button id="refresh-inventory-btn" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-3 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors flex items-center space-x-1.5">
-                        <i class="fa-solid fa-rotate"></i>
-                        <span class="hidden sm:inline">Refresh</span>
-                    </button>
-                </div>
+            <div class="form-group">
+                <label>Model *</label>
+                <input type="text" id="model" required placeholder="e.g. Camry">
             </div>
-
-            <!-- Status Alerts Container -->
-            <div id="alert-container" class="mb-6 hidden"></div>
-
-            <!-- Inventory Table Section -->
-            <div class="bg-white shadow-sm rounded-xl border border-slate-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div class="flex items-center space-x-2">
-                        <span class="font-semibold text-slate-800">All Vehicles</span>
-                        <span id="vehicle-count-badge" class="bg-slate-100 text-slate-600 text-xs px-2.5 py-0.5 rounded-full font-medium">0 items</span>
-                    </div>
-                    <div class="relative w-full sm:w-64">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
-                            <i class="fa-solid fa-search text-xs"></i>
-                        </span>
-                        <input type="text" id="inventory-search-input" placeholder="Search make, model, code..." class="w-full pl-9 pr-4 py-1.5 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white">
-                    </div>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-slate-200 text-left">
-                        <thead class="bg-slate-50 text-slate-600 uppercase text-xs tracking-wider">
-                            <tr>
-                                <th class="px-6 py-3 font-semibold">Vehicle Info</th>
-                                <th class="px-6 py-3 font-semibold">Price / Location</th>
-                                <th class="px-6 py-3 font-semibold">Verification</th>
-                                <th class="px-6 py-3 font-semibold">Publication</th>
-                                <th class="px-6 py-3 font-semibold">Sales Status</th>
-                                <th class="px-6 py-3 font-semibold text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="inventory-table-body" class="bg-white divide-y divide-slate-200 text-sm text-slate-700">
-                            <!-- Populated dynamically -->
-                            <tr>
-                                <td colspan="6" class="px-6 py-12 text-center text-slate-400">
-                                    <i class="fa-solid fa-spinner fa-spin text-xl mb-2"></i>
-                                    <p>Loading inventory...</p>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+            <div class="form-group">
+                <label>Trim</label>
+                <input type="text" id="trim" placeholder="e.g. XLE">
             </div>
-
-        </main>
+            <div class="form-group">
+                <label>Year *</label>
+                <input type="number" id="year" required placeholder="2020" min="1990" max="2035">
+            </div>
+            <div class="form-group">
+                <label>Mileage (km) *</label>
+                <input type="number" id="mileage" required placeholder="45000">
+            </div>
+            <div class="form-group">
+                <label>Engine Spec *</label>
+                <input type="text" id="engine" required placeholder="2.5L 4-Cylinder">
+            </div>
+            <div class="form-group">
+                <label>Body Type</label>
+                <select id="body_type">
+                    <option value="Sedan">Sedan</option>
+                    <option value="SUV">SUV</option>
+                    <option value="Hatchback">Hatchback</option>
+                    <option value="Coupe">Coupe</option>
+                    <option value="Pickup">Pickup</option>
+                    <option value="Van">Van</option>
+                    <option value="Crossover">Crossover</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Transmission</label>
+                <select id="transmission">
+                    <option value="Automatic">Automatic</option>
+                    <option value="Manual">Manual</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Fuel Type</label>
+                <select id="fuel_type">
+                    <option value="Petrol">Petrol</option>
+                    <option value="Diesel">Diesel</option>
+                    <option value="Hybrid">Hybrid</option>
+                    <option value="Electric">Electric</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Colour</label>
+                <input type="text" id="colour" placeholder="Midnight Black">
+            </div>
+            <div class="form-group">
+                <label>Location</label>
+                <input type="text" id="location" value="Lagos Workshop">
+            </div>
+            <div class="form-group">
+                <label>Price (₦) *</label>
+                <input type="number" id="price" required placeholder="14500000">
+            </div>
+            <div class="form-group full-width">
+                <label>Primary Photo URL</label>
+                <input type="url" id="primary_photo_url" placeholder="https://images.unsplash.com/...">
+            </div>
+            <div class="form-group full-width">
+                <label>Initial Inspection Notes / Description</label>
+                <textarea id="description" rows="2" placeholder="Single owner, clean engine bay, awaiting full inspection..."></textarea>
+            </div>
+            <div class="form-group">
+                <button type="submit" id="submitBtn" class="btn btn-success">Save as Draft</button>
+            </div>
+        </form>
     </div>
 
-    <!-- Create / Edit Vehicle Modal -->
-    <div id="vehicle-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden my-8">
-            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-                <h3 id="modal-title" class="font-bold text-lg text-slate-900">Register New Vehicle Draft</h3>
-                <button id="close-modal-btn" class="text-slate-400 hover:text-slate-600 p-1">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
-            </div>
-            
-            <form id="vehicle-form" class="p-6 overflow-y-auto space-y-4">
-                <input type="hidden" id="edit-vehicle-id">
-                
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Make *</label>
-                        <input type="text" id="form-make" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. Toyota">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Model *</label>
-                        <input type="text" id="form-model" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. Camry">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Trim</label>
-                        <input type="text" id="form-trim" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. XLE">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Year *</label>
-                        <input type="number" id="form-year" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. 2022">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Mileage (km)</label>
-                        <input type="number" id="form-mileage" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. 45000">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Price (NGN)</label>
-                        <input type="number" id="form-price" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. 15000000">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Body Type</label>
-                        <input type="text" id="form-body-type" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. SUV, Sedan">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Fuel Type</label>
-                        <input type="text" id="form-fuel-type" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. Petrol">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Transmission</label>
-                        <input type="text" id="form-transmission" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. Automatic">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Exterior Colour</label>
-                        <input type="text" id="form-colour" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. Pearl White">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Location</label>
-                        <input type="text" id="form-location" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. Lagos, Nigeria">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">VIN / Reg Number</label>
-                        <input type="text" id="form-vin" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. 1HGCR2F...">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Description & Notes</label>
-                    <textarea id="form-description" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Enter vehicle highlights or inspection summaries..."></textarea>
-                </div>
-
-                <div class="pt-4 border-t border-slate-200 flex items-center justify-end space-x-3">
-                    <button type="button" id="cancel-modal-btn" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors">Cancel</button>
-                    <button type="submit" id="save-vehicle-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors">Save Draft</button>
-                </div>
-            </form>
+    <!-- Inventory Management List Card -->
+    <div class="card">
+        <h2>Inventory Lifecycle Management</h2>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Vehicle</th>
+                        <th>Price</th>
+                        <th>Verification</th>
+                        <th>Publication</th>
+                        <th>Sales Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="adminInventoryTable">
+                    <tr><td colspan="7" style="text-align: center; color: #64748b;">Loading inventory through service layer...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
+</div>
 
-    <!-- Dashboard Controller Script -->
-    <script type="module">
-        import { requireAuth, logoutStaff } from './supabaseClient.js';
-        import { 
-            getAdminVehicles, 
-            createVehicle, 
-            updateVehicle, 
-            verifyVehicle, 
-            rejectVehicle, 
-            publishVehicle, 
-            unpublishVehicle, 
-            reserveVehicle, 
-            markAvailable, 
-            markSold, 
-            archiveVehicle 
-        } from './vehicleService.js?v=2';
+<script type="module">
+    import { requireAuth, logoutStaff } from './supabaseClient.js';
+    import { vehicleService } from './vehicleService.js';
 
-        let allVehicles = [];
-        let currentEditingId = null;
+    async function init() {
+        const auth = await requireAuth();
+        if (!auth) return;
 
-        // Initialize dashboard session
-        async function initDashboard() {
-            const auth = await requireAuth();
-            if (!auth) return;
+        document.getElementById('userEmail').textContent = `${auth.profile.full_name || auth.profile.email} (${auth.profile.role})`;
 
-            document.getElementById('admin-user-email').textContent = auth.profile.email || auth.session.user.email;
-            document.getElementById('logout-btn').addEventListener('click', logoutStaff);
+        document.getElementById('logoutBtn').addEventListener('click', logoutStaff);
+        document.getElementById('vehicleForm').addEventListener('submit', handleCreateVehicle);
 
-            await loadInventory();
+        loadInventory();
+    }
 
-            // Event Listeners
-            document.getElementById('refresh-inventory-btn').addEventListener('click', loadInventory);
-            document.getElementById('inventory-search-input').addEventListener('input', filterAndRenderVehicles);
-            
-            document.getElementById('open-create-modal-btn').addEventListener('click', () => openModal());
-            document.getElementById('close-modal-btn').addEventListener('click', closeModal);
-            document.getElementById('cancel-modal-btn').addEventListener('click', closeModal);
-            document.getElementById('vehicle-form').addEventListener('submit', handleFormSubmit);
-        }
+    async function loadInventory() {
+        const tbody = document.getElementById('adminInventoryTable');
+        
+        try {
+            const vehicles = await vehicleService.getAdminVehicles();
 
-        async function loadInventory() {
-            try {
-                const tbody = document.getElementById('inventory-table-body');
-                tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-12 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin text-xl mb-2"></i><p>Loading inventory...</p></td></tr>`;
-                
-                allVehicles = await getAdminVehicles();
-                renderVehicles(allVehicles);
-            } catch (err) {
-                showAlert(err.message, 'error');
-                document.getElementById('inventory-table-body').innerHTML = `<tr><td colspan="6" class="px-6 py-12 text-center text-red-500">Failed to load inventory.</td></tr>`;
-            }
-        }
-
-        function renderVehicles(vehicles) {
-            const tbody = document.getElementById('inventory-table-body');
-            document.getElementById('vehicle-count-badge').textContent = `${vehicles.length} items`;
-
-            if (!vehicles.length) {
-                tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-12 text-center text-slate-400">No vehicles found.</td></tr>`;
+            if (!vehicles || vehicles.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#64748b;">No vehicles in database. Use the form above to add a draft.</td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = vehicles.map(v => {
-                const verificationBadge = getVerificationBadge(v.verification_status);
-                const publicationBadge = getPublicationBadge(v.publication_status);
-                const salesBadge = getSalesBadge(v.sales_status);
-                const formattedPrice = v.price ? `₦${Number(v.price).toLocaleString()}` : 'Price TBD';
+            tbody.innerHTML = '';
+            vehicles.forEach(car => {
+                const formattedPrice = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(car.price);
+                
+                const vBadge = car.verification_status === 'VERIFIED' ? 'badge-verified' : car.verification_status === 'REJECTED' ? 'badge-rejected' : 'badge-pending';
+                const pBadge = car.publication_status === 'PUBLISHED' ? 'badge-published' : 'badge-unpublished';
+                
+                let sBadgeClass = 'badge-sales';
+                if (car.sales_status === 'RESERVED') sBadgeClass = 'badge-reserved';
+                if (car.sales_status === 'SOLD') sBadgeClass = 'badge-sold';
+                if (car.sales_status === 'ARCHIVED') sBadgeClass = 'badge-archived';
 
-                return `
-                    <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-6 py-4">
-                            <div class="font-semibold text-slate-900">${v.year || ''} ${v.make || ''} ${v.model || ''}</div>
-                            <div class="text-xs text-slate-500 flex items-center space-x-2 mt-0.5">
-                                <span class="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">${v.vehicle_code || 'Draft'}</span>
-                                <span>${v.trim || ''}</span>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="font-medium text-slate-900">${formattedPrice}</div>
-                            <div class="text-xs text-slate-500">${v.location || 'Not specified'}</div>
-                        </td>
-                        <td class="px-6 py-4">${verificationBadge}</td>
-                        <td class="px-6 py-4">${publicationBadge}</td>
-                        <td class="px-6 py-4">${salesBadge}</td>
-                        <td class="px-6 py-4 text-right space-x-2">
-                            <button onclick="window.editVehicle('${v.id}')" class="text-blue-600 hover:text-blue-800 p-1" title="Edit Draft"><i class="fa-solid fa-pen-to-square"></i></button>
-                            <button onclick="window.handleAction('verify', '${v.id}')" class="text-emerald-600 hover:text-emerald-800 p-1" title="Verify"><i class="fa-solid fa-circle-check"></i></button>
-                            <button onclick="window.handleAction('publish', '${v.id}')" class="text-indigo-600 hover:text-indigo-800 p-1" title="Publish"><i class="fa-solid fa-globe"></i></button>
-                            <button onclick="window.handleAction('unpublish', '${v.id}')" class="text-amber-600 hover:text-amber-800 p-1" title="Unpublish"><i class="fa-solid fa-eye-slash"></i></button>
-                            <button onclick="window.handleAction('reserve', '${v.id}')" class="text-purple-600 hover:text-purple-800 p-1" title="Reserve"><i class="fa-solid fa-bookmark"></i></button>
-                            <button onclick="window.handleAction('sold', '${v.id}')" class="text-slate-600 hover:text-slate-800 p-1" title="Mark Sold"><i class="fa-solid fa-tag"></i></button>
-                            <button onclick="window.handleAction('reject', '${v.id}')" class="text-red-600 hover:text-red-800 p-1" title="Reject"><i class="fa-solid fa-ban"></i></button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
+                // Render contextual state machine actions
+                let actionButtons = '';
 
-        function filterAndRenderVehicles(e) {
-            const query = e.target.value.toLowerCase();
-            const filtered = allVehicles.filter(v => 
-                (v.make && v.make.toLowerCase().includes(query)) ||
-                (v.model && v.model.toLowerCase().includes(query)) ||
-                (v.vehicle_code && v.vehicle_code.toLowerCase().includes(query))
-            );
-            renderVehicles(filtered);
-        }
-
-        function getVerificationBadge(status) {
-            switch(status) {
-                case 'VERIFIED': return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">Verified</span>`;
-                case 'REJECTED': return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Rejected</span>`;
-                default: return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Pending</span>`;
-            }
-        }
-
-        function getPublicationBadge(status) {
-            switch(status) {
-                case 'PUBLISHED': return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Published</span>`;
-                default: return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">Unpublished</span>`;
-            }
-        }
-
-        function getSalesBadge(status) {
-            switch(status) {
-                case 'RESERVED': return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">Reserved</span>`;
-                case 'SOLD': return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-white">Sold</span>`;
-                case 'ARCHIVED': return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600">Archived</span>`;
-                default: return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700">Available</span>`;
-            }
-        }
-
-        function openModal(vehicle = null) {
-            const modal = document.getElementById('vehicle-modal');
-            const title = document.getElementById('modal-title');
-            const form = document.getElementById('vehicle-form');
-            form.reset();
-
-            if (vehicle) {
-                currentEditingId = vehicle.id;
-                title.textContent = 'Edit Vehicle Draft';
-                document.getElementById('edit-vehicle-id').value = vehicle.id;
-                document.getElementById('form-make').value = vehicle.make || '';
-                document.getElementById('form-model').value = vehicle.model || '';
-                document.getElementById('form-trim').value = vehicle.trim || '';
-                document.getElementById('form-year').value = vehicle.year || '';
-                document.getElementById('form-mileage').value = vehicle.mileage || '';
-                document.getElementById('form-price').value = vehicle.price || '';
-                document.getElementById('form-body-type').value = vehicle.body_type || '';
-                document.getElementById('form-fuel-type').value = vehicle.fuel_type || '';
-                document.getElementById('form-transmission').value = vehicle.transmission || '';
-                document.getElementById('form-colour').value = vehicle.colour || '';
-                document.getElementById('form-location').value = vehicle.location || '';
-                document.getElementById('form-vin').value = vehicle.vin || vehicle.registration_number || '';
-                document.getElementById('form-description').value = vehicle.description || '';
-            } else {
-                currentEditingId = null;
-                title.textContent = 'Register New Vehicle Draft';
-                document.getElementById('edit-vehicle-id').value = '';
-            }
-
-            modal.classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('vehicle-modal').classList.add('hidden');
-            currentEditingId = null;
-        }
-
-        async function handleFormSubmit(e) {
-            e.preventDefault();
-            const submitBtn = document.getElementById('save-vehicle-btn');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Saving...';
-
-            const payload = {
-                make: document.getElementById('form-make').value.trim(),
-                model: document.getElementById('form-model').value.trim(),
-                trim: document.getElementById('form-trim').value.trim(),
-                year: document.getElementById('form-year').value ? parseInt(document.getElementById('form-year').value) : null,
-                mileage: document.getElementById('form-mileage').value ? parseInt(document.getElementById('form-mileage').value) : null,
-                price: document.getElementById('form-price').value ? parseFloat(document.getElementById('form-price').value) : null,
-                bodyType: document.getElementById('form-body-type').value.trim(),
-                fuelType: document.getElementById('form-fuel-type').value.trim(),
-                transmissionType: document.getElementById('form-transmission').value.trim(),
-                exteriorColor: document.getElementById('form-colour').value.trim(),
-                location: document.getElementById('form-location').value.trim(),
-                vin: document.getElementById('form-vin').value.trim(),
-                description: document.getElementById('form-description').value.trim()
-            };
-
-            try {
-                if (currentEditingId) {
-                    await updateVehicle(currentEditingId, payload);
-                    showAlert('Vehicle updated successfully!', 'success');
+                if (car.sales_status === 'ARCHIVED') {
+                    actionButtons = `<span style="color:#64748b; font-size:0.75rem;">Locked (Archived)</span>`;
+                } else if (car.sales_status === 'SOLD') {
+                    // Sold vehicles can still be archived to preserve audit trail
+                    actionButtons += `<button class="action-btn btn-archive" onclick="runAction('archive', '${car.id}')">Archive</button>`;
                 } else {
-                    await createVehicle(payload);
-                    showAlert('Vehicle draft created successfully!', 'success');
-                }
-                closeModal();
-                await loadInventory();
-            } catch (err) {
-                showAlert(`Failed to save vehicle: ${err.message}`, 'error');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Save Draft';
-            }
-        }
+                    // Verification actions
+                    if (car.verification_status === 'PENDING' || car.verification_status === 'IN_REVIEW') {
+                        actionButtons += `<button class="action-btn btn-verify" onclick="runAction('verify', '${car.id}')">Verify</button>`;
+                        actionButtons += `<button class="action-btn btn-reject" onclick="runAction('reject', '${car.id}')">Reject</button>`;
+                    }
 
-        window.editVehicle = function(id) {
-            const vehicle = allVehicles.find(v => v.id === id);
-            if (vehicle) openModal(vehicle);
+                    // Publication actions (Only if verified)
+                    if (car.verification_status === 'VERIFIED') {
+                        if (car.publication_status === 'PUBLISHED') {
+                            actionButtons += `<button class="action-btn" onclick="runAction('unpublish', '${car.id}')">Unpublish</button>`;
+                        } else {
+                            actionButtons += `<button class="action-btn btn-publish" onclick="runAction('publish', '${car.id}')">Publish</button>`;
+                        }
+                    }
+
+                    // Sales status actions
+                    if (car.sales_status === 'AVAILABLE') {
+                        actionButtons += `<button class="action-btn btn-reserve" onclick="runAction('reserve', '${car.id}')">Reserve</button>`;
+                        actionButtons += `<button class="action-btn btn-sold" onclick="runAction('sold', '${car.id}')">Mark Sold</button>`;
+                    } else if (car.sales_status === 'RESERVED') {
+                        actionButtons += `<button class="action-btn" onclick="runAction('available', '${car.id}')">Make Available</button>`;
+                        actionButtons += `<button class="action-btn btn-sold" onclick="runAction('sold', '${car.id}')">Mark Sold</button>`;
+                    }
+
+                    // Archive option
+                    actionButtons += `<button class="action-btn btn-archive" onclick="runAction('archive', '${car.id}')">Archive</button>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><code>${car.vehicle_code || car.id.substring(0,8)}</code></td>
+                    <td><strong>${car.year} ${car.make} ${car.model}</strong><br><small style="color:#64748b">${car.trim || ''} • ${car.mileage.toLocaleString()} km</small></td>
+                    <td>${formattedPrice}</td>
+                    <td><span class="badge ${vBadge}">${car.verification_status}</span></td>
+                    <td><span class="badge ${pBadge}">${car.publication_status}</span></td>
+                    <td><span class="badge ${sBadgeClass}">${car.sales_status}</span></td>
+                    <td><div class="action-cell">${actionButtons}</div></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (error) {
+            tbody.innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">Error loading inventory: ${error.message}</td></tr>`;
+        }
+    }
+
+    async function handleCreateVehicle(e) {
+        e.preventDefault();
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving Draft...';
+
+        const vehicleData = {
+            make: document.getElementById('make').value.trim(),
+            model: document.getElementById('model').value.trim(),
+            trim: document.getElementById('trim').value.trim(),
+            year: parseInt(document.getElementById('year').value),
+            mileage: parseInt(document.getElementById('mileage').value),
+            engine: document.getElementById('engine').value.trim(),
+            body_type: document.getElementById('body_type').value,
+            transmission: document.getElementById('transmission').value,
+            fuel_type: document.getElementById('fuel_type').value,
+            colour: document.getElementById('colour').value.trim(),
+            location: document.getElementById('location').value.trim(),
+            price: parseFloat(document.getElementById('price').value),
+            description: document.getElementById('description').value.trim(),
+            currency: 'NGN'
         };
 
-        window.handleAction = async function(action, id) {
-            try {
-                if (action === 'verify') await verifyVehicle(id);
-                if (action === 'publish') await publishVehicle(id);
-                if (action === 'unpublish') await unpublishVehicle(id);
-                if (action === 'reserve') await reserveVehicle(id);
-                if (action === 'sold') await markSold(id);
-                if (action === 'reject') {
-                    const reason = prompt('Enter rejection reason:');
-                    if (reason === null) return;
-                    await rejectVehicle(id, reason);
+        const photoUrl = document.getElementById('primary_photo_url').value.trim();
+
+        try {
+            const newCar = await vehicleService.createVehicle(vehicleData);
+
+            if (photoUrl && newCar && newCar.id) {
+                try {
+                    await vehicleService.addVehiclePhoto(newCar.id, {
+                        storage_path: 'external/custom_upload.jpg',
+                        public_url: photoUrl,
+                        category: 'EXTERIOR',
+                        is_primary: true
+                    });
+                } catch (photoErr) {
+                    console.warn('Vehicle created, but photo attachment failed:', photoErr.message);
+                    alert('Vehicle draft created successfully, but attaching the primary photo failed. You can add photos later.');
                 }
-                showAlert(`Action "${action}" completed successfully.`, 'success');
-                await loadInventory();
-            } catch (err) {
-                showAlert(`Action failed: ${err.message}`, 'error');
+            } else {
+                alert('Vehicle draft created successfully!');
             }
-        };
 
-        function showAlert(message, type = 'success') {
-            const container = document.getElementById('alert-container');
-            const bgClass = type === 'error' ? 'bg-red-50 text-red-800 border-red-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200';
-            const iconClass = type === 'error' ? 'fa-circle-exclamation text-red-500' : 'fa-circle-check text-emerald-500';
-            
-            container.className = `mb-6 p-4 rounded-xl border flex items-center space-x-3 ${bgClass}`;
-            container.innerHTML = `<i class="fa-solid ${iconClass} text-lg"></i><span class="text-sm font-medium">${message}</span>`;
-            container.classList.remove('hidden');
-
-            setTimeout(() => {
-                container.classList.add('hidden');
-            }, 5000);
+            document.getElementById('vehicleForm').reset();
+            loadInventory();
+        } catch (error) {
+            alert('Failed to create vehicle: ' + error.message);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Save as Draft';
         }
+    }
 
-        initDashboard();
-    </script>
+    // Centralized lifecycle action dispatcher with confirmation and error catching
+    window.runAction = async function(action, id) {
+        try {
+            switch (action) {
+                case 'verify':
+                    if (!confirm('Mark this vehicle as VERIFIED?')) return;
+                    await vehicleService.verifyVehicle(id);
+                    break;
+                case 'reject': {
+                    const reason = prompt('Enter the rejection reason:');
+                    if (!reason || !reason.trim()) return;
+                    await vehicleService.rejectVehicle(id, reason.trim());
+                    break;
+                }
+                case 'publish':
+                    if (!confirm('Publish this verified vehicle to the live catalog?')) return;
+                    await vehicleService.publishVehicle(id);
+                    break;
+                case 'unpublish':
+                    if (!confirm('Unpublish this vehicle from the live catalog?')) return;
+                    await vehicleService.unpublishVehicle(id);
+                    break;
+                case 'reserve':
+                    if (!confirm('Mark this vehicle as RESERVED?')) return;
+                    await vehicleService.reserveVehicle(id);
+                    break;
+                case 'available':
+                    if (!confirm('Return this vehicle to AVAILABLE status?')) return;
+                    await vehicleService.markAvailable(id);
+                    break;
+                case 'sold':
+                    if (!confirm('Mark this vehicle as SOLD?')) return;
+                    await vehicleService.markSold(id);
+                    break;
+                case 'archive':
+                    if (!confirm('Archive this vehicle record? This preserves audit history.')) return;
+                    await vehicleService.archiveVehicle(id);
+                    break;
+            }
+            loadInventory();
+        } catch (err) {
+            alert('Action failed: ' + err.message);
+        }
+    };
+
+    init();
+</script>
+
 </body>
 </html>
