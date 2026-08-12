@@ -200,15 +200,3 @@ export function createPhotoPicker() {
 }
 
 
-/*
- * Automatically initialize when the module loads.
- */
-if (document.readyState === 'loading') {
-    document.addEventListener(
-        'DOMContentLoaded',
-        initPhotoPicker,
-        { once: true }
-    );
-} else {
-    initPhotoPicker();
-}
