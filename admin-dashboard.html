@@ -217,11 +217,11 @@
                <label>Primary Photo</label>
 
 <div class="photo-picker">
-    <button type="button" id="cameraPhotoBtn">
+    <button type="button" id="cameraPhotoBtn" class="action-btn" style="padding: 8px 14px; margin-right: 8px;">
         Camera
     </button>
 
-    <button type="button" id="galleryPhotoBtn">
+    <button type="button" id="galleryPhotoBtn" class="action-btn" style="padding: 8px 14px;">
         Choose from Gallery
     </button>
 
@@ -248,7 +248,7 @@
             style="max-width:100%; max-height:250px; border-radius:8px;"
         >
 
-        <div id="photoFilename">
+        <div id="photoFilename" style="font-size: 0.875rem; color: #64748b; margin-top: 4px;">
             No photo selected
         </div>
     </div>
@@ -291,7 +291,7 @@
 <script type="module">
     import { requireAuth, logoutStaff } from './supabaseClient.js';
     import { vehicleService } from './vehicleService.js';
-    import { getSelectedPhoto, clearSelectedPhoto } from './photo.js';
+    import { createPhotoPicker } from './photo.js';
 
     async function init() {
         const auth = await requireAuth();
@@ -301,6 +301,15 @@
 
         document.getElementById('logoutBtn').addEventListener('click', logoutStaff);
         document.getElementById('vehicleForm').addEventListener('submit', handleCreateVehicle);
+
+        window.vehiclePhotoPicker = createPhotoPicker({
+            cameraButtonId: 'cameraPhotoBtn',
+            galleryButtonId: 'galleryPhotoBtn',
+            cameraInputId: 'cameraPhotoInput',
+            galleryInputId: 'galleryPhotoInput',
+            previewId: 'photoPreview',
+            filenameId: 'photoFilename'
+        });
 
         loadInventory();
     }
@@ -334,7 +343,6 @@
                 if (car.sales_status === 'ARCHIVED') {
                     actionButtons = `<span style="color:#64748b; font-size:0.75rem;">Locked (Archived)</span>`;
                 } else if (car.sales_status === 'SOLD') {
-                    // Sold vehicles can still be archived to preserve audit trail
                     actionButtons += `<button class="action-btn btn-archive" onclick="runAction('archive', '${car.id}')">Archive</button>`;
                 } else {
                     // Verification actions
@@ -405,50 +413,51 @@
             currency: 'NGN'
         };
 
-       const photoFile = getSelectedPhoto();
+        const photoFile = window.vehiclePhotoPicker?.getFile() || null;
 
-try {
-    const newCar = await vehicleService.createVehicle(vehicleData);
-
-    if (photoFile && newCar && newCar.id) {
         try {
-            await vehicleService.addVehiclePhoto(
-                newCar.id,
-                photoFile,
-                {
-                    category: 'EXTERIOR',
-                    is_primary: true
+            const newCar = await vehicleService.createVehicle(vehicleData);
+
+            if (photoFile && newCar && newCar.id) {
+                try {
+                    await vehicleService.addVehiclePhoto(
+                        newCar.id,
+                        photoFile,
+                        {
+                            category: 'EXTERIOR',
+                            is_primary: true
+                        }
+                    );
+                } catch (photoErr) {
+                    console.warn(
+                        'Vehicle created, but photo upload failed:',
+                        photoErr.message
+                    );
+
+                    alert(
+                        'Vehicle draft created successfully, but the photo upload failed. ' +
+                        'You can add photos later.'
+                    );
                 }
-            );
-        } catch (photoErr) {
-            console.warn(
-                'Vehicle created, but photo upload failed:',
-                photoErr.message
-            );
+            } else {
+                alert('Vehicle draft created successfully!');
+            }
 
-            alert(
-                'Vehicle draft created successfully, but the photo upload failed. ' +
-                'You can add photos later.'
-            );
+            document.getElementById('vehicleForm').reset();
+
+            window.vehiclePhotoPicker?.clear();
+
+            loadInventory();
+
+        } catch (error) {
+            alert('Failed to create vehicle: ' + error.message);
+
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Save as Draft';
         }
-    } else {
-        alert('Vehicle draft created successfully!');
     }
 
-    document.getElementById('vehicleForm').reset();
-
-    clearSelectedPhoto();
-
-    loadInventory();
-
-} catch (error) {
-    alert('Failed to create vehicle: ' + error.message);
-
-} finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Save as Draft';
-}
-    }
     // Centralized lifecycle action dispatcher with confirmation and error catching
     window.runAction = async function(action, id) {
         try {
