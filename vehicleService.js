@@ -41,6 +41,9 @@ export const vehicleService = {
         return data;
     },
 
+    /**
+     * Creates a new vehicle draft securely via database RPC with proper field mapping.
+     */
     async createVehicle(vehicleData) {
         const payload = { ...vehicleData };
 
@@ -53,11 +56,8 @@ export const vehicleService = {
 
         mapField('bodyType', 'body_type');
         mapField('fuelType', 'fuel_type');
-        mapField('driveType', 'drive_type');
-        mapField('engineSize', 'engine_size');
-        mapField('exteriorColor', 'exterior_color');
-        mapField('interiorColor', 'interior_color');
-        mapField('transmissionType', 'transmission_type');
+        mapField('exteriorColor', 'colour');
+        mapField('transmissionType', 'transmission');
 
         const { data, error } = await supabase.rpc('create_vehicle', { p_data: payload });
 
@@ -65,6 +65,9 @@ export const vehicleService = {
         return data;
     },
 
+    /**
+     * Updates an existing vehicle's ordinary details securely via database RPC (excluding price).
+     */
     async updateVehicle(id, vehicleData) {
         const payload = { ...vehicleData };
 
@@ -77,19 +80,29 @@ export const vehicleService = {
 
         mapField('bodyType', 'body_type');
         mapField('fuelType', 'fuel_type');
-        mapField('driveType', 'drive_type');
-        mapField('engineSize', 'engine_size');
-        mapField('exteriorColor', 'exterior_color');
-        mapField('interiorColor', 'interior_color');
-        mapField('transmissionType', 'transmission_type');
+        mapField('exteriorColor', 'colour');
+        mapField('transmissionType', 'transmission');
 
         const { data, error } = await supabase.rpc('update_vehicle', { 
-            vehicle_uuid: id, 
+            p_vehicle_id: id, 
             p_data: payload 
         });
 
         if (error) throw new Error(error.message);
         return data;
+    },
+
+    /**
+     * Updates vehicle price through the dedicated secure price-management channel.
+     */
+    async updateVehiclePrice(id, newPrice) {
+        const { error } = await supabase.rpc('update_vehicle_price', { 
+            p_vehicle_id: id, 
+            p_new_price: newPrice 
+        });
+
+        if (error) throw new Error(error.message);
+        return true;
     },
 
     async addVehiclePhoto(vehicleId, photoData) {
@@ -167,6 +180,7 @@ export const getAdminVehicles = vehicleService.getAdminVehicles;
 export const getVehicleById = vehicleService.getVehicleById;
 export const createVehicle = vehicleService.createVehicle;
 export const updateVehicle = vehicleService.updateVehicle;
+export const updateVehiclePrice = vehicleService.updateVehiclePrice;
 export const addVehiclePhoto = vehicleService.addVehiclePhoto;
 export const verifyVehicle = vehicleService.verifyVehicle;
 export const rejectVehicle = vehicleService.rejectVehicle;
