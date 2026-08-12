@@ -1,36 +1,24 @@
 /**
  * Dreamland Vehicle Photo Picker
  *
- * Camera / Gallery → raw File → preview
+ * Camera / Gallery -> raw File -> preview
  *
- * This module does NOT upload anything to Supabase.
- * vehicleService.js handles the upload.
+ * This file does not upload anything.
+ * vehicleService.js handles the Supabase upload.
  */
 
-export function createPhotoPicker(options = {}) {
-    const cameraButton = document.getElementById(
-        options.cameraButtonId || 'cameraPhotoBtn'
-    );
+let selectedPhotoFile = null;
+let selectedPhotoPreviewUrl = null;
 
-    const galleryButton = document.getElementById(
-        options.galleryButtonId || 'galleryPhotoBtn'
-    );
+function initPhotoPicker() {
+    const cameraButton = document.getElementById('cameraPhotoBtn');
+    const galleryButton = document.getElementById('galleryPhotoBtn');
 
-    const cameraInput = document.getElementById(
-        options.cameraInputId || 'cameraPhotoInput'
-    );
+    const cameraInput = document.getElementById('cameraPhotoInput');
+    const galleryInput = document.getElementById('galleryPhotoInput');
 
-    const galleryInput = document.getElementById(
-        options.galleryInputId || 'galleryPhotoInput'
-    );
-
-    const preview = document.getElementById(
-        options.previewId || 'photoPreview'
-    );
-
-    const filename = document.getElementById(
-        options.filenameId || 'photoFilename'
-    );
+    const preview = document.getElementById('photoPreview');
+    const filename = document.getElementById('photoFilename');
 
     if (
         !cameraButton ||
@@ -39,25 +27,23 @@ export function createPhotoPicker(options = {}) {
         !galleryInput ||
         !preview
     ) {
-        throw new Error(
-            'Vehicle photo picker elements are missing from admin.html.'
+        console.warn(
+            'Dreamland Photo Picker: required elements were not found.'
         );
+
+        return;
     }
 
-    let selectedFile = null;
-    let previewUrl = null;
-
-    function handleFile(file) {
+    function handleSelectedFile(file) {
         if (!file) {
             return;
         }
 
-        if (!file.type || !file.type.startsWith('image/')) {
+        if (!file.type.startsWith('image/')) {
             alert('Please select an image file.');
             return;
         }
 
-        // Maximum client-side photo size: 15 MB.
         const maxSize = 15 * 1024 * 1024;
 
         if (file.size > maxSize) {
@@ -67,89 +53,162 @@ export function createPhotoPicker(options = {}) {
             return;
         }
 
-        selectedFile = file;
+        selectedPhotoFile = file;
 
-        // Release the previous preview URL.
-        if (previewUrl) {
-            URL.revokeObjectURL(previewUrl);
+        if (selectedPhotoPreviewUrl) {
+            URL.revokeObjectURL(selectedPhotoPreviewUrl);
         }
 
-        // Create a temporary browser preview.
-        previewUrl = URL.createObjectURL(file);
+        selectedPhotoPreviewUrl = URL.createObjectURL(file);
 
-        preview.src = previewUrl;
+        preview.src = selectedPhotoPreviewUrl;
         preview.hidden = false;
 
         if (filename) {
-            filename.textContent = file.name || 'Photo selected';
+            filename.textContent =
+                file.name || 'Photo selected';
         }
     }
 
-    // Open device camera.
-    cameraButton.addEventListener('click', () => {
+    /*
+     * CAMERA
+     */
+    cameraButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+
         cameraInput.click();
     });
 
-    // Open gallery/file picker.
-    galleryButton.addEventListener('click', () => {
+    /*
+     * GALLERY
+     */
+    galleryButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+
         galleryInput.click();
     });
 
-    // Camera photo selected/taken.
-    cameraInput.addEventListener('change', () => {
-        handleFile(
-            cameraInput.files && cameraInput.files[0]
-        );
+    /*
+     * CAMERA RESULT
+     */
+    cameraInput.addEventListener('change', function () {
+        const file = cameraInput.files
+            ? cameraInput.files[0]
+            : null;
 
-        // Allow the same photo to be selected again later.
+        handleSelectedFile(file);
+
         cameraInput.value = '';
     });
 
-    // Gallery photo selected.
-    galleryInput.addEventListener('change', () => {
-        handleFile(
-            galleryInput.files && galleryInput.files[0]
-        );
+    /*
+     * GALLERY RESULT
+     */
+    galleryInput.addEventListener('change', function () {
+        const file = galleryInput.files
+            ? galleryInput.files[0]
+            : null;
 
-        // Allow the same photo to be selected again later.
+        handleSelectedFile(file);
+
         galleryInput.value = '';
     });
 
+    console.log(
+        'Dreamland Photo Picker initialized successfully.'
+    );
+}
+
+
+/*
+ * Public API
+ */
+
+export function getSelectedPhoto() {
+    return selectedPhotoFile;
+}
+
+export function hasSelectedPhoto() {
+    return Boolean(selectedPhotoFile);
+}
+
+export function clearSelectedPhoto() {
+    const preview =
+        document.getElementById('photoPreview');
+
+    const filename =
+        document.getElementById('photoFilename');
+
+    const cameraInput =
+        document.getElementById('cameraPhotoInput');
+
+    const galleryInput =
+        document.getElementById('galleryPhotoInput');
+
+    selectedPhotoFile = null;
+
+    if (selectedPhotoPreviewUrl) {
+        URL.revokeObjectURL(
+            selectedPhotoPreviewUrl
+        );
+
+        selectedPhotoPreviewUrl = null;
+    }
+
+    if (preview) {
+        preview.removeAttribute('src');
+        preview.hidden = true;
+    }
+
+    if (filename) {
+        filename.textContent =
+            'No photo selected';
+    }
+
+    if (cameraInput) {
+        cameraInput.value = '';
+    }
+
+    if (galleryInput) {
+        galleryInput.value = '';
+    }
+}
+
+
+/*
+ * Also export the old-style factory so the existing
+ * admin.html can use it if it already imports it.
+ */
+export function createPhotoPicker() {
+    initPhotoPicker();
+
     return {
-        /**
-         * Returns the raw File selected by the admin.
-         */
         getFile() {
-            return selectedFile;
+            return getSelectedPhoto();
         },
 
-        /**
-         * Returns true if a photo has been selected.
-         */
         hasFile() {
-            return Boolean(selectedFile);
+            return hasSelectedPhoto();
         },
 
-        /**
-         * Clears the selected photo and preview.
-         */
         clear() {
-            selectedFile = null;
-
-            if (previewUrl) {
-                URL.revokeObjectURL(previewUrl);
-                previewUrl = null;
-            }
-
-            preview.removeAttribute('src');
-            preview.hidden = true;
-
-            if (filename) {
-                filename.textContent = 'No photo selected';
-            }
-
-            cameraInput.value = '';
-            galleryInput.value = '';
+            clearSelectedPhoto();
         }
     };
+}
+
+
+/*
+ * Automatically initialize when the module loads.
+ */
+if (document.readyState === 'loading') {
+    document.addEventListener(
+        'DOMContentLoaded',
+        initPhotoPicker,
+        { once: true }
+    );
+} else {
+    initPhotoPicker();
 }
