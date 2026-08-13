@@ -87,42 +87,82 @@ export const vehicleService = {
     },
 
     /**
-     * Vehicle Lifecycle Actions
+     * ==========================================
+     * AUTHORITATIVE RPC VEHICLE LIFECYCLE ACTIONS
+     * ==========================================
      */
-    async verifyVehicle(vehicleId, reference = null) {
-        return this.updateVehicle(vehicleId, {
-            verification_status: 'VERIFIED',
-            verification_reference: reference || `VER-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-            verified_at: new Date().toISOString()
+
+    async verifyVehicle(vehicleId) {
+        const { data, error } = await supabase.rpc('verify_vehicle', {
+            p_vehicle_id: vehicleId
         });
+
+        if (error) throw new Error(error.message);
+        return data;
     },
 
-    async rejectVehicle(vehicleId) {
-        return this.updateVehicle(vehicleId, { verification_status: 'REJECTED' });
+    async rejectVehicle(vehicleId, reason = null) {
+        const { data, error } = await supabase.rpc('reject_vehicle', {
+            p_vehicle_id: vehicleId,
+            p_reason: reason
+        });
+
+        if (error) throw new Error(error.message);
+        return data;
     },
 
     async publishVehicle(vehicleId) {
-        return this.updateVehicle(vehicleId, { publication_status: 'PUBLISHED' });
+        const { data, error } = await supabase.rpc('publish_vehicle', {
+            p_vehicle_id: vehicleId
+        });
+
+        if (error) throw new Error(error.message);
+        return data;
     },
 
     async unpublishVehicle(vehicleId) {
-        return this.updateVehicle(vehicleId, { publication_status: 'UNPUBLISHED' });
+        const { data, error } = await supabase.rpc('unpublish_vehicle', {
+            p_vehicle_id: vehicleId
+        });
+
+        if (error) throw new Error(error.message);
+        return data;
     },
 
     async reserveVehicle(vehicleId) {
-        return this.updateVehicle(vehicleId, { sales_status: 'RESERVED' });
+        const { data, error } = await supabase.rpc('reserve_vehicle', {
+            p_vehicle_id: vehicleId
+        });
+
+        if (error) throw new Error(error.message);
+        return data;
     },
 
     async markAvailable(vehicleId) {
-        return this.updateVehicle(vehicleId, { sales_status: 'AVAILABLE' });
+        const { data, error } = await supabase.rpc('mark_vehicle_available', {
+            p_vehicle_id: vehicleId
+        });
+
+        if (error) throw new Error(error.message);
+        return data;
     },
 
     async markSold(vehicleId) {
-        return this.updateVehicle(vehicleId, { sales_status: 'SOLD' });
+        const { data, error } = await supabase.rpc('mark_vehicle_sold', {
+            p_vehicle_id: vehicleId
+        });
+
+        if (error) throw new Error(error.message);
+        return data;
     },
 
     async archiveVehicle(vehicleId) {
-        return this.updateVehicle(vehicleId, { publication_status: 'ARCHIVED' });
+        const { data, error } = await supabase.rpc('archive_vehicle', {
+            p_vehicle_id: vehicleId
+        });
+
+        if (error) throw new Error(error.message);
+        return data;
     },
 
     /**
