@@ -2,6 +2,12 @@ import { supabase } from './supabaseClient.js';
 
 export const vehicleService = {
     /**
+     * ==========================================
+     * ADMIN & INVENTORY MANAGEMENT METHODS
+     * ==========================================
+     */
+
+    /**
      * Fetches all vehicles for the admin inventory dashboard.
      */
     async getAllVehicles() {
@@ -12,6 +18,10 @@ export const vehicleService = {
 
         if (error) throw new Error(error.message);
         return data || [];
+    },
+
+    async getAdminVehicles() {
+        return this.getAllVehicles();
     },
 
     /**
@@ -70,16 +80,49 @@ export const vehicleService = {
     },
 
     /**
-     * Deletes a vehicle record from inventory.
+     * Updates vehicle price.
      */
-    async deleteVehicle(vehicleId) {
-        const { error } = await supabase
-            .from('vehicles')
-            .delete()
-            .eq('id', vehicleId);
+    async updateVehiclePrice(vehicleId, newPrice) {
+        return this.updateVehicle(vehicleId, { price: parseFloat(newPrice) });
+    },
 
-        if (error) throw new Error(error.message);
-        return true;
+    /**
+     * Vehicle Lifecycle Actions
+     */
+    async verifyVehicle(vehicleId, reference = null) {
+        return this.updateVehicle(vehicleId, {
+            verification_status: 'VERIFIED',
+            verification_reference: reference || `VER-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+            verified_at: new Date().toISOString()
+        });
+    },
+
+    async rejectVehicle(vehicleId) {
+        return this.updateVehicle(vehicleId, { verification_status: 'REJECTED' });
+    },
+
+    async publishVehicle(vehicleId) {
+        return this.updateVehicle(vehicleId, { listing_status: 'PUBLISHED' });
+    },
+
+    async unpublishVehicle(vehicleId) {
+        return this.updateVehicle(vehicleId, { listing_status: 'DRAFT' });
+    },
+
+    async reserveVehicle(vehicleId) {
+        return this.updateVehicle(vehicleId, { listing_status: 'RESERVED' });
+    },
+
+    async markAvailable(vehicleId) {
+        return this.updateVehicle(vehicleId, { listing_status: 'AVAILABLE' });
+    },
+
+    async markSold(vehicleId) {
+        return this.updateVehicle(vehicleId, { listing_status: 'SOLD' });
+    },
+
+    async archiveVehicle(vehicleId) {
+        return this.updateVehicle(vehicleId, { listing_status: 'ARCHIVED' });
     },
 
     /**
@@ -119,7 +162,9 @@ export const vehicleService = {
                 storage_path: fileName,
                 public_url: publicUrl,
                 is_primary: isPrimary,
-                sort_order: options.sort_order !== undefined ? parseInt(options.sort_order, 10) : 0
+                sort_order: options.sort_order !== undefined ? parseInt(options.sort_order, 10) : 0,
+                category: options.category || 'General',
+                caption: options.caption || null
             }])
             .select()
             .single();
@@ -132,6 +177,10 @@ export const vehicleService = {
         }
 
         return data;
+    },
+
+    async addVehiclePhoto(vehicleId, file, options = {}) {
+        return this.uploadVehiclePhoto(vehicleId, file, options);
     },
 
     /**
@@ -176,6 +225,12 @@ export const vehicleService = {
     },
 
     /**
+     * ==========================================
+     * PUBLIC DATA ADAPTER (vehicle-details.html)
+     * ==========================================
+     */
+
+    /**
      * Data Adapter for public vehicle-details.html:
      * Fetches verified vehicle details with explicit public fields, gallery photos, 
      * and completed inspections complete with explicit public findings and evidence photos.
@@ -214,11 +269,21 @@ export const vehicleService = {
 
         if (vehicleError || !vehicle) return null;
 
-        // 2. Fetch Vehicle Gallery Photos
+        // 2. Fetch Vehicle Gallery Photos with Explicit Public Fields
         const { data: photos, error: photosError } = await supabase
             .from('vehicle_photos')
-            .select('*')
+            .select(`
+                id,
+                vehicle_id,
+                storage_path,
+                public_url,
+                category,
+                caption,
+                sort_order,
+                is_primary
+            `)
             .eq('vehicle_id', vehicleId)
+            .order('is_primary', { ascending: false })
             .order('sort_order', { ascending: true });
 
         vehicle.photos = (!photosError && photos) ? photos : [];
@@ -311,11 +376,21 @@ export const vehicleService = {
 
 export const {
     getAllVehicles,
+    getAdminVehicles,
     getVehicleById,
     createVehicle,
     updateVehicle,
-    deleteVehicle,
+    updateVehiclePrice,
+    verifyVehicle,
+    rejectVehicle,
+    publishVehicle,
+    unpublishVehicle,
+    reserveVehicle,
+    markAvailable,
+    markSold,
+    archiveVehicle,
     uploadVehiclePhoto,
+    addVehiclePhoto,
     getVehiclePhotos,
     deleteVehiclePhoto,
     getPublicVehicleDetails
