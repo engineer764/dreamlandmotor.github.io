@@ -80,19 +80,40 @@ export const vehicleService = {
     },
 
     /**
-     * Updates vehicle price.
+     * Updates vehicle price securely via database RPC.
      */
     async updateVehiclePrice(vehicleId, newPrice) {
-        return this.updateVehicle(vehicleId, { price: parseFloat(newPrice) });
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
+
+        const price = parseFloat(newPrice);
+
+        if (!Number.isFinite(price) || price < 0) {
+            throw new Error('A valid vehicle price is required.');
+        }
+
+        const { data, error } = await supabase.rpc('update_vehicle_price', {
+            p_vehicle_id: vehicleId,
+            p_new_price: price
+        });
+
+        if (error) throw new Error(error.message);
+        return data;
     },
 
     /**
      * ==========================================
-     * AUTHORITATIVE RPC VEHICLE LIFECYCLE ACTIONS
+     * VEHICLE LIFECYCLE ACTIONS
+     * Protected state changes MUST use database RPCs.
      * ==========================================
      */
 
     async verifyVehicle(vehicleId) {
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
+
         const { data, error } = await supabase.rpc('verify_vehicle', {
             p_vehicle_id: vehicleId
         });
@@ -101,10 +122,14 @@ export const vehicleService = {
         return data;
     },
 
-    async rejectVehicle(vehicleId, reason = null) {
+    async rejectVehicle(vehicleId, reason) {
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
+
         const { data, error } = await supabase.rpc('reject_vehicle', {
             p_vehicle_id: vehicleId,
-            p_reason: reason
+            p_reason: reason || null
         });
 
         if (error) throw new Error(error.message);
@@ -112,6 +137,10 @@ export const vehicleService = {
     },
 
     async publishVehicle(vehicleId) {
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
+
         const { data, error } = await supabase.rpc('publish_vehicle', {
             p_vehicle_id: vehicleId
         });
@@ -121,6 +150,10 @@ export const vehicleService = {
     },
 
     async unpublishVehicle(vehicleId) {
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
+
         const { data, error } = await supabase.rpc('unpublish_vehicle', {
             p_vehicle_id: vehicleId
         });
@@ -130,6 +163,10 @@ export const vehicleService = {
     },
 
     async reserveVehicle(vehicleId) {
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
+
         const { data, error } = await supabase.rpc('reserve_vehicle', {
             p_vehicle_id: vehicleId
         });
@@ -139,6 +176,10 @@ export const vehicleService = {
     },
 
     async markAvailable(vehicleId) {
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
+
         const { data, error } = await supabase.rpc('mark_vehicle_available', {
             p_vehicle_id: vehicleId
         });
@@ -148,6 +189,10 @@ export const vehicleService = {
     },
 
     async markSold(vehicleId) {
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
+
         const { data, error } = await supabase.rpc('mark_vehicle_sold', {
             p_vehicle_id: vehicleId
         });
@@ -157,6 +202,10 @@ export const vehicleService = {
     },
 
     async archiveVehicle(vehicleId) {
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
+
         const { data, error } = await supabase.rpc('archive_vehicle', {
             p_vehicle_id: vehicleId
         });
