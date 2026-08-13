@@ -342,7 +342,8 @@
                 }
 
                 const inspectionBadge = `<span class="badge ${inspBadgeClass}">${inspectionStatus}</span>`;
-                const inspectionButtonLabel = (inspectionStatus === 'COMPLETED') ? 'View Inspection' : 'Inspect';
+                const isVerified = car.verification_status === 'VERIFIED';
+                const isInspectionCompleted = inspectionStatus === 'COMPLETED';
 
                 // Render contextual state machine actions
                 let actionButtons = '';
@@ -350,23 +351,30 @@
                 if (car.sales_status === 'ARCHIVED') {
                     actionButtons = `<span style="color:#64748b; font-size:0.75rem;">Locked (Archived)</span>`;
                 } else {
-                    // Inspection action — available for every active vehicle
-                    actionButtons += `
-                        <button
-                            class="action-btn btn-inspect"
-                            onclick="openInspection('${car.id}')">
-                            ${inspectionButtonLabel}
-                        </button>
-                    `;
-
-                    // Verification actions
-                    if (car.verification_status === 'PENDING' || car.verification_status === 'IN_REVIEW') {
-                        actionButtons += `<button class="action-btn btn-verify" onclick="runAction('verify', '${car.id}')">Verify</button>`;
-                        actionButtons += `<button class="action-btn btn-reject" onclick="runAction('reject', '${car.id}')">Reject</button>`;
+                    // 1. Verification actions (If not verified)
+                    if (!isVerified) {
+                        if (car.verification_status === 'PENDING' || car.verification_status === 'IN_REVIEW' || !car.verification_status) {
+                            actionButtons += `<button class="action-btn btn-verify" onclick="runAction('verify', '${car.id}')">Verify</button>`;
+                            actionButtons += `<button class="action-btn btn-reject" onclick="runAction('reject', '${car.id}')">Reject</button>`;
+                        } else if (car.verification_status === 'REJECTED') {
+                            actionButtons += `<button class="action-btn btn-verify" onclick="runAction('verify', '${car.id}')">Re-Verify</button>`;
+                        }
                     }
 
-                    // Publication actions (Only if verified)
-                    if (car.verification_status === 'VERIFIED') {
+                    // 2. Inspection action (ONLY available if vehicle is VERIFIED)
+                    if (isVerified) {
+                        const inspectionButtonLabel = isInspectionCompleted ? 'View Inspection' : 'Inspect';
+                        actionButtons += `
+                            <button
+                                class="action-btn btn-inspect"
+                                onclick="openInspection('${car.id}')">
+                                ${inspectionButtonLabel}
+                            </button>
+                        `;
+                    }
+
+                    // 3. Publication actions (ONLY if Verified AND Inspection Completed)
+                    if (isVerified && isInspectionCompleted) {
                         if (car.publication_status === 'PUBLISHED') {
                             actionButtons += `<button class="action-btn" onclick="runAction('unpublish', '${car.id}')">Unpublish</button>`;
                         } else {
@@ -374,16 +382,18 @@
                         }
                     }
 
-                    // Sales status actions
-                    if (car.sales_status === 'AVAILABLE') {
-                        actionButtons += `<button class="action-btn btn-reserve" onclick="runAction('reserve', '${car.id}')">Reserve</button>`;
-                        actionButtons += `<button class="action-btn btn-sold" onclick="runAction('sold', '${car.id}')">Mark Sold</button>`;
-                    } else if (car.sales_status === 'RESERVED') {
-                        actionButtons += `<button class="action-btn" onclick="runAction('available', '${car.id}')">Make Available</button>`;
-                        actionButtons += `<button class="action-btn btn-sold" onclick="runAction('sold', '${car.id}')">Mark Sold</button>`;
+                    // 4. Sales status actions (Available / Reserved / Sold)
+                    if (isVerified && isInspectionCompleted) {
+                        if (car.sales_status === 'AVAILABLE') {
+                            actionButtons += `<button class="action-btn btn-reserve" onclick="runAction('reserve', '${car.id}')">Reserve</button>`;
+                            actionButtons += `<button class="action-btn btn-sold" onclick="runAction('sold', '${car.id}')">Mark Sold</button>`;
+                        } else if (car.sales_status === 'RESERVED') {
+                            actionButtons += `<button class="action-btn" onclick="runAction('available', '${car.id}')">Make Available</button>`;
+                            actionButtons += `<button class="action-btn btn-sold" onclick="runAction('sold', '${car.id}')">Mark Sold</button>`;
+                        }
                     }
 
-                    // Archive option
+                    // 5. Archive option
                     actionButtons += `<button class="action-btn btn-archive" onclick="runAction('archive', '${car.id}')">Archive</button>`;
                 }
 
