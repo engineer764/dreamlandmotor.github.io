@@ -395,6 +395,7 @@ async getVerifiedVehicles() {
             )
         `)
         .eq('verification_status', 'VERIFIED')
+         .eq('publication_status', 'PUBLISHED')
         .order('created_at', { ascending: false });
 
     if (error) throw new Error(error.message);
