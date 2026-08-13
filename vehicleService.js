@@ -361,6 +361,53 @@ export const vehicleService = {
     },
 
     /**
+ * Fetches vehicles that are publicly verified and available for display.
+ */
+async getVerifiedVehicles() {
+    const { data, error } = await supabase
+        .from('vehicles')
+        .select(`
+            id,
+            vehicle_code,
+            year,
+            make,
+            model,
+            trim,
+            mileage,
+            engine,
+            transmission,
+            fuel_type,
+            colour,
+            body_type,
+            location,
+            price,
+            currency,
+            description,
+            verification_status,
+            verification_reference,
+            verified_at,
+            vehicle_photos (
+                id,
+                storage_path,
+                public_url,
+                is_primary,
+                sort_order
+            )
+        `)
+        .eq('verification_status', 'VERIFIED')
+        .order('created_at', { ascending: false });
+
+    if (error) throw new Error(error.message);
+
+    return (data || []).map(vehicle => ({
+        ...vehicle,
+        photos: (vehicle.vehicle_photos || []).sort(
+            (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+        )
+    }));
+}
+
+    /**
      * ==========================================
      * PUBLIC DATA ADAPTER (vehicle-details.html)
      * ==========================================
