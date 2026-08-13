@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dreamland Admin Portal — Lifecycle Operations</title>
+    <title>Dreamland Admin Portal — Lifecycle & Inspection Operations</title>
     <style>
         :root {
             --primary: #0f172a;
@@ -126,6 +126,16 @@
         .action-cell { display: flex; flex-wrap: wrap; gap: 6px; }
         .action-btn { padding: 5px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: white; cursor: pointer; font-weight: 600; }
         .action-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+        
+        .btn-inspect {
+            color: #7c3aed;
+            border-color: #ddd6fe;
+            background: #faf5ff;
+        }
+        .btn-inspect:hover {
+            background: #f3e8ff;
+            border-color: #c4b5fd;
+        }
         .btn-verify { color: var(--verified-green); border-color: #bbf7d0; }
         .btn-reject { color: var(--danger); border-color: #fca5a5; }
         .btn-publish { color: #0284c7; border-color: #bae6fd; }
@@ -216,43 +226,25 @@
             <div class="form-group full-width">
                <label>Primary Photo</label>
 
-<div class="photo-picker">
-    <button type="button" id="cameraPhotoBtn" class="action-btn" style="padding: 8px 14px; margin-right: 8px;">
-        Camera
-    </button>
+                <div class="photo-picker">
+                    <button type="button" id="cameraPhotoBtn" class="action-btn" style="padding: 8px 14px; margin-right: 8px;">
+                        Camera
+                    </button>
 
-    <button type="button" id="galleryPhotoBtn" class="action-btn" style="padding: 8px 14px;">
-        Choose from Gallery
-    </button>
+                    <button type="button" id="galleryPhotoBtn" class="action-btn" style="padding: 8px 14px;">
+                        Choose from Gallery
+                    </button>
 
-    <input
-        type="file"
-        id="cameraPhotoInput"
-        accept="image/*"
-        capture="environment"
-        hidden
-    >
+                    <input type="file" id="cameraPhotoInput" accept="image/*" capture="environment" hidden>
+                    <input type="file" id="galleryPhotoInput" accept="image/*" hidden>
 
-    <input
-        type="file"
-        id="galleryPhotoInput"
-        accept="image/*"
-        hidden
-    >
-
-    <div id="photoPreviewContainer" style="margin-top:12px;">
-        <img
-            id="photoPreview"
-            alt="Selected vehicle photo"
-            hidden
-            style="max-width:100%; max-height:250px; border-radius:8px;"
-        >
-
-        <div id="photoFilename" style="font-size: 0.875rem; color: #64748b; margin-top: 4px;">
-            No photo selected
-        </div>
-    </div>
-</div>
+                    <div id="photoPreviewContainer" style="margin-top:12px;">
+                        <img id="photoPreview" alt="Selected vehicle photo" hidden style="max-width:100%; max-height:250px; border-radius:8px;">
+                        <div id="photoFilename" style="font-size: 0.875rem; color: #64748b; margin-top: 4px;">
+                            No photo selected
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="form-group full-width">
                 <label>Initial Inspection Notes / Description</label>
@@ -275,13 +267,14 @@
                         <th>Vehicle</th>
                         <th>Price</th>
                         <th>Verification</th>
+                        <th>Inspection</th>
                         <th>Publication</th>
                         <th>Sales Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="adminInventoryTable">
-                    <tr><td colspan="7" style="text-align: center; color: #64748b;">Loading inventory through service layer...</td></tr>
+                    <tr><td colspan="8" style="text-align: center; color: #64748b;">Loading inventory through service layer...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -321,7 +314,7 @@
             const vehicles = await vehicleService.getAdminVehicles();
 
             if (!vehicles || vehicles.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#64748b;">No vehicles in database. Use the form above to add a draft.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#64748b;">No vehicles in database. Use the form above to add a draft.</td></tr>`;
                 return;
             }
 
@@ -337,14 +330,25 @@
                 if (car.sales_status === 'SOLD') sBadgeClass = 'badge-sold';
                 if (car.sales_status === 'ARCHIVED') sBadgeClass = 'badge-archived';
 
+                const inspectionBadge = car.inspection_status === 'COMPLETED'
+                    ? `<span class="badge badge-verified">COMPLETED</span>`
+                    : `<span class="badge badge-pending">PENDING</span>`;
+
                 // Render contextual state machine actions
                 let actionButtons = '';
 
                 if (car.sales_status === 'ARCHIVED') {
                     actionButtons = `<span style="color:#64748b; font-size:0.75rem;">Locked (Archived)</span>`;
-                } else if (car.sales_status === 'SOLD') {
-                    actionButtons += `<button class="action-btn btn-archive" onclick="runAction('archive', '${car.id}')">Archive</button>`;
                 } else {
+                    // Inspection action — available for every active vehicle
+                    actionButtons += `
+                        <button
+                            class="action-btn btn-inspect"
+                            onclick="openInspection('${car.id}')">
+                            ${car.inspection_status === 'COMPLETED' ? 'View Inspection' : 'Inspect'}
+                        </button>
+                    `;
+
                     // Verification actions
                     if (car.verification_status === 'PENDING' || car.verification_status === 'IN_REVIEW') {
                         actionButtons += `<button class="action-btn btn-verify" onclick="runAction('verify', '${car.id}')">Verify</button>`;
@@ -379,6 +383,7 @@
                     <td><strong>${car.year} ${car.make} ${car.model}</strong><br><small style="color:#64748b">${car.trim || ''} • ${car.mileage.toLocaleString()} km</small></td>
                     <td>${formattedPrice}</td>
                     <td><span class="badge ${vBadge}">${car.verification_status}</span></td>
+                    <td>${inspectionBadge}</td>
                     <td><span class="badge ${pBadge}">${car.publication_status}</span></td>
                     <td><span class="badge ${sBadgeClass}">${car.sales_status}</span></td>
                     <td><div class="action-cell">${actionButtons}</div></td>
@@ -386,7 +391,7 @@
                 tbody.appendChild(tr);
             });
         } catch (error) {
-            tbody.innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">Error loading inventory: ${error.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" style="color:red; text-align:center;">Error loading inventory: ${error.message}</td></tr>`;
         }
     }
 
@@ -429,34 +434,33 @@
                         }
                     );
                 } catch (photoErr) {
-                    console.warn(
-                        'Vehicle created, but photo upload failed:',
-                        photoErr.message
-                    );
-
-                    alert(
-                        'Vehicle draft created successfully, but the photo upload failed. ' +
-                        'You can add photos later.'
-                    );
+                    console.warn('Vehicle created, but photo upload failed:', photoErr.message);
+                    alert('Vehicle draft created successfully, but the photo upload failed. You can add photos later.');
                 }
             } else {
                 alert('Vehicle draft created successfully!');
             }
 
             document.getElementById('vehicleForm').reset();
-
             window.vehiclePhotoPicker?.clear();
-
             loadInventory();
 
         } catch (error) {
             alert('Failed to create vehicle: ' + error.message);
-
         } finally {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Save as Draft';
         }
     }
+
+    // Navigation function to open inspection workflow for any vehicle UUID
+    window.openInspection = function(vehicleId) {
+        if (!vehicleId) {
+            alert('Vehicle ID is missing.');
+            return;
+        }
+        window.location.href = `inspection.html?vehicleId=${encodeURIComponent(vehicleId)}`;
+    };
 
     // Centralized lifecycle action dispatcher with confirmation and error catching
     window.runAction = async function(action, id) {
