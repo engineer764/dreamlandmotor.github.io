@@ -46,15 +46,13 @@
             </div>
         </div>
 
-        <!-- Workbench Container (Hidden initially) -->
+        <!-- Workbench Container -->
         <div id="workbench-container" class="hidden space-y-8">
-
-            <!-- Vehicle & Inspection Meta Bar -->
             <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                     <div class="flex items-center space-x-3 mb-1">
                         <span id="insp-number-badge" class="bg-slate-100 text-slate-700 font-mono text-xs px-2.5 py-1 rounded-md font-semibold">INS: --</span>
-                        <span id="insp-status-badge" class="bg-amber-50 text-amber-700 border border-amber-200 text-xs px-3 py-1 rounded-full font-bold uppercase">DRAFT</span>
+                        <span id="insp-status-badge" class="bg-slate-100 text-slate-700 border border-slate-200 text-xs px-3 py-1 rounded-full font-bold uppercase">DRAFT</span>
                     </div>
                     <h1 id="vehicle-title-header" class="text-2xl font-extrabold text-slate-900">Loading Vehicle...</h1>
                     <p id="vehicle-meta-sub" class="text-sm text-slate-500 mt-1">VIN: -- • Mileage: -- km</p>
@@ -67,7 +65,6 @@
                 </div>
             </div>
 
-            <!-- Findings Section -->
             <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-4">
                     <div>
@@ -79,12 +76,10 @@
                         <span>Add Finding</span>
                     </button>
                 </div>
-
                 <div id="findings-list" class="space-y-4">
                     <div class="text-center py-12 text-slate-400 text-sm">No findings recorded yet. Click "Add Finding" to begin.</div>
                 </div>
             </div>
-
         </div>
 
     </main>
@@ -98,27 +93,46 @@
             </div>
             <form id="finding-form" onsubmit="handleFindingSubmit(event)" class="space-y-4 text-sm">
                 <input type="hidden" id="finding-id">
+                
+                <div class="space-y-1">
+                    <label class="font-bold text-slate-700">Area *</label>
+                    <select id="finding-area" required class="w-full p-2.5 border border-slate-200 rounded-xl bg-white">
+                        <option value="Mechanical">Mechanical</option>
+                        <option value="Computer Diagnostics">Computer Diagnostics</option>
+                        <option value="Electrical & Electronic">Electrical & Electronic</option>
+                        <option value="Body & Accident">Body & Accident</option>
+                        <option value="Chassis / Suspension / Braking">Chassis / Suspension / Braking</option>
+                        <option value="Interior / Functional / Road Test">Interior / Functional / Road Test</option>
+                    </select>
+                </div>
+
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-1">
-                        <label class="font-bold text-slate-700">Area *</label>
-                        <select id="finding-area" required class="w-full p-2.5 border border-slate-200 rounded-xl bg-white">
-                            <option value="Mechanical">Mechanical</option>
-                            <option value="Computer Diagnostics">Computer Diagnostics</option>
-                            <option value="Electrical & Electronic">Electrical & Electronic</option>
-                            <option value="Body & Accident">Body & Accident</option>
-                            <option value="Chassis / Suspension / Braking">Chassis / Suspension / Braking</option>
-                            <option value="Interior / Functional / Road Test">Interior / Functional / Road Test</option>
+                        <label class="font-bold text-slate-700">Rating *</label>
+                        <select id="findingRating" required class="w-full p-2.5 border border-slate-200 rounded-xl bg-white">
+                            <option value="GOOD">GOOD — No significant concern</option>
+                            <option value="FAIR">FAIR — Minor wear / condition concern</option>
+                            <option value="ATTENTION">ATTENTION — Requires attention</option>
+                            <option value="CRITICAL">CRITICAL — Serious defect</option>
                         </select>
                     </div>
                     <div class="space-y-1">
-                        <label class="font-bold text-slate-700">Rating *</label>
-                        <select id="finding-rating" required class="w-full p-2.5 border border-slate-200 rounded-xl bg-white">
-                            <option value="PASS">PASS</option>
-                            <option value="ATTENTION">ATTENTION</option>
-                            <option value="FAIL">FAIL</option>
+                        <label class="font-bold text-slate-700">Severity *</label>
+                        <select id="findingSeverity" required class="w-full p-2.5 border border-slate-200 rounded-xl bg-white">
+                            <option value="1">1 — Minor</option>
+                            <option value="2">2 — Low</option>
+                            <option value="3">3 — Moderate</option>
+                            <option value="4">4 — Major</option>
+                            <option value="5">5 — Critical</option>
                         </select>
                     </div>
                 </div>
+
+                <div class="flex items-center space-x-2 pt-1 pb-1">
+                    <input type="checkbox" id="findingSafety" class="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer">
+                    <label for="findingSafety" class="font-bold text-slate-700 cursor-pointer">Flag as Safety Critical</label>
+                </div>
+
                 <div class="space-y-1">
                     <label class="font-bold text-slate-700">Component</label>
                     <input type="text" id="finding-component" placeholder="e.g. Front Brake Pads" class="w-full p-2.5 border border-slate-200 rounded-xl">
@@ -192,17 +206,16 @@
             }
 
             try {
-                // 1. Load vehicle info
                 const vehicle = await vehicleService.getVehicleById(currentVehicleId);
                 if (!vehicle) throw new Error('Vehicle record not found.');
 
                 document.getElementById('vehicle-title-header').textContent = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${vehicle.trim || ''}`;
                 document.getElementById('vehicle-meta-sub').textContent = `VIN: ${vehicle.vin || 'N/A'} • Mileage: ${(vehicle.mileage || 0).toLocaleString()} km`;
 
-                // 2. Get or create active inspection passing vehicle mileage
                 currentInspection = await inspectionService.createInspection(currentVehicleId, {
                     mileage: vehicle.mileage
                 });
+                
                 renderInspectionWorkbench();
 
                 loadingState.classList.add('hidden');
@@ -227,6 +240,10 @@
             if (currentInspection.inspection_status === 'COMPLETED') {
                 statusBadge.className = 'bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-3 py-1 rounded-full font-bold uppercase';
                 document.getElementById('complete-insp-btn').textContent = 'Update Completed Report';
+            } else if (currentInspection.inspection_status === 'IN_PROGRESS') {
+                statusBadge.className = 'bg-blue-50 text-blue-700 border border-blue-200 text-xs px-3 py-1 rounded-full font-bold uppercase';
+            } else {
+                statusBadge.className = 'bg-slate-100 text-slate-700 border border-slate-200 text-xs px-3 py-1 rounded-full font-bold uppercase';
             }
 
             const findingsContainer = document.getElementById('findings-list');
@@ -238,7 +255,10 @@
             }
 
             findingsContainer.innerHTML = findings.map(f => {
-                const ratingColor = f.rating === 'FAIL' ? 'bg-red-50 text-red-700 border-red-200' : f.rating === 'ATTENTION' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                let ratingColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                if (f.rating === 'CRITICAL') ratingColor = 'bg-red-50 text-red-700 border-red-200';
+                else if (f.rating === 'ATTENTION') ratingColor = 'bg-amber-50 text-amber-700 border-amber-200';
+                else if (f.rating === 'FAIR') ratingColor = 'bg-blue-50 text-blue-700 border-blue-200';
                 
                 const photosHtml = (f.finding_photos && f.finding_photos.length > 0) ? `
                     <div class="flex gap-2 mt-3 overflow-x-auto pb-1">
@@ -246,12 +266,15 @@
                     </div>
                 ` : '';
 
+                const criticalFlagHtml = f.is_safety_critical ? `<span class="bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ml-2 tracking-wide">Safety Critical</span>` : '';
+
                 return `
                     <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                         <div class="space-y-1 flex-grow">
-                            <div class="flex items-center space-x-2">
+                            <div class="flex items-center space-x-2 flex-wrap gap-y-2">
                                 <span class="font-bold text-slate-800">${f.area} ${f.component ? '— ' + f.component : ''}</span>
-                                <span class="text-xs px-2 py-0.5 rounded font-semibold uppercase border ${ratingColor}">${f.rating}</span>
+                                <span class="text-xs px-2 py-0.5 rounded font-semibold uppercase border ${ratingColor}">${f.rating} (Severity: ${f.severity})</span>
+                                ${criticalFlagHtml}
                             </div>
                             <p class="text-slate-600">${f.finding || 'No details provided.'}</p>
                             ${f.recommended_action ? `<p class="text-xs text-blue-700 font-medium mt-1">Recommended: ${f.recommended_action}</p>` : ''}
@@ -286,7 +309,9 @@
             const findingData = {
                 id: document.getElementById('finding-id').value || null,
                 area: document.getElementById('finding-area').value,
-                rating: document.getElementById('finding-rating').value,
+                rating: document.getElementById('findingRating').value,
+                severity: Number(document.getElementById('findingSeverity').value),
+                is_safety_critical: document.getElementById('findingSafety').checked,
                 component: document.getElementById('finding-component').value.trim(),
                 finding: document.getElementById('finding-desc').value.trim(),
                 recommended_action: document.getElementById('finding-action').value.trim()
