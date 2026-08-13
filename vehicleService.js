@@ -87,7 +87,7 @@ export const vehicleService = {
     },
 
     /**
-     * Vehicle Lifecycle Actions
+     * Vehicle Lifecycle Actions (Aligned with verification_status, publication_status, sales_status)
      */
     async verifyVehicle(vehicleId, reference = null) {
         return this.updateVehicle(vehicleId, {
@@ -102,27 +102,27 @@ export const vehicleService = {
     },
 
     async publishVehicle(vehicleId) {
-        return this.updateVehicle(vehicleId, { listing_status: 'PUBLISHED' });
+        return this.updateVehicle(vehicleId, { publication_status: 'PUBLISHED' });
     },
 
     async unpublishVehicle(vehicleId) {
-        return this.updateVehicle(vehicleId, { listing_status: 'DRAFT' });
+        return this.updateVehicle(vehicleId, { publication_status: 'DRAFT' });
     },
 
     async reserveVehicle(vehicleId) {
-        return this.updateVehicle(vehicleId, { listing_status: 'RESERVED' });
+        return this.updateVehicle(vehicleId, { sales_status: 'RESERVED' });
     },
 
     async markAvailable(vehicleId) {
-        return this.updateVehicle(vehicleId, { listing_status: 'AVAILABLE' });
+        return this.updateVehicle(vehicleId, { sales_status: 'AVAILABLE' });
     },
 
     async markSold(vehicleId) {
-        return this.updateVehicle(vehicleId, { listing_status: 'SOLD' });
+        return this.updateVehicle(vehicleId, { sales_status: 'SOLD' });
     },
 
     async archiveVehicle(vehicleId) {
-        return this.updateVehicle(vehicleId, { listing_status: 'ARCHIVED' });
+        return this.updateVehicle(vehicleId, { publication_status: 'ARCHIVED' });
     },
 
     /**
