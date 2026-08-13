@@ -3,262 +3,576 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vehicle Inspection — Dreamland Admin</title>
-    <style>
-        :root {
-            --primary: #0f172a;
-            --accent: #2563eb;
-            --pass: #16a34a;
-            --attention: #ca8a04;
-            --fail: #dc2626;
-            --bg: #f8fafc;
-            --card-bg: #ffffff;
-            --border: #cbd5e1;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--primary);
-            margin: 0;
-            padding: 16px;
-        }
-        .container { max-width: 600px; margin: 0 auto; }
-        .back-link { display: inline-block; margin-bottom: 16px; color: var(--accent); text-decoration: none; font-weight: 600; font-size: 0.875rem; }
-        
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 16px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        h2 { margin-top: 0; font-size: 1.25rem; }
-        
-        .area-title { font-weight: bold; font-size: 1rem; margin-bottom: 10px; color: var(--primary); }
-        .rating-group { display: flex; gap: 8px; margin-bottom: 12px; }
-        .rating-btn {
-            flex: 1; padding: 10px; border: 1px solid var(--border); background: white;
-            font-weight: bold; border-radius: 6px; cursor: pointer; text-align: center; font-size: 0.875rem;
-        }
-        .rating-btn.active.pass { background: var(--pass); color: white; border-color: var(--pass); }
-        .rating-btn.active.attention { background: var(--attention); color: white; border-color: var(--attention); }
-        .rating-btn.active.fail { background: var(--fail); color: white; border-color: var(--fail); }
-        
-        .conditional-fields { display: none; margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
-        .form-group { margin-bottom: 12px; }
-        label { display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 4px; color: #475569; }
-        textarea, input[type="text"], input[type="number"], input[type="date"], input[type="file"] {
-            width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; font-size: 0.875rem;
-        }
-        textarea { resize: vertical; height: 70px; }
-        
-        .submit-btn {
-            width: 100%; background: var(--accent); color: white; border: none; padding: 14px;
-            font-weight: bold; border-radius: 8px; cursor: pointer; font-size: 1rem; margin-top: 20px;
-        }
-    </style>
-
-    <script type="module">
-        import { requireAuth } from './supabaseClient.js'
-        await requireAuth()
-    </script>
+    <title>Vehicle Inspection Portal — Dreamland Verified Cars</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="bg-slate-100 font-sans antialiased">
 
-<div class="container">
-    <a href="#" id="backLink" class="back-link">← Back to Vehicle Details</a>
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-slate-900 text-white shadow-md">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fa-solid fa-clipboard-check text-blue-500 text-2xl"></i>
+                    <span class="font-bold text-lg tracking-wide">Dreamland Inspection Portal</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="inspector-email" class="text-sm text-slate-300 hidden sm:inline">Loading session...</span>
+                    <a href="admin.html" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded text-sm transition-colors">
+                        <i class="fa-solid fa-arrow-left mr-1"></i> Admin Portal
+                    </a>
+                </div>
+            </div>
+        </header>
 
-    <div class="card">
-        <h2>Inspection Checklist</h2>
-        <p id="vehicleMetaDisplay" style="font-size:0.875rem; color:#64748b; margin-top:0;">Loading vehicle info...</p>
+        <!-- Main Content -->
+        <main class="flex-grow max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            
+            <!-- Vehicle Info Banner -->
+            <div id="vehicle-banner" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <span id="banner-code" class="font-mono bg-slate-100 px-2.5 py-1 rounded text-xs font-semibold text-slate-600">REF: --</span>
+                    <h1 id="banner-title" class="text-2xl font-bold text-slate-900 mt-1">Loading Vehicle...</h1>
+                    <p id="banner-specs" class="text-sm text-slate-500 mt-0.5">Please wait while vehicle details are retrieved...</p>
+                </div>
+                <div class="bg-blue-50 border border-blue-100 px-4 py-3 rounded-xl text-sm">
+                    <div class="text-xs font-bold uppercase text-blue-800">Inspection Status</div>
+                    <div id="banner-status" class="font-extrabold text-blue-600 mt-0.5">INITIALIZING</div>
+                </div>
+            </div>
+
+            <!-- Inspection Form Container -->
+            <form id="inspection-form" class="space-y-8">
+                
+                <!-- Section 1: General Inspection Metadata -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <h2 class="font-bold text-lg text-slate-900 border-b border-slate-100 pb-3">1. Inspection Metadata</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Inspection Date *</label>
+                            <input type="date" id="insp-date" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Mileage at Inspection (km) *</label>
+                            <input type="number" id="insp-mileage" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. 50000">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Inspection Number</label>
+                            <input type="text" id="insp-number" readonly class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm text-slate-500 font-mono">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Six Core Inspection Areas & Multi-Findings -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <h2 class="font-bold text-lg text-slate-900">2. Six Core Inspection Areas & Findings</h2>
+                        <button type="button" id="refresh-preview-btn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">
+                            <i class="fa-solid fa-calculator mr-1"></i> Refresh Live Scoring Preview
+                        </button>
+                    </div>
+                    
+                    <div id="areas-container" class="space-y-8">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Section 3: Automatically Calculated Evaluation Summary (Read-Only) -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                    <h2 class="font-bold text-lg text-slate-900 border-b border-slate-100 pb-3">3. Automated Evaluation Results (Scoring Engine Output)</h2>
+                    
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500">Mechanical</span>
+                            <span id="preview-mech" class="font-bold text-slate-800">100</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500">Electrical</span>
+                            <span id="preview-elec" class="font-bold text-slate-800">100</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500">Body & Frame</span>
+                            <span id="preview-body" class="font-bold text-slate-800">100</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500">Interior</span>
+                            <span id="preview-inter" class="font-bold text-slate-800">100</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500">Suspension</span>
+                            <span id="preview-susp" class="font-bold text-slate-800">100</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500">Brakes</span>
+                            <span id="preview-brake" class="font-bold text-slate-800">100</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500">Diagnostics</span>
+                            <span id="preview-diag" class="font-bold text-slate-800">100</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500">Road Test</span>
+                            <span id="preview-road" class="font-bold text-slate-800">100</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-100">
+                        <div class="bg-blue-50/60 p-4 rounded-xl border border-blue-100">
+                            <div class="text-xs font-bold uppercase text-blue-800">Overall Score</div>
+                            <div id="preview-overall" class="text-3xl font-extrabold text-blue-600 mt-1">100 / 100</div>
+                        </div>
+                        <div class="bg-emerald-50/60 p-4 rounded-xl border border-emerald-100">
+                            <div class="text-xs font-bold uppercase text-emerald-800">Condition Grade</div>
+                            <div id="preview-condition" class="text-xl font-extrabold text-emerald-600 mt-1">EXCELLENT</div>
+                        </div>
+                        <div class="bg-indigo-50/60 p-4 rounded-xl border border-indigo-100">
+                            <div class="text-xs font-bold uppercase text-indigo-800">Recommendation</div>
+                            <div id="preview-recommendation" class="text-sm font-bold text-indigo-700 mt-1">Recommended for purchase</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Generated Executive Summary</label>
+                        <textarea id="preview-summary" rows="2" readonly class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm text-slate-600 font-sans"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Official Inspection Report (PDF Document)</label>
+                        <input type="file" id="insp-report-file" accept=".pdf" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                </div>
+
+                <!-- Submit Button Bar -->
+                <div class="flex items-center justify-end space-x-4 pt-4">
+                    <a href="admin.html" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-6 py-2.5 rounded-xl text-sm font-medium transition-colors">Cancel</a>
+                    <button type="submit" id="submit-inspection-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-colors">
+                        Complete & Save Inspection
+                    </button>
+                </div>
+            </form>
+
+        </main>
     </div>
 
-    <form id="inspectionForm">
-        <div class="card">
-            <div class="form-group">
-                <label>Inspection Date *</label>
-                <input type="date" id="inspectionDate" required>
-            </div>
-            <div class="form-group">
-                <label>Mileage at Inspection (km) *</label>
-                <input type="number" id="inspectionMileage" required placeholder="85400">
-            </div>
-        </div>
+    <!-- Inspection Controller Script -->
+    <script type="module">
+        import { requireAuth, supabase } from './supabaseClient.js';
+        import { vehicleService } from './vehicleService.js';
+        import { inspectionService } from './inspectionService.js';
+        import { inspectionScoring } from './inspectionScoring.js';
 
-        <div id="areasContainer">
-            <!-- Dynamically injected 6 core inspection areas -->
-        </div>
+        const CORE_AREAS = [
+            'Mechanical',
+            'Computer Diagnostics',
+            'Electrical & Electronic',
+            'Body & Accident',
+            'Chassis / Suspension / Braking',
+            'Interior / Functional / Road Test'
+        ];
 
-        <div class="card">
-            <div class="form-group">
-                <label>Upload Official Inspection Report (PDF / JPG) *</label>
-                <input type="file" id="reportFile" accept=".pdf,.jpg,.png" required>
-            </div>
-        </div>
+        let activeVehicleId = null;
+        let activeInspectionId = null;
 
-        <button type="submit" class="submit-btn" id="submitBtn">Save & Complete Inspection</button>
-    </form>
-</div>
+        async function initInspectionPortal() {
+            const auth = await requireAuth();
+            if (!auth) return;
 
-<script type="module">
-    import { supabase } from './supabaseClient.js'
-    import { createInspection, addInspectionFinding, uploadFindingPhoto, uploadInspectionReport } from './inspectionService.js'
+            document.getElementById('inspector-email').textContent = `${auth.profile.full_name || auth.profile.email} (${auth.profile.role})`;
 
-    const urlParams = new URLSearchParams(window.location.search)
-    const vehicleUuid = urlParams.get('vehicleId')
+            const params = new URLSearchParams(window.location.search);
+            activeVehicleId = params.get('vehicleId');
 
-    document.getElementById('backLink').href = `vehicle-detail.html?id=${vehicleUuid}`
+            if (!activeVehicleId) {
+                alert('No vehicle specified for inspection.');
+                window.location.href = 'admin.html';
+                return;
+            }
 
-    // Set default date to today
-    document.getElementById('inspectionDate').valueAsDate = new Date()
+            try {
+                const vehicle = await vehicleService.getVehicleById(activeVehicleId);
+                if (!vehicle) throw new Error('Vehicle not found.');
 
-    const areas = [
-        "Mechanical",
-        "Computer Diagnostics",
-        "Electrical & Electronic",
-        "Body & Accident",
-        "Chassis / Suspension / Braking",
-        "Interior / Functional / Road Test"
-    ];
+                // Populate Banner
+                document.getElementById('banner-code').textContent = `REF: ${vehicle.vehicle_code || vehicle.id.substring(0, 8)}`;
+                document.getElementById('banner-title').textContent = `${vehicle.year || ''} ${vehicle.make || ''} ${vehicle.model || ''} ${vehicle.trim || ''}`.trim();
+                document.getElementById('banner-specs').textContent = `Mileage: ${vehicle.mileage ? vehicle.mileage.toLocaleString() + ' km' : 'N/A'} • Location: ${vehicle.location || 'N/A'}`;
+                document.getElementById('banner-status').textContent = 'IN PROGRESS';
 
-    const container = document.getElementById('areasContainer');
-    window.inspectionRatings = {};
-
-    areas.forEach((area, index) => {
-        // Default initial rating to PASS
-        window.inspectionRatings[area] = 'PASS';
-
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-            <div class="area-title">${index + 1}. ${area}</div>
-            <div class="rating-group" data-area="${area}">
-                <button type="button" class="rating-btn pass active" onclick="setRating('${area}', 'PASS')">PASS</button>
-                <button type="button" class="rating-btn attention" onclick="setRating('${area}', 'ATTENTION')">ATTENTION</button>
-                <button type="button" class="rating-btn fail" onclick="setRating('${area}', 'FAIL')">FAIL</button>
-            </div>
-            <div class="conditional-fields" id="fields-${index}">
-                <div class="form-group">
-                    <label>Finding / Defect Description *</label>
-                    <textarea id="finding_${index}" placeholder="Describe specific fault observed..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Significance / Safety Implication *</label>
-                    <textarea id="significance_${index}" placeholder="Why does this matter to the buyer?"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Recommended Corrective Action *</label>
-                    <textarea id="action_${index}" placeholder="What action should be taken?"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Evidence Photos (Multiple)</label>
-                    <input type="file" id="photos_${index}" multiple accept="image/*">
-                </div>
-            </div>
-        `;
-        container.appendChild(card);
-    });
-
-    window.setRating = function(area, rating) {
-        window.inspectionRatings[area] = rating;
-        const group = document.querySelector(`[data-area="${area}"]`);
-        group.querySelectorAll('.rating-btn').forEach(btn => btn.classList.remove('active', 'pass', 'attention', 'fail'));
-        
-        const clickedBtn = group.querySelector(`.${rating.toLowerCase()}`);
-        clickedBtn.classList.add('active', rating.toLowerCase());
-
-        const index = areas.indexOf(area);
-        const fields = document.getElementById(`fields-${index}`);
-        if (rating === 'ATTENTION' || rating === 'FAIL') {
-            fields.style.display = 'block';
-        } else {
-            fields.style.display = 'none';
-        }
-    }
-
-    // Load basic vehicle info for header
-    async function initInspection() {
-        if (!vehicleUuid) {
-            alert('No vehicle specified.');
-            window.location.href = 'admin-dashboard.html';
-            return;
-        }
-
-        const { data: car } = await supabase.from('vehicles').select('vehicle_id, make, model, year, mileage').eq('id', vehicleUuid).single();
-        if (car) {
-            document.getElementById('vehicleMetaDisplay').textContent = `${car.vehicle_id} — ${car.year} ${car.make} ${car.model}`;
-            document.getElementById('inspectionMileage').value = car.mileage;
-        }
-    }
-
-    initInspection();
-
-    // Form submission handler
-    document.getElementById('inspectionForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const submitBtn = document.getElementById('submitBtn');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Saving Inspection...';
-
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const inspectorId = session ? session.user.id : null;
-            const inspectionDate = document.getElementById('inspectionDate').value;
-            const mileage = document.getElementById('inspectionMileage').value;
-
-            // 1. Create Inspection record
-            const inspection = await createInspection(vehicleUuid, inspectorId, mileage, inspectionDate);
-
-            // 2. Loop through areas and save findings
-            for (let i = 0; i < areas.length; i++) {
-                const area = areas[i];
-                const rating = window.inspectionRatings[area];
-                const findingText = document.getElementById(`finding_${i}`).value;
-                const significanceText = document.getElementById(`significance_${i}`).value;
-                const actionText = document.getElementById(`action_${i}`).value;
-
-                // Validate attention/fail fields
-                if (rating !== 'PASS' && (!findingText || !significanceText || !actionText)) {
-                    throw new Error(`Please complete all required finding fields for ${area}.`);
+                // Set Default Date & Mileage (Prefill if available, otherwise blank for inspector entry)
+                document.getElementById('insp-date').value = new Date().toISOString().split('T')[0];
+                if (vehicle.mileage) {
+                    document.getElementById('insp-mileage').value = vehicle.mileage;
                 }
 
-                const savedFinding = await addInspectionFinding({
-                    inspectionId: inspection.id,
-                    area: area,
-                    rating: rating,
-                    finding: findingText,
-                    significance: significanceText,
-                    recommendedAction: actionText
-                });
+                // Check for existing unfinished PENDING inspection (Draft resume logic with multi-findings)
+                const { data: existingInsps } = await supabase
+                    .from('inspections')
+                    .select('*, inspection_findings(*, finding_photos(*))')
+                    .eq('vehicle_id', activeVehicleId)
+                    .eq('inspection_status', 'PENDING')
+                    .order('created_at', { ascending: false });
 
-                // 3. Upload finding evidence photos if any selected
-                const photoInput = document.getElementById(`photos_${i}`);
-                if (photoInput && photoInput.files.length > 0) {
-                    const { data: carData } = await supabase.from('vehicles').select('vehicle_id').eq('id', vehicleUuid).single();
-                    for (const file of photoInput.files) {
-                        await uploadFindingPhoto(carData.vehicle_id, savedFinding.id, file);
+                let existingFindingsByArea = {};
+                if (existingInsps && existingInsps.length > 0) {
+                    activeInspectionId = existingInsps[0].id;
+                    document.getElementById('insp-number').value = existingInsps[0].inspection_number;
+                    if (existingInsps[0].inspection_date) document.getElementById('insp-date').value = existingInsps[0].inspection_date;
+                    if (existingInsps[0].mileage) document.getElementById('insp-mileage').value = existingInsps[0].mileage;
+
+                    if (existingInsps[0].inspection_findings) {
+                        existingInsps[0].inspection_findings.forEach(f => {
+                            if (!existingFindingsByArea[f.area]) {
+                                existingFindingsByArea[f.area] = [];
+                            }
+                            existingFindingsByArea[f.area].push(f);
+                        });
+                    }
+                } else {
+                    const mileageInput = document.getElementById('insp-mileage').value;
+                    if (!mileageInput) {
+                        // Prompt or leave for inspector entry; createInspection will enforce validation
+                    }
+                    const newInsp = await inspectionService.createInspection(activeVehicleId, {
+                        inspection_date: document.getElementById('insp-date').value,
+                        mileage: mileageInput ? parseInt(mileageInput, 10) : null
+                    });
+                    activeInspectionId = newInsp.id;
+                    document.getElementById('insp-number').value = newInsp.inspection_number;
+                }
+
+                // Render 6 Core Areas with Multi-Finding Support
+                renderInspectionAreas(existingFindingsByArea);
+
+                // Event Listeners
+                document.getElementById('refresh-preview-btn').addEventListener('click', updateLiveScoringPreview);
+                document.getElementById('inspection-form').addEventListener('submit', handleInspectionSubmit);
+
+                updateLiveScoringPreview();
+
+            } catch (err) {
+                alert('Failed to initialize inspection: ' + err.message);
+                window.location.href = 'admin.html';
+            }
+        }
+
+        function renderInspectionAreas(existingFindingsByArea = {}) {
+            const container = document.getElementById('areas-container');
+            container.innerHTML = CORE_AREAS.map((area, idx) => {
+                const findings = existingFindingsByArea[area] && existingFindingsByArea[area].length > 0 
+                    ? existingFindingsByArea[area] 
+                    : [{ rating: 'PASS', component: '', severity: 3, estimated_cost: '', finding: '', significance: '', recommended_action: '', is_safety_critical: false, finding_photos: [] }];
+
+                const findingsHtml = findings.map((f, fIdx) => {
+                    const photosHtml = f.finding_photos && f.finding_photos.length > 0 ? `
+                        <div class="flex items-center space-x-2 mt-2 pt-2 border-t border-slate-200">
+                            <span class="text-xs font-semibold text-slate-500">Existing Evidence:</span>
+                            <div class="flex gap-2 overflow-x-auto">
+                                ${f.finding_photos.map(p => `<a href="${p.public_url}" target="_blank" class="w-12 h-12 rounded border overflow-hidden block"><img src="${p.public_url}" class="w-full h-full object-cover"></a>`).join('')}
+                            </div>
+                        </div>
+                    ` : '';
+
+                    return `
+                        <div class="finding-item border border-slate-200 rounded-xl p-4 bg-white space-y-3 relative" data-finding-index="${fIdx}">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-blue-600 uppercase">Finding Item #${fIdx + 1}</span>
+                                ${fIdx > 0 ? `<button type="button" onclick="this.closest('.finding-item').remove(); window.dispatchEvent(new Event('refresh-scoring'))" class="text-red-500 hover:text-red-700 text-xs font-semibold"><i class="fa-solid fa-trash mr-1"></i>Remove Finding</button>` : ''}
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Rating</label>
+                                    <select class="finding-rating w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm font-bold bg-white">
+                                        <option value="PASS" ${f.rating === 'PASS' ? 'selected' : ''}>PASS</option>
+                                        <option value="ATTENTION" ${f.rating === 'ATTENTION' ? 'selected' : ''}>ATTENTION</option>
+                                        <option value="FAIL" ${f.rating === 'FAIL' ? 'selected' : ''}>FAIL</option>
+                                    </select>
+                                </div>
+                                <div class="sm:col-span-1">
+                                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Component</label>
+                                    <input type="text" value="${f.component || ''}" class="finding-component w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm" placeholder="e.g. Engine Block">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Severity (1-5)</label>
+                                    <select class="finding-severity w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm bg-white">
+                                        <option value="1" ${f.severity === 1 ? 'selected' : ''}>1 - Minor</option>
+                                        <option value="2" ${f.severity === 2 ? 'selected' : ''}>2 - Low</option>
+                                        <option value="3" ${f.severity === 3 ? 'selected' : ''}>3 - Moderate</option>
+                                        <option value="4" ${f.severity === 4 ? 'selected' : ''}>4 - Major</option>
+                                        <option value="5" ${f.severity === 5 ? 'selected' : ''}>5 - Critical</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Est. Cost (₦)</label>
+                                    <input type="number" min="0" value="${f.estimated_cost !== null && f.estimated_cost !== undefined ? f.estimated_cost : ''}" class="finding-cost w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm" placeholder="50000">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Finding Description</label>
+                                <textarea class="finding-desc w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm" rows="2" placeholder="Describe finding...">${f.finding || ''}</textarea>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Significance</label>
+                                    <input type="text" value="${f.significance || ''}" class="finding-significance w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm" placeholder="e.g. Moderate wear">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Corrective Action</label>
+                                    <input type="text" value="${f.recommended_action || ''}" class="finding-action w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm" placeholder="e.g. Replacement required">
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+                                <label class="flex items-center space-x-2 text-sm font-medium text-slate-700 cursor-pointer">
+                                    <input type="checkbox" ${f.is_safety_critical ? 'checked' : ''} class="finding-safety w-4 h-4 text-blue-600 rounded border-slate-300">
+                                    <span>Safety-Critical Defect</span>
+                                </label>
+                                <div>
+                                    <label class="text-xs font-semibold uppercase text-slate-600 mr-2">Upload Evidence Photos:</label>
+                                    <input type="file" class="finding-photos-input text-xs text-slate-500" multiple accept="image/*">
+                                </div>
+                            </div>
+                            ${photosHtml}
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="border border-slate-200 rounded-xl p-5 bg-slate-50/50 space-y-4 area-block" data-area-name="${area}">
+                        <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                            <h3 class="font-bold text-slate-800 text-lg">${idx + 1}. ${area}</h3>
+                            <button type="button" onclick="window.addFindingRow('${area}')" class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">
+                                <i class="fa-solid fa-plus mr-1"></i> Add Finding
+                            </button>
+                        </div>
+                        <div class="findings-list space-y-4">
+                            ${findingsHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.addFindingRow = function(areaName) {
+            const areaBlock = Array.from(document.querySelectorAll('.area-block')).find(b => b.getAttribute('data-area-name') === areaName);
+            if (!areaBlock) return;
+            const listContainer = areaBlock.querySelector('.findings-list');
+            const newIdx = listContainer.children.length;
+
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = `
+                <div class="finding-item border border-slate-200 rounded-xl p-4 bg-white space-y-3 relative" data-finding-index="${newIdx}">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-blue-600 uppercase">Finding Item #${newIdx + 1}</span>
+                        <button type="button" onclick="this.closest('.finding-item').remove(); window.dispatchEvent(new Event('refresh-scoring'))" class="text-red-500 hover:text-red-700 text-xs font-semibold"><i class="fa-solid fa-trash mr-1"></i>Remove Finding</button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Rating</label>
+                            <select class="finding-rating w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm font-bold bg-white">
+                                <option value="PASS" selected>PASS</option>
+                                <option value="ATTENTION">ATTENTION</option>
+                                <option value="FAIL">FAIL</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Component</label>
+                            <input type="text" class="finding-component w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm" placeholder="e.g. Component">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Severity (1-5)</label>
+                            <select class="finding-severity w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm bg-white">
+                                <option value="1">1 - Minor</option>
+                                <option value="2">2 - Low</option>
+                                <option value="3" selected>3 - Moderate</option>
+                                <option value="4">4 - Major</option>
+                                <option value="5">5 - Critical</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Est. Cost (₦)</label>
+                            <input type="number" min="0" class="finding-cost w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm" placeholder="50000">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Finding Description</label>
+                        <textarea class="finding-desc w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm" rows="2" placeholder="Describe finding..."></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Significance</label>
+                            <input type="text" class="finding-significance w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm" placeholder="e.g. N/A">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Corrective Action</label>
+                            <input type="text" class="finding-action w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm" placeholder="e.g. None">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+                        <label class="flex items-center space-x-2 text-sm font-medium text-slate-700 cursor-pointer">
+                            <input type="checkbox" class="finding-safety w-4 h-4 text-blue-600 rounded border-slate-300">
+                            <span>Safety-Critical Defect</span>
+                        </label>
+                        <div>
+                            <label class="text-xs font-semibold uppercase text-slate-600 mr-2">Upload Evidence Photos:</label>
+                            <input type="file" class="finding-photos-input text-xs text-slate-500" multiple accept="image/*">
+                        </div>
+                    </div>
+                </div>
+            `;
+            listContainer.appendChild(tempDiv.firstElementChild);
+            updateLiveScoringPreview();
+        };
+
+        window.addEventListener('refresh-scoring', updateLiveScoringPreview);
+
+        function collectFindingsFromForm() {
+            const areaBlocks = document.querySelectorAll('#areas-container > div.area-block');
+            const findings = [];
+
+            areaBlocks.forEach(block => {
+                const area = block.getAttribute('data-area-name');
+                const findingItems = block.querySelectorAll('.finding-item');
+
+                findingItems.forEach(item => {
+                    const rating = item.querySelector('.finding-rating').value;
+                    const component = item.querySelector('.finding-component').value.trim() || 'General';
+                    const severity = parseInt(item.querySelector('.finding-severity').value, 10) || 1;
+                    const finding = item.querySelector('.finding-desc').value.trim();
+                    const significance = item.querySelector('.finding-significance').value.trim();
+                    const recommended_action = item.querySelector('.finding-action').value.trim();
+                    const estimated_cost = item.querySelector('.finding-cost').value;
+                    const is_safety_critical = item.querySelector('.finding-safety').checked;
+
+                    findings.push({
+                        area,
+                        rating,
+                        component,
+                        severity,
+                        finding: finding || (rating === 'PASS' ? 'No faults observed' : ''),
+                        significance: significance || (rating === 'PASS' ? 'N/A' : ''),
+                        recommended_action: recommended_action || (rating === 'PASS' ? 'None' : ''),
+                        estimated_cost: estimated_cost !== '' ? estimated_cost : null,
+                        is_safety_critical
+                    });
+                });
+            });
+
+            return findings;
+        }
+
+        function updateLiveScoringPreview() {
+            try {
+                const findings = collectFindingsFromForm();
+                const categoryScores = inspectionScoring.calculateCategoryScores(findings);
+                const overallScore = inspectionScoring.calculateOverallScore(categoryScores);
+                const condition = inspectionScoring.determineCondition(overallScore, findings);
+                const recommendation = inspectionScoring.generateRecommendation(overallScore, findings);
+                const summary = inspectionScoring.generateSummary(overallScore, condition, findings);
+
+                document.getElementById('preview-mech').textContent = categoryScores.mechanical_score;
+                document.getElementById('preview-elec').textContent = categoryScores.electrical_score;
+                document.getElementById('preview-body').textContent = categoryScores.body_score;
+                document.getElementById('preview-inter').textContent = categoryScores.interior_score;
+                document.getElementById('preview-susp').textContent = categoryScores.suspension_score;
+                document.getElementById('preview-brake').textContent = categoryScores.brake_score;
+                document.getElementById('preview-diag').textContent = categoryScores.diagnostic_score;
+                document.getElementById('preview-road').textContent = categoryScores.road_test_score;
+
+                document.getElementById('preview-overall').textContent = `${overallScore} / 100`;
+                document.getElementById('preview-condition').textContent = condition;
+                document.getElementById('preview-recommendation').textContent = recommendation;
+                document.getElementById('preview-summary').value = summary;
+            } catch (err) {
+                console.warn('Scoring preview calculation notice:', err.message);
+            }
+        }
+
+        async function handleInspectionSubmit(e) {
+            e.preventDefault();
+            if (!activeInspectionId) return;
+
+            const submitBtn = document.getElementById('submit-inspection-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Calculating & Finalizing...';
+
+            try {
+                const mileageInput = document.getElementById('insp-mileage').value;
+                if (!mileageInput || isNaN(mileageInput)) {
+                    throw new Error('Inspection mileage is mandatory and must be a valid number.');
+                }
+
+                // 1. Gather findings & calculate scores
+                const findings = collectFindingsFromForm();
+                const categoryScores = inspectionScoring.calculateCategoryScores(findings);
+                const overallScore = inspectionScoring.calculateOverallScore(categoryScores);
+                const overallCondition = inspectionScoring.determineCondition(overallScore, findings);
+                const recommendation = inspectionScoring.generateRecommendation(overallScore, findings);
+                const summary = inspectionScoring.generateSummary(overallScore, overallCondition, findings);
+
+                // 2. Clear previous draft findings & cleanup Storage photos safely
+                await inspectionService.clearInspectionFindings(activeInspectionId);
+
+                // 3. Save findings & upload new evidence photos per finding item block
+                const areaBlocks = document.querySelectorAll('#areas-container > div.area-block');
+                let findingCounter = 0;
+
+                for (const block of areaBlocks) {
+                    const findingItems = block.querySelectorAll('.finding-item');
+                    for (const item of findingItems) {
+                        const fData = findings[findingCounter++];
+                        const photoInput = item.querySelector('.finding-photos-input');
+
+                        const findingRecord = await inspectionService.addInspectionFinding(activeInspectionId, fData);
+
+                        if (photoInput.files && photoInput.files.length > 0) {
+                            for (const file of photoInput.files) {
+                                await inspectionService.uploadFindingPhoto(findingRecord.id, file);
+                            }
+                        }
                     }
                 }
+
+                // 4. Upload Report PDF if provided
+                const reportFile = document.getElementById('insp-report-file').files[0];
+                if (reportFile) {
+                    await inspectionService.uploadInspectionReport(activeInspectionId, reportFile);
+                }
+
+                // 5. Update inspection metadata & complete
+                await inspectionService.updateInspection(activeInspectionId, {
+                    inspection_date: document.getElementById('insp-date').value,
+                    mileage: parseInt(mileageInput, 10)
+                });
+
+                const finalPayload = {
+                    ...categoryScores,
+                    overall_score: overallScore,
+                    overall_condition: overallCondition,
+                    recommendation,
+                    summary
+                };
+
+                await inspectionService.completeInspection(activeInspectionId, finalPayload);
+
+                alert('Inspection completed and saved successfully!');
+                window.location.href = 'admin.html';
+
+            } catch (err) {
+                alert('Inspection submission failed: ' + err.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Complete & Save Inspection';
             }
-
-            // 4. Upload PDF Inspection Report
-            const reportFile = document.getElementById('reportFile').files[0];
-            if (reportFile) {
-                const { data: carData } = await supabase.from('vehicles').select('vehicle_id').eq('id', vehicleUuid).single();
-                await uploadInspectionReport(carData.vehicle_id, inspection.id, reportFile);
-            }
-
-            alert('Inspection successfully recorded and saved!');
-            window.location.href = `vehicle-detail.html?id=${vehicleUuid}`;
-
-        } catch (err) {
-            alert(`Error saving inspection: ${err.message}`);
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Save & Complete Inspection';
         }
-    });
-</script>
 
+        initInspectionPortal();
+    </script>
 </body>
 </html>
