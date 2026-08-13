@@ -1,104 +1,107 @@
-import { supabase } from './vehicleService.js'
+export const inspectionScoring = {
+    /**
+     * Calculates individual category scores based on inspection findings per area.
+     * Maps findings to the 8 database category score columns.
+     */
+    calculateCategoryScores(findings = []) {
+        const scores = {
+            mechanical_score: 100,
+            electrical_score: 100,
+            body_score: 100,
+            interior_score: 100,
+            suspension_score: 100,
+            brake_score: 100,
+            diagnostic_score: 100,
+            road_test_score: 100
+        };
 
-/**
- * Initializes a new inspection record for a vehicle.
- */
-export async function createInspection(vehicleId, inspectorId, mileage, inspectionDate) {
-  const { data, error } = await supabase
-    .from('inspections')
-    .insert([
-      {
-        vehicle_id: vehicleId,
-        inspector_id: inspectorId || null,
-        mileage: parseInt(mileage),
-        inspection_date: inspectionDate,
-        overall_status: 'PENDING'
-      }
-    ])
-    .select()
+        const areaToScoreMap = {
+            'Mechanical': ['mechanical_score'],
+            'Computer Diagnostics': ['diagnostic_score'],
+            'Electrical & Electronic': ['electrical_score'],
+            'Body & Accident': ['body_score'],
+            'Chassis / Suspension / Braking': ['suspension_score', 'brake_score'],
+            'Interior / Functional / Road Test': ['interior_score', 'road_test_score']
+        };
 
-  if (error) throw new Error(error.message)
-  return data[0]
-}
+        const deductions = {};
+        Object.keys(scores).forEach(key => deductions[key] = 0);
 
-/**
- * Adds an inspection finding for one of the 6 core areas.
- * Enforces database constraint: ATTENTION/FAIL require finding, significance, and recommended action.
- */
-export async function addInspectionFinding(findingData) {
-  const { inspectionId, area, rating, finding, significance, recommendedAction } = findingData
+        findings.forEach(f => {
+            const matchedKeys = areaToScoreMap[f.area] || ['mechanical_score'];
+            let penalty = 0;
 
-  // Client-side guardrail matching database constraint
-  if (rating !== 'PASS' && (!finding || !significance || !recommendedAction)) {
-    throw new Error('ATTENTION and FAIL ratings require a finding description, significance, and recommended action.')
-  }
+            if (f.rating === 'ATTENTION') {
+                penalty = 12 + ((f.severity || 1) * 3);
+            } else if (f.rating === 'FAIL') {
+                penalty = 30 + ((f.severity || 1) * 5);
+            }
 
-  const { data, error } = await supabase
-    .from('inspection_findings')
-    .insert([
-      {
-        inspection_id: inspectionId,
-        area,
-        rating,
-        finding: rating === 'PASS' ? 'No faults observed' : finding,
-        significance: rating === 'PASS' ? 'N/A' : significance,
-        recommended_action: rating === 'PASS' ? 'None' : recommendedAction
-      }
-    ])
-    .select()
+            if (f.is_safety_critical) {
+                penalty += 20;
+            }
 
-  if (error) throw new Error(error.message)
-  return data[0]
-}
+            matchedKeys.forEach(key => {
+                deductions[key] = (deductions[key] || 0) + penalty;
+            });
+        });
 
-/**
- * Uploads a defect evidence photo to Supabase storage and links it to a finding.
- */
-export async function uploadFindingPhoto(vehicleId, findingId, file, caption = '') {
-  const fileExt = file.name.split('.').pop()
-  const fileName = `${Date.now()}-${Math.random().toString(36.substring(2, 7))}.${fileExt}`
-  const storagePath = `verified-cars/${vehicleId}/findings/${findingId}/${fileName}`
+        Object.keys(scores).forEach(key => {
+            scores[key] = Math.max(10, Math.round(100 - (deductions[key] || 0)));
+        });
 
-  // 1. Upload to Supabase Storage bucket 'verified-cars'
-  const { error: uploadError } = await supabase.storage
-    .from('verified-cars')
-    .upload(storagePath, file)
+        return scores;
+    },
 
-  if (uploadError) throw new Error(uploadError.message)
+    /**
+     * Calculates the overall score from category scores.
+     */
+    calculateOverallScore(categoryScores) {
+        const values = Object.values(categoryScores).filter(v => typeof v === 'number' && !isNaN(v));
+        if (values.length === 0) return 85;
+        const sum = values.reduce((acc, val) => acc + val, 0);
+        return Math.round(sum / values.length);
+    },
 
-  // 2. Insert record into finding_photos table
-  const { data, error: dbError } = await supabase
-    .from('finding_photos')
-    .insert([
-      {
-        finding_id: findingId,
-        storage_path: storagePath,
-        caption: caption
-      }
-    ])
-    .select()
+    /**
+     * Determines overall vehicle condition based on the overall score.
+     */
+    determineCondition(overallScore) {
+        if (overallScore >= 90) return 'EXCELLENT';
+        if (overallScore >= 75) return 'GOOD';
+        if (overallScore >= 60) return 'FAIR';
+        return 'POOR';
+    },
 
-  if (dbError) throw new Error(dbError.message)
-  return data[0]
-}
+    /**
+     * Generates a professional recommendation based on score and safety-critical findings.
+     */
+    generateRecommendation(overallScore, findings = []) {
+        const hasSafetyCritical = findings.some(f => f.is_safety_critical || f.rating === 'FAIL');
+        if (hasSafetyCritical || overallScore < 60) {
+            return 'Not recommended without major repairs';
+        }
+        if (overallScore >= 85) {
+            return 'Recommended for purchase';
+        }
+        return 'Purchase with minor repairs considered';
+    },
 
-/**
- * Uploads the raw inspection PDF report.
- */
-export async function uploadInspectionReport(vehicleId, inspectionId, file) {
-  const filePath = `verified-cars/${vehicleId}/reports/inspection-report.pdf`
+    /**
+     * Generates a concise professional executive summary narrative.
+     */
+    generateSummary(overallScore, condition, findings = []) {
+        const totalFindings = findings.filter(f => f.rating !== 'PASS').length;
+        const safetyCriticalCount = findings.filter(f => f.is_safety_critical).length;
 
-  const { error: uploadError } = await supabase.storage
-    .from('verified-cars')
-    .upload(filePath, file, { upsert: true })
+        return `Professional inspection completed with an overall score of ${overallScore}/100, grading vehicle condition as ${condition}. Identified ${totalFindings} focal point(s) requiring attention, including ${safetyCriticalCount} safety-critical item(s). Review detailed findings and evidence photos prior to final purchase commitment.`;
+    }
+};
 
-  if (uploadError) throw new Error(uploadError.message)
-
-  const { error: updateError } = await supabase
-    .from('inspections')
-    .update({ report_path: filePath })
-    .eq('id', inspectionId)
-
-  if (updateError) throw new Error(updateError.message)
-  return filePath
-}
+export const {
+    calculateCategoryScores,
+    calculateOverallScore,
+    determineCondition,
+    generateRecommendation,
+    generateSummary
+} = inspectionScoring;
