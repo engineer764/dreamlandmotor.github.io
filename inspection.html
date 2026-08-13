@@ -62,7 +62,7 @@
                 <div class="flex items-center space-x-3">
                     <button id="complete-insp-btn" onclick="openCompleteModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors shadow-sm inline-flex items-center space-x-2">
                         <i class="fa-solid fa-check-circle"></i>
-                        <span>Finalize & Complete</span>
+                        <span>Complete Inspection</span>
                     </button>
                 </div>
             </div>
@@ -81,7 +81,6 @@
                 </div>
 
                 <div id="findings-list" class="space-y-4">
-                    <!-- Populated dynamically -->
                     <div class="text-center py-12 text-slate-400 text-sm">No findings recorded yet. Click "Add Finding" to begin.</div>
                 </div>
             </div>
@@ -104,13 +103,11 @@
                         <label class="font-bold text-slate-700">Area *</label>
                         <select id="finding-area" required class="w-full p-2.5 border border-slate-200 rounded-xl bg-white">
                             <option value="Mechanical">Mechanical</option>
-                            <option value="Electrical">Electrical</option>
-                            <option value="Body & Frame">Body & Frame</option>
-                            <option value="Interior">Interior</option>
-                            <option value="Suspension">Suspension</option>
-                            <option value="Brakes">Brakes</option>
-                            <option value="Diagnostics">Diagnostics</option>
-                            <option value="Road Test">Road Test</option>
+                            <option value="Computer Diagnostics">Computer Diagnostics</option>
+                            <option value="Electrical & Electronic">Electrical & Electronic</option>
+                            <option value="Body & Accident">Body & Accident</option>
+                            <option value="Chassis / Suspension / Braking">Chassis / Suspension / Braking</option>
+                            <option value="Interior / Functional / Road Test">Interior / Functional / Road Test</option>
                         </select>
                     </div>
                     <div class="space-y-1">
@@ -146,7 +143,7 @@
     <div id="complete-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200 space-y-6">
             <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-                <h3 class="font-bold text-lg text-slate-900">Finalize Inspection Report</h3>
+                <h3 class="font-bold text-lg text-slate-900">Complete Inspection Report</h3>
                 <button onclick="closeCompleteModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             <form id="complete-form" onsubmit="handleCompleteSubmit(event)" class="space-y-4 text-sm">
@@ -164,7 +161,7 @@
                 </div>
                 <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
                     <button type="button" onclick="closeCompleteModal()" class="px-4 py-2 border border-slate-200 text-slate-600 font-medium rounded-xl hover:bg-slate-50">Cancel</button>
-                    <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl shadow-sm">Complete & Publish Report</button>
+                    <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl shadow-sm">Mark Complete</button>
                 </div>
             </form>
         </div>
@@ -202,8 +199,10 @@
                 document.getElementById('vehicle-title-header').textContent = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${vehicle.trim || ''}`;
                 document.getElementById('vehicle-meta-sub').textContent = `VIN: ${vehicle.vin || 'N/A'} • Mileage: ${(vehicle.mileage || 0).toLocaleString()} km`;
 
-                // 2. Get or create active inspection
-                currentInspection = await inspectionService.createInspection(currentVehicleId);
+                // 2. Get or create active inspection passing vehicle mileage
+                currentInspection = await inspectionService.createInspection(currentVehicleId, {
+                    mileage: vehicle.mileage
+                });
                 renderInspectionWorkbench();
 
                 loadingState.classList.add('hidden');
@@ -294,7 +293,7 @@
             };
 
             try {
-                await inspectionService.saveFinding(currentInspection.id, findingData);
+                await inspectionService.addInspectionFinding(currentInspection.id, findingData);
                 currentInspection = await inspectionService.getInspectionById(currentInspection.id);
                 renderInspectionWorkbench();
                 closeFindingModal();
@@ -306,7 +305,7 @@
         window.deleteFinding = async function(findingId) {
             if (!confirm('Delete this finding?')) return;
             try {
-                await inspectionService.deleteFinding(findingId);
+                await inspectionService.deleteInspectionFinding(findingId);
                 currentInspection = await inspectionService.getInspectionById(currentInspection.id);
                 renderInspectionWorkbench();
             } catch (err) {
@@ -344,7 +343,7 @@
 
             try {
                 await inspectionService.completeInspection(currentInspection.id, finalData);
-                alert('Inspection completed successfully! Scores calculated and report finalized.');
+                alert('Inspection completed successfully! Returning to Admin Portal.');
                 window.location.href = 'admin.html';
             } catch (err) {
                 alert('Failed to complete inspection: ' + err.message);
