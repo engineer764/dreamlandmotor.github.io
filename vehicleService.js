@@ -178,7 +178,7 @@ export const vehicleService = {
     /**
      * Data Adapter for public vehicle-details.html:
      * Fetches verified vehicle details with explicit public fields, gallery photos, 
-     * and completed inspections complete with findings and evidence photos.
+     * and completed inspections complete with explicit public findings and evidence photos.
      */
     async getPublicVehicleDetails(vehicleId) {
         if (!vehicleId) throw new Error('Vehicle ID is required.');
@@ -223,10 +223,51 @@ export const vehicleService = {
 
         vehicle.photos = (!photosError && photos) ? photos : [];
 
-        // 3. Fetch Completed Inspections with Findings & Finding Photos
+        // 3. Fetch Completed Inspections with Explicit Public Fields for Findings & Evidence Photos
         const { data: inspections, error: inspError } = await supabase
             .from('inspections')
-            .select('*, inspection_findings(*, finding_photos(*))')
+            .select(`
+                id,
+                vehicle_id,
+                inspection_number,
+                inspection_date,
+                mileage,
+                overall_score,
+                mechanical_score,
+                electrical_score,
+                body_score,
+                interior_score,
+                suspension_score,
+                brake_score,
+                diagnostic_score,
+                road_test_score,
+                overall_condition,
+                recommendation,
+                summary,
+                inspection_status,
+                report_path,
+                completed_at,
+                inspection_findings (
+                    id,
+                    inspection_id,
+                    area,
+                    component,
+                    rating,
+                    severity,
+                    finding,
+                    significance,
+                    recommended_action,
+                    estimated_cost,
+                    is_safety_critical,
+                    finding_photos (
+                        id,
+                        finding_id,
+                        public_url,
+                        caption,
+                        sort_order
+                    )
+                )
+            `)
             .eq('vehicle_id', vehicleId)
             .eq('inspection_status', 'COMPLETED')
             .order('completed_at', { ascending: false });
