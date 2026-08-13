@@ -8,20 +8,67 @@ export const vehicleService = {
      */
 
     /**
-     * Fetches all vehicles for the admin inventory dashboard.
+     * Fetches all vehicles for the admin inventory dashboard, 
+     * enriching each vehicle record with its latest inspection status.
      */
-    async getAllVehicles() {
-        const { data, error } = await supabase
+    async getAdminVehicles() {
+        const { data: vehicles, error: vehicleError } = await supabase
             .from('vehicles')
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (error) throw new Error(error.message);
-        return data || [];
+        if (vehicleError) {
+            throw new Error(vehicleError.message);
+        }
+
+        if (!vehicles || vehicles.length === 0) {
+            return [];
+        }
+
+        const vehicleIds = vehicles.map(v => v.id);
+
+        const { data: inspections, error: inspectionError } = await supabase
+            .from('inspections')
+            .select(`
+                id,
+                vehicle_id,
+                inspection_status,
+                completed_at,
+                inspection_date
+            `)
+            .in('vehicle_id', vehicleIds)
+            .order('completed_at', { ascending: false, nullsFirst: false });
+
+        if (inspectionError) {
+            throw new Error(inspectionError.message);
+        }
+
+        const latestInspectionByVehicle = new Map();
+
+        for (const inspection of inspections || []) {
+            if (!latestInspectionByVehicle.has(inspection.vehicle_id)) {
+                latestInspectionByVehicle.set(
+                    inspection.vehicle_id,
+                    inspection
+                );
+            }
+        }
+
+        return vehicles.map(vehicle => {
+            const inspection = latestInspectionByVehicle.get(vehicle.id);
+
+            return {
+                ...vehicle,
+                inspection_status: inspection?.inspection_status || 'PENDING',
+                inspection_id: inspection?.id || null,
+                inspection_date: inspection?.inspection_date || null,
+                inspection_completed_at: inspection?.completed_at || null
+            };
+        });
     },
 
-    async getAdminVehicles() {
-        return this.getAllVehicles();
+    async getAllVehicles() {
+        return this.getAdminVehicles();
     },
 
     /**
