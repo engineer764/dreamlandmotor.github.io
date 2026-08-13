@@ -87,7 +87,7 @@ export const vehicleService = {
     },
 
     /**
-     * Vehicle Lifecycle Actions (Aligned with verification_status, publication_status, sales_status)
+     * Vehicle Lifecycle Actions
      */
     async verifyVehicle(vehicleId, reference = null) {
         return this.updateVehicle(vehicleId, {
@@ -106,7 +106,7 @@ export const vehicleService = {
     },
 
     async unpublishVehicle(vehicleId) {
-        return this.updateVehicle(vehicleId, { publication_status: 'DRAFT' });
+        return this.updateVehicle(vehicleId, { publication_status: 'UNPUBLISHED' });
     },
 
     async reserveVehicle(vehicleId) {
