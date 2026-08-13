@@ -330,9 +330,19 @@
                 if (car.sales_status === 'SOLD') sBadgeClass = 'badge-sold';
                 if (car.sales_status === 'ARCHIVED') sBadgeClass = 'badge-archived';
 
-                const inspectionBadge = car.inspection_status === 'COMPLETED'
-                    ? `<span class="badge badge-verified">COMPLETED</span>`
-                    : `<span class="badge badge-pending">PENDING</span>`;
+                const inspectionStatus = car.inspection_status || 'DRAFT';
+                
+                let inspBadgeClass = 'badge-pending';
+                if (inspectionStatus === 'COMPLETED') {
+                    inspBadgeClass = 'badge-verified';
+                } else if (inspectionStatus === 'IN_PROGRESS') {
+                    inspBadgeClass = 'badge-published';
+                } else if (inspectionStatus === 'CANCELLED') {
+                    inspBadgeClass = 'badge-rejected';
+                }
+
+                const inspectionBadge = `<span class="badge ${inspBadgeClass}">${inspectionStatus}</span>`;
+                const inspectionButtonLabel = (inspectionStatus === 'COMPLETED') ? 'View Inspection' : 'Inspect';
 
                 // Render contextual state machine actions
                 let actionButtons = '';
@@ -345,7 +355,7 @@
                         <button
                             class="action-btn btn-inspect"
                             onclick="openInspection('${car.id}')">
-                            ${car.inspection_status === 'COMPLETED' ? 'View Inspection' : 'Inspect'}
+                            ${inspectionButtonLabel}
                         </button>
                     `;
 
