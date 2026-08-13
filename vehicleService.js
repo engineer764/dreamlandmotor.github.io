@@ -1,40 +1,29 @@
 import { supabase } from './supabaseClient.js';
 
 export const vehicleService = {
-    async getVerifiedVehicles(filters = {}) {
-        let query = supabase
-            .from('public_verified_vehicles')
-            .select('*')
-            .order('published_at', { ascending: false });
-
-        if (filters.search) {
-            query = query.or(`make.ilike.%${filters.search}%,model.ilike.%${filters.search}%,vehicle_code.ilike.%${filters.search}%`);
-        }
-
-        if (filters.location) {
-            query = query.eq('location', filters.location);
-        }
-
-        const { data, error } = await query;
-        if (error) throw new Error(error.message);
-        return data;
-    },
-
-   async getAdminVehicles() {
-    const { data, error } = await supabase
-        .from('vehicles')
-        .select('*, vehicle_photos(*)')
-        .order('created_at', { ascending: false });
-
-    if (error) throw new Error(error.message);
-    return data;
-},
-
-    async getVehicleById(id) {
+    /**
+     * Fetches all vehicles for the admin inventory dashboard.
+     */
+    async getAllVehicles() {
         const { data, error } = await supabase
             .from('vehicles')
-            .select('*, vehicle_photos(*), inspections(*)')
-            .eq('id', id)
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw new Error(error.message);
+        return data || [];
+    },
+
+    /**
+     * Fetches a single vehicle by its UUID.
+     */
+    async getVehicleById(vehicleId) {
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
+
+        const { data, error } = await supabase
+            .from('vehicles')
+            .select('*')
+            .eq('id', vehicleId)
             .single();
 
         if (error) throw new Error(error.message);
@@ -42,223 +31,251 @@ export const vehicleService = {
     },
 
     /**
-     * Creates a new vehicle draft securely via database RPC with proper field mapping.
+     * Creates a new vehicle record in inventory.
      */
     async createVehicle(vehicleData) {
-        const payload = { ...vehicleData };
-
-        const mapField = (camel, snake) => {
-            if (payload[camel] !== undefined) {
-                payload[snake] = payload[camel];
-                delete payload[camel];
-            }
+        const payload = {
+            ...vehicleData,
+            vehicle_code: vehicleData.vehicle_code || `DV-${Math.floor(100 + Math.random() * 900)}`,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
         };
 
-        mapField('bodyType', 'body_type');
-        mapField('fuelType', 'fuel_type');
-        mapField('exteriorColor', 'colour');
-        mapField('transmissionType', 'transmission');
-
-        const { data, error } = await supabase.rpc('create_vehicle', { p_data: payload });
+        const { data, error } = await supabase
+            .from('vehicles')
+            .insert([payload])
+            .select()
+            .single();
 
         if (error) throw new Error(error.message);
         return data;
     },
 
     /**
-     * Updates an existing vehicle's ordinary details securely via database RPC (excluding price).
+     * Updates an existing vehicle record.
      */
-    async updateVehicle(id, vehicleData) {
-        const payload = { ...vehicleData };
-
-        const mapField = (camel, snake) => {
-            if (payload[camel] !== undefined) {
-                payload[snake] = payload[camel];
-                delete payload[camel];
-            }
-        };
-
-        mapField('bodyType', 'body_type');
-        mapField('fuelType', 'fuel_type');
-        mapField('exteriorColor', 'colour');
-        mapField('transmissionType', 'transmission');
-
-        const { data, error } = await supabase.rpc('update_vehicle', { 
-            p_vehicle_id: id, 
-            p_data: payload 
-        });
+    async updateVehicle(vehicleId, updateData) {
+        const { data, error } = await supabase
+            .from('vehicles')
+            .update({
+                ...updateData,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', vehicleId)
+            .select()
+            .single();
 
         if (error) throw new Error(error.message);
         return data;
     },
 
     /**
-     * Updates vehicle price through the dedicated secure price-management channel.
+     * Deletes a vehicle record from inventory.
      */
-    async updateVehiclePrice(id, newPrice) {
-        const { error } = await supabase.rpc('update_vehicle_price', { 
-            p_vehicle_id: id, 
-            p_new_price: newPrice 
-        });
+    async deleteVehicle(vehicleId) {
+        const { error } = await supabase
+            .from('vehicles')
+            .delete()
+            .eq('id', vehicleId);
 
         if (error) throw new Error(error.message);
         return true;
     },
 
-   async addVehiclePhoto(vehicleId, file, photoData = {}) {
-    if (!vehicleId) {
-        throw new Error('Vehicle ID is required.');
-    }
+    /**
+     * Uploads a vehicle gallery photo to Supabase Storage and creates a vehicle_photos record.
+     */
+    async uploadVehiclePhoto(vehicleId, file, options = {}) {
+        if (!file || !(file instanceof File)) {
+            throw new Error('A valid file is required.');
+        }
 
-    if (!file) {
-        throw new Error('Please select or take a vehicle photo first.');
-    }
+        const fileExt = file.name.split('.').pop();
+        const fileName = `inventory/${vehicleId}/${Math.random().toString(36).substring(2, 10)}.${fileExt}`;
 
-    if (typeof File !== 'undefined' && !(file instanceof File)) {
-        throw new Error('Invalid photo file. Please select the photo again.');
-    }
-
-    if (!file.type || !file.type.startsWith('image/')) {
-        throw new Error('Only image files can be uploaded.');
-    }
-
-    const extension =
-        (file.name || 'vehicle-photo.jpg')
-            .split('.')
-            .pop()
-            .toLowerCase();
-
-    const safeExtension =
-        /^[a-z0-9]+$/.test(extension)
-            ? extension
-            : 'jpg';
-
-    const storagePath =
-        `vehicles/${vehicleId}/${crypto.randomUUID()}.${safeExtension}`;
-
-    // 1. Upload actual image file to Supabase Storage
-    const { error: uploadError } = await supabase.storage
-        .from('vehicle-photos')
-        .upload(storagePath, file, {
-            cacheControl: '3600',
-            contentType: file.type,
-            upsert: false
-        });
-
-    if (uploadError) {
-        throw new Error(
-            `Photo upload failed: ${uploadError.message}`
-        );
-    }
-
-    // 2. Generate public URL
-    const { data: urlData } = supabase.storage
-        .from('vehicle-photos')
-        .getPublicUrl(storagePath);
-
-    const publicUrl = urlData?.publicUrl;
-
-    if (!publicUrl) {
-        await supabase.storage
+        const { error: uploadError } = await supabase.storage
             .from('vehicle-photos')
-            .remove([storagePath]);
+            .upload(fileName, file);
 
-        throw new Error(
-            'Photo uploaded, but a public URL could not be generated.'
-        );
-    }
+        if (uploadError) throw new Error(uploadError.message);
 
-    // 3. Save photo record in vehicle_photos
-    const { data, error } = await supabase
-        .from('vehicle_photos')
-        .insert([{
-            vehicle_id: vehicleId,
-            storage_path: storagePath,
-            public_url: publicUrl,
-            category: photoData.category || 'EXTERIOR',
-            is_primary: photoData.is_primary === true
-        }])
-        .select()
-        .single();
-
-    // 4. Clean up Storage if database insert fails
-    if (error) {
-        await supabase.storage
+        const { data: { publicUrl } } = supabase.storage
             .from('vehicle-photos')
-            .remove([storagePath]);
+            .getPublicUrl(fileName);
 
-        throw new Error(
-            `Photo record failed: ${error.message}`
-        );
-    }
+        const isPrimary = options.is_primary || false;
 
-    return data;
-},
-    async verifyVehicle(id) {
-        const { error } = await supabase.rpc('verify_vehicle', { p_vehicle_id: id });
+        if (isPrimary) {
+            await supabase
+                .from('vehicle_photos')
+                .update({ is_primary: false })
+                .eq('vehicle_id', vehicleId);
+        }
+
+        const { data, error } = await supabase
+            .from('vehicle_photos')
+            .insert([{
+                vehicle_id: vehicleId,
+                storage_path: fileName,
+                public_url: publicUrl,
+                is_primary: isPrimary,
+                sort_order: options.sort_order !== undefined ? parseInt(options.sort_order, 10) : 0
+            }])
+            .select()
+            .single();
+
+        if (error) {
+            await supabase.storage
+                .from('vehicle-photos')
+                .remove([fileName]);
+            throw new Error(error.message);
+        }
+
+        return data;
+    },
+
+    /**
+     * Fetches photos for a vehicle.
+     */
+    async getVehiclePhotos(vehicleId) {
+        const { data, error } = await supabase
+            .from('vehicle_photos')
+            .select('*')
+            .eq('vehicle_id', vehicleId)
+            .order('sort_order', { ascending: true });
+
+        if (error) throw new Error(error.message);
+        return data || [];
+    },
+
+    /**
+     * Deletes a vehicle photo from storage and database.
+     */
+    async deleteVehiclePhoto(photoId) {
+        const { data: photo, error: fetchError } = await supabase
+            .from('vehicle_photos')
+            .select('*')
+            .eq('id', photoId)
+            .single();
+
+        if (fetchError || !photo) throw new Error('Photo not found.');
+
+        if (photo.storage_path) {
+            await supabase.storage
+                .from('vehicle-photos')
+                .remove([photo.storage_path]);
+        }
+
+        const { error } = await supabase
+            .from('vehicle_photos')
+            .delete()
+            .eq('id', photoId);
+
         if (error) throw new Error(error.message);
         return true;
     },
 
-    async rejectVehicle(id, reason) {
-        const { error } = await supabase.rpc('reject_vehicle', { 
-            p_vehicle_id: id, 
-            p_reason: reason || 'Rejected by admin' 
-        });
-        if (error) throw new Error(error.message);
-        return true;
-    },
+    /**
+     * Data Adapter for public vehicle-details.html:
+     * Fetches verified vehicle details with explicit public fields, gallery photos, 
+     * and completed inspections complete with findings and evidence photos.
+     */
+    async getPublicVehicleDetails(vehicleId) {
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
 
-    async publishVehicle(id) {
-        const { error } = await supabase.rpc('publish_vehicle', { p_vehicle_id: id });
-        if (error) throw new Error(error.message);
-        return true;
-    },
+        // 1. Fetch Vehicle Record with Explicit Public Fields required by vehicle-details.html
+        const { data: vehicle, error: vehicleError } = await supabase
+            .from('vehicles')
+            .select(`
+                id,
+                vehicle_code,
+                year,
+                make,
+                model,
+                trim,
+                mileage,
+                engine,
+                transmission,
+                fuel_type,
+                colour,
+                body_type,
+                location,
+                price,
+                currency,
+                description,
+                vin,
+                registration_number,
+                verification_status,
+                verification_reference,
+                verified_at
+            `)
+            .eq('id', vehicleId)
+            .single();
 
-    async unpublishVehicle(id) {
-        const { error } = await supabase.rpc('unpublish_vehicle', { p_vehicle_id: id });
-        if (error) throw new Error(error.message);
-        return true;
-    },
+        if (vehicleError || !vehicle) return null;
 
-    async reserveVehicle(id) {
-        const { error } = await supabase.rpc('reserve_vehicle', { p_vehicle_id: id });
-        if (error) throw new Error(error.message);
-        return true;
-    },
+        // 2. Fetch Vehicle Gallery Photos
+        const { data: photos, error: photosError } = await supabase
+            .from('vehicle_photos')
+            .select('*')
+            .eq('vehicle_id', vehicleId)
+            .order('sort_order', { ascending: true });
 
-    async markAvailable(id) {
-        const { error } = await supabase.rpc('mark_vehicle_available', { p_vehicle_id: id });
-        if (error) throw new Error(error.message);
-        return true;
-    },
+        vehicle.photos = (!photosError && photos) ? photos : [];
 
-    async markSold(id) {
-        const { error } = await supabase.rpc('mark_vehicle_sold', { p_vehicle_id: id });
-        if (error) throw new Error(error.message);
-        return true;
-    },
+        // 3. Fetch Completed Inspections with Findings & Finding Photos
+        const { data: inspections, error: inspError } = await supabase
+            .from('inspections')
+            .select('*, inspection_findings(*, finding_photos(*))')
+            .eq('vehicle_id', vehicleId)
+            .eq('inspection_status', 'COMPLETED')
+            .order('completed_at', { ascending: false });
 
-    async archiveVehicle(id) {
-        const { error } = await supabase.rpc('archive_vehicle', { p_vehicle_id: id });
-        if (error) throw new Error(error.message);
-        return true;
+        if (!inspError && inspections) {
+            vehicle.inspections = inspections.map(insp => {
+                const mappedFindings = (insp.inspection_findings || []).map(f => {
+                    let severityLabel = f.rating;
+                    if (f.rating === 'FAIL') {
+                        severityLabel = f.severity >= 4 ? 'CRITICAL' : 'MAJOR';
+                    } else if (f.rating === 'ATTENTION') {
+                        severityLabel = f.severity >= 3 ? 'MODERATE' : 'MINOR';
+                    } else {
+                        severityLabel = 'NOTE';
+                    }
+
+                    return {
+                        ...f,
+                        category: f.component ? `${f.area} — ${f.component}` : f.area,
+                        description: f.finding || 'No details provided.',
+                        severity: severityLabel,
+                        photos: (f.finding_photos || []).map(fp => ({
+                            public_url: fp.public_url,
+                            caption: fp.caption
+                        }))
+                    };
+                });
+
+                return {
+                    ...insp,
+                    findings: mappedFindings
+                };
+            });
+        } else {
+            vehicle.inspections = [];
+        }
+
+        return vehicle;
     }
 };
 
-// --- TOP-LEVEL NAMED EXPORTS ---
-export const getVerifiedVehicles = vehicleService.getVerifiedVehicles;
-export const getAdminVehicles = vehicleService.getAdminVehicles;
-export const getVehicleById = vehicleService.getVehicleById;
-export const createVehicle = vehicleService.createVehicle;
-export const updateVehicle = vehicleService.updateVehicle;
-export const updateVehiclePrice = vehicleService.updateVehiclePrice;
-export const addVehiclePhoto = vehicleService.addVehiclePhoto;
-export const verifyVehicle = vehicleService.verifyVehicle;
-export const rejectVehicle = vehicleService.rejectVehicle;
-export const publishVehicle = vehicleService.publishVehicle;
-export const unpublishVehicle = vehicleService.unpublishVehicle;
-export const reserveVehicle = vehicleService.reserveVehicle;
-export const markAvailable = vehicleService.markAvailable;
-export const markSold = vehicleService.markSold;
-export const archiveVehicle = vehicleService.archiveVehicle;
+export const {
+    getAllVehicles,
+    getVehicleById,
+    createVehicle,
+    updateVehicle,
+    deleteVehicle,
+    uploadVehiclePhoto,
+    getVehiclePhotos,
+    deleteVehiclePhoto,
+    getPublicVehicleDetails
+} = vehicleService;
