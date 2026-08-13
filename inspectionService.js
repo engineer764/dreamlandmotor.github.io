@@ -1,107 +1,291 @@
-export const inspectionScoring = {
+import { supabase } from './supabaseClient.js';
+
+export const inspectionService = {
     /**
-     * Calculates individual category scores based on inspection findings per area.
-     * Maps findings to the 8 database category score columns.
+     * Creates a new inspection record for a vehicle UUID.
+     * Enforces strict mandatory mileage validation (no default 0 fallbacks).
      */
-    calculateCategoryScores(findings = []) {
-        const scores = {
-            mechanical_score: 100,
-            electrical_score: 100,
-            body_score: 100,
-            interior_score: 100,
-            suspension_score: 100,
-            brake_score: 100,
-            diagnostic_score: 100,
-            road_test_score: 100
+    async createInspection(vehicleId, inspectionData = {}) {
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
+
+        const mileage = inspectionData.mileage !== undefined && inspectionData.mileage !== null && inspectionData.mileage !== ''
+            ? parseInt(inspectionData.mileage, 10)
+            : null;
+
+        if (mileage === null || isNaN(mileage)) {
+            throw new Error('Mileage at inspection is mandatory and cannot be left blank or zero if unrecorded.');
+        }
+
+        const payload = {
+            ...inspectionData,
+            vehicle_id: vehicleId,
+            inspection_status: 'PENDING',
+            inspection_number: inspectionData.inspection_number || `INSP-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+            inspection_date: inspectionData.inspection_date || new Date().toISOString().split('T')[0],
+            mileage: mileage
         };
 
-        const areaToScoreMap = {
-            'Mechanical': ['mechanical_score'],
-            'Computer Diagnostics': ['diagnostic_score'],
-            'Electrical & Electronic': ['electrical_score'],
-            'Body & Accident': ['body_score'],
-            'Chassis / Suspension / Braking': ['suspension_score', 'brake_score'],
-            'Interior / Functional / Road Test': ['interior_score', 'road_test_score']
+        const { data, error } = await supabase
+            .from('inspections')
+            .insert([payload])
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    /**
+     * Updates an existing inspection record.
+     */
+    async updateInspection(inspectionId, updateData) {
+        const { data, error } = await supabase
+            .from('inspections')
+            .update({
+                ...updateData,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', inspectionId)
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    /**
+     * Adds an inspection finding to a specific area.
+     */
+    async addInspectionFinding(inspectionId, findingData) {
+        const rating = findingData.rating || 'PASS';
+
+        if (
+            rating !== 'PASS' &&
+            (
+                !findingData.finding?.trim() ||
+                !findingData.significance?.trim() ||
+                !findingData.recommended_action?.trim()
+            )
+        ) {
+            throw new Error('ATTENTION and FAIL require a finding, significance, and recommended action.');
+        }
+
+        const payload = {
+            inspection_id: inspectionId,
+            area: findingData.area,
+            component: findingData.component?.trim() || 'General',
+            rating: rating,
+            severity: findingData.severity !== undefined ? parseInt(findingData.severity, 10) : 1,
+            finding: findingData.finding?.trim() || 'No faults observed',
+            significance: findingData.significance?.trim() || 'N/A',
+            recommended_action: findingData.recommended_action?.trim() || 'None',
+            estimated_cost: findingData.estimated_cost !== undefined && findingData.estimated_cost !== null && findingData.estimated_cost !== ''
+                ? parseFloat(findingData.estimated_cost)
+                : null,
+            is_safety_critical: findingData.is_safety_critical || false
         };
 
-        const deductions = {};
-        Object.keys(scores).forEach(key => deductions[key] = 0);
+        const { data, error } = await supabase
+            .from('inspection_findings')
+            .insert([payload])
+            .select()
+            .single();
 
-        findings.forEach(f => {
-            const matchedKeys = areaToScoreMap[f.area] || ['mechanical_score'];
-            let penalty = 0;
+        if (error) throw new Error(error.message);
+        return data;
+    },
 
-            if (f.rating === 'ATTENTION') {
-                penalty = 12 + ((f.severity || 1) * 3);
-            } else if (f.rating === 'FAIL') {
-                penalty = 30 + ((f.severity || 1) * 5);
-            }
+    /**
+     * Clears existing findings for an inspection and cleans up associated Storage photos to prevent orphans.
+     */
+    async clearInspectionFindings(inspectionId) {
+        // 1. Fetch existing findings and their photos
+        const { data: findings, error: fetchError } = await supabase
+            .from('inspection_findings')
+            .select('id, finding_photos(storage_path)')
+            .eq('inspection_id', inspectionId);
 
-            if (f.is_safety_critical) {
-                penalty += 20;
-            }
+        if (fetchError) throw new Error(fetchError.message);
 
-            matchedKeys.forEach(key => {
-                deductions[key] = (deductions[key] || 0) + penalty;
+        if (findings && findings.length > 0) {
+            const storagePathsToRemove = [];
+            findings.forEach(f => {
+                if (f.finding_photos && f.finding_photos.length > 0) {
+                    f.finding_photos.forEach(p => {
+                        if (p.storage_path) storagePathsToRemove.push(p.storage_path);
+                    });
+                }
             });
-        });
 
-        Object.keys(scores).forEach(key => {
-            scores[key] = Math.max(10, Math.round(100 - (deductions[key] || 0)));
-        });
+            // 2. Remove physical files from Supabase Storage bucket
+            if (storagePathsToRemove.length > 0) {
+                await supabase.storage
+                    .from('vehicle-photos')
+                    .remove(storagePathsToRemove);
+            }
 
-        return scores;
-    },
+            // 3. Delete finding records (Cascade deletes finding_photos rows)
+            const findingIds = findings.map(f => f.id);
+            const { error: deleteError } = await supabase
+                .from('inspection_findings')
+                .delete()
+                .in('id', findingIds);
 
-    /**
-     * Calculates the overall score from category scores.
-     */
-    calculateOverallScore(categoryScores) {
-        const values = Object.values(categoryScores).filter(v => typeof v === 'number' && !isNaN(v));
-        if (values.length === 0) return 85;
-        const sum = values.reduce((acc, val) => acc + val, 0);
-        return Math.round(sum / values.length);
-    },
-
-    /**
-     * Determines overall vehicle condition based on the overall score.
-     */
-    determineCondition(overallScore) {
-        if (overallScore >= 90) return 'EXCELLENT';
-        if (overallScore >= 75) return 'GOOD';
-        if (overallScore >= 60) return 'FAIR';
-        return 'POOR';
-    },
-
-    /**
-     * Generates a professional recommendation based on score and safety-critical findings.
-     */
-    generateRecommendation(overallScore, findings = []) {
-        const hasSafetyCritical = findings.some(f => f.is_safety_critical || f.rating === 'FAIL');
-        if (hasSafetyCritical || overallScore < 60) {
-            return 'Not recommended without major repairs';
+            if (deleteError) throw new Error(deleteError.message);
         }
-        if (overallScore >= 85) {
-            return 'Recommended for purchase';
-        }
-        return 'Purchase with minor repairs considered';
     },
 
     /**
-     * Generates a concise professional executive summary narrative.
+     * Uploads evidence photo for a finding to Supabase Storage and creates finding_photos record.
      */
-    generateSummary(overallScore, condition, findings = []) {
-        const totalFindings = findings.filter(f => f.rating !== 'PASS').length;
-        const safetyCriticalCount = findings.filter(f => f.is_safety_critical).length;
+    async uploadFindingPhoto(findingId, file, options = {}) {
+        if (!file || !(file instanceof File)) {
+            throw new Error('A valid file is required.');
+        }
 
-        return `Professional inspection completed with an overall score of ${overallScore}/100, grading vehicle condition as ${condition}. Identified ${totalFindings} focal point(s) requiring attention, including ${safetyCriticalCount} safety-critical item(s). Review detailed findings and evidence photos prior to final purchase commitment.`;
+        const fileExt = file.name.split('.').pop();
+        const fileName = `findings/${findingId}/${Math.random().toString(36).substring(2, 10)}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('vehicle-photos')
+            .upload(fileName, file);
+
+        if (uploadError) throw new Error(uploadError.message);
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('vehicle-photos')
+            .getPublicUrl(fileName);
+
+        const { data, error } = await supabase
+            .from('finding_photos')
+            .insert([{
+                finding_id: findingId,
+                storage_path: fileName,
+                public_url: publicUrl,
+                caption: options.caption || null,
+                sort_order: options.sort_order !== undefined ? parseInt(options.sort_order, 10) : 0
+            }])
+            .select()
+            .single();
+
+        if (error) {
+            await supabase.storage
+                .from('vehicle-photos')
+                .remove([fileName]);
+
+            throw new Error(error.message);
+        }
+
+        return data;
+    },
+
+    /**
+     * Uploads the official inspection report document PDF.
+     */
+    async uploadInspectionReport(inspectionId, file) {
+        if (!file || !(file instanceof File)) {
+            throw new Error('A valid file is required.');
+        }
+
+        if (file.type !== 'application/pdf') {
+            throw new Error('Inspection report must be a PDF.');
+        }
+
+        const fileExt = file.name.split('.').pop();
+        const fileName = `reports/${inspectionId}/official_report.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('vehicle-photos')
+            .upload(fileName, file, { upsert: true });
+
+        if (uploadError) throw new Error(uploadError.message);
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('vehicle-photos')
+            .getPublicUrl(fileName);
+
+        const { data, error } = await supabase
+            .from('inspections')
+            .update({ report_path: publicUrl, updated_at: new Date().toISOString() })
+            .eq('id', inspectionId)
+            .select()
+            .single();
+
+        if (error) {
+            await supabase.storage
+                .from('vehicle-photos')
+                .remove([fileName]);
+
+            throw new Error(error.message);
+        }
+
+        return data;
+    },
+
+    /**
+     * Marks an inspection as COMPLETED with whitelisting on scores and conclusion fields.
+     */
+    async completeInspection(inspectionId, finalScoresAndSummary) {
+        const allowedFields = [
+            'overall_score',
+            'mechanical_score',
+            'electrical_score',
+            'body_score',
+            'interior_score',
+            'suspension_score',
+            'brake_score',
+            'diagnostic_score',
+            'road_test_score',
+            'overall_condition',
+            'recommendation',
+            'summary'
+        ];
+
+        const cleanPayload = {};
+        for (const field of allowedFields) {
+            if (finalScoresAndSummary[field] !== undefined) {
+                cleanPayload[field] = finalScoresAndSummary[field];
+            }
+        }
+
+        const { data, error } = await supabase
+            .from('inspections')
+            .update({
+                ...cleanPayload,
+                inspection_status: 'COMPLETED',
+                completed_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', inspectionId)
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    /**
+     * Fetches inspection details along with findings and finding photos.
+     */
+    async getInspectionDetails(inspectionId) {
+        const { data: inspection, error: inspError } = await supabase
+            .from('inspections')
+            .select('*, inspection_findings(*, finding_photos(*))')
+            .eq('id', inspectionId)
+            .single();
+
+        if (inspError) throw new Error(inspError.message);
+        return inspection;
     }
 };
 
-export const {
-    calculateCategoryScores,
-    calculateOverallScore,
-    determineCondition,
-    generateRecommendation,
-    generateSummary
-} = inspectionScoring;
+export const createInspection = inspectionService.createInspection;
+export const updateInspection = inspectionService.updateInspection;
+export const addInspectionFinding = inspectionService.addInspectionFinding;
+export const clearInspectionFindings = inspectionService.clearInspectionFindings;
+export const uploadFindingPhoto = inspectionService.uploadFindingPhoto;
+export const uploadInspectionReport = inspectionService.uploadInspectionReport;
+export const completeInspection = inspectionService.completeInspection;
+export const getInspectionDetails = inspectionService.getInspectionDetails;
