@@ -87,27 +87,22 @@ export const vehicleService = {
         return data;
     },
 
-    /**
-     * Creates a new vehicle record in inventory.
-     */
-    async createVehicle(vehicleData) {
-        const payload = {
-            ...vehicleData,
-            vehicle_code: vehicleData.vehicle_code || `DV-${Math.floor(100 + Math.random() * 900)}`,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        };
+   async createVehicle(vehicleData) {
+    if (!vehicleData || typeof vehicleData !== 'object') {
+        throw new Error('Vehicle data is required.');
+    }
 
-        const { data, error } = await supabase
-            .from('vehicles')
-            .insert([payload])
-            .select()
-            .single();
+    const { data, error } = await supabase.rpc('create_vehicle', {
+        p_data: vehicleData
+    });
 
-        if (error) throw new Error(error.message);
-        return data;
-    },
+    if (error) {
+        throw new Error(error.message);
+    }
 
+    // RPC may return a single vehicle or an array depending on its definition.
+    return Array.isArray(data) ? data[0] : data;
+},
     /**
      * Updates an existing vehicle record.
      */
