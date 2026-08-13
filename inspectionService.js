@@ -137,50 +137,77 @@ export const inspectionService = {
     },
 
     /**
-     * Adds or updates an inspection finding using authoritative areas.
+     * Adds or updates an inspection finding with strict severity integer validation.
      */
     async addInspectionFinding(inspectionId, findingData) {
-        if (!inspectionId) throw new Error('Inspection ID is required.');
+        if (!inspectionId) {
+            throw new Error('Inspection ID is required.');
+        }
 
-        // Transition status to IN_PROGRESS when adding findings to a DRAFT inspection
-        await supabase
-            .from('inspections')
-            .update({ inspection_status: 'IN_PROGRESS', updated_at: new Date().toISOString() })
-            .eq('id', inspectionId)
-            .eq('inspection_status', 'DRAFT');
+        const severity = Number(findingData.severity);
+
+        if (!Number.isInteger(severity) || severity < 1 || severity > 5) {
+            throw new Error('Severity must be an integer from 1 to 5.');
+        }
+
+        const rating = (findingData.rating || 'PASS').toUpperCase();
 
         const payload = {
             inspection_id: inspectionId,
-            area: findingData.area, // Must be one of the authoritative 6 areas
-            component: findingData.component || null,
-            rating: findingData.rating || 'PASS', // PASS, ATTENTION, FAIL
-            severity: findingData.severity !== undefined ? parseInt(findingData.severity, 10) : 1,
-            finding: findingData.finding || '',
-            significance: findingData.significance || null,
-            recommended_action: findingData.recommended_action || null,
-            estimated_cost: findingData.estimated_cost ? parseFloat(findingData.estimated_cost) : 0,
-            is_safety_critical: findingData.is_safety_critical || false
+            area: findingData.area,
+            component: findingData.component?.trim() || null,
+            rating: rating,
+            severity: severity,
+            finding: findingData.finding?.trim() || '',
+            significance: findingData.significance?.trim() || null,
+            recommended_action: findingData.recommended_action?.trim() || null,
+            estimated_cost:
+                findingData.estimated_cost !== undefined &&
+                findingData.estimated_cost !== null &&
+                findingData.estimated_cost !== ''
+                    ? Number(findingData.estimated_cost)
+                    : null,
+            is_safety_critical: Boolean(findingData.is_safety_critical)
         };
 
+        // Move DRAFT → IN_PROGRESS when the first finding is saved
+        await supabase
+            .from('inspections')
+            .update({
+                inspection_status: 'IN_PROGRESS',
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', inspectionId)
+            .eq('inspection_status', 'DRAFT');
+
         let result;
+
         if (findingData.id) {
             const { data, error } = await supabase
                 .from('inspection_findings')
                 .update(payload)
                 .eq('id', findingData.id)
-                .select(`*, finding_photos (*)`)
+                .select(`
+                    *,
+                    finding_photos (*)
+                `)
                 .single();
 
             if (error) throw new Error(error.message);
+
             result = data;
         } else {
             const { data, error } = await supabase
                 .from('inspection_findings')
                 .insert([payload])
-                .select(`*, finding_photos (*)`)
+                .select(`
+                    *,
+                    finding_photos (*)
+                `)
                 .single();
 
             if (error) throw new Error(error.message);
+
             result = data;
         }
 
