@@ -1,6 +1,5 @@
 export const inspectionScoring = {
     calculateScores(findings = []) {
-        // Base score per category starts at 100
         const scores = {
             mechanical: 100,
             electrical: 100,
@@ -12,17 +11,39 @@ export const inspectionScoring = {
             road: 100
         };
 
+        let hasCritical = false;
+
         findings.forEach(f => {
             const area = (f.area || '').trim();
-            const rating = (f.rating || 'PASS').toUpperCase();
+            const rating = String(f.rating || 'GOOD').toUpperCase();
             const severity = parseInt(f.severity || 1, 10);
+            const isSafetyCritical = rating === 'CRITICAL' || f.is_safety_critical;
 
-            // Deductions based on severity and rating
+            if (isSafetyCritical) {
+                hasCritical = true;
+            }
+
             let deduction = 0;
-            if (rating === 'FAIL') {
-                deduction = severity >= 4 ? 25 : 15;
-            } else if (rating === 'ATTENTION') {
-                deduction = severity >= 3 ? 10 : 5;
+
+            switch (rating) {
+                case 'GOOD':
+                    deduction = 0;
+                    break;
+                case 'FAIR':
+                    deduction = 3 + severity;
+                    break;
+                case 'ATTENTION':
+                    deduction = 8 + (severity * 4);
+                    break;
+                case 'CRITICAL':
+                    deduction = 25 + (severity * 10);
+                    break;
+                default:
+                    deduction = 0;
+            }
+
+            if (isSafetyCritical) {
+                deduction += 25;
             }
 
             if (deduction > 0) {
@@ -60,10 +81,10 @@ export const inspectionScoring = {
         let recommendation = 'Recommended for purchase with zero major structural issues.';
         let summary = 'Thorough multi-point inspection completed successfully. All core systems verified.';
 
-        if (overall < 70) {
+        if (hasCritical || overall < 70) {
             condition = 'Requires Significant Attention';
-            recommendation = 'Major repairs required before purchase.';
-            summary = 'Inspection identified critical structural or mechanical findings requiring remediation.';
+            recommendation = 'Major repairs or critical safety fixes required before purchase.';
+            summary = 'Inspection identified critical structural, safety, or mechanical findings requiring remediation.';
         } else if (overall < 85) {
             condition = 'Good with Minor Wear';
             recommendation = 'Recommended for purchase after minor servicing.';
