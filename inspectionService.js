@@ -2,46 +2,24 @@ import { supabase } from './supabaseClient.js';
 import { inspectionScoring } from './inspectionScoring.js';
 
 export const inspectionService = {
-    /**
-     * Fetches all inspections for a specific vehicle.
-     */
     async getInspectionsForVehicle(vehicleId) {
         if (!vehicleId) throw new Error('Vehicle ID is required.');
-
         const { data, error } = await supabase
             .from('inspections')
-            .select(`
-                *,
-                inspection_findings (
-                    *,
-                    finding_photos (*)
-                )
-            `)
+            .select(`*, inspection_findings (*, finding_photos (*))`)
             .eq('vehicle_id', vehicleId)
             .order('created_at', { ascending: false });
-
         if (error) throw new Error(error.message);
         return data || [];
     },
 
-    /**
-     * Fetches a single inspection by its ID with all findings and photos.
-     */
     async getInspectionById(inspectionId) {
         if (!inspectionId) throw new Error('Inspection ID is required.');
-
         const { data, error } = await supabase
             .from('inspections')
-            .select(`
-                *,
-                inspection_findings (
-                    *,
-                    finding_photos (*)
-                )
-            `)
+            .select(`*, inspection_findings (*, finding_photos (*))`)
             .eq('id', inspectionId)
             .single();
-
         if (error) throw new Error(error.message);
         return data;
     },
@@ -50,34 +28,20 @@ export const inspectionService = {
         return this.getInspectionById(inspectionId);
     },
 
-    /**
-     * Gets or creates an active (DRAFT or IN_PROGRESS) inspection for a vehicle.
-     */
     async createInspection(vehicleId, initialData = {}) {
         if (!vehicleId) throw new Error('Vehicle ID is required.');
 
-        // 1. Check for existing active inspection
         const { data: existingList, error: fetchError } = await supabase
             .from('inspections')
-            .select(`
-                *,
-                inspection_findings (
-                    *,
-                    finding_photos (*)
-                )
-            `)
+            .select(`*, inspection_findings (*, finding_photos (*))`)
             .eq('vehicle_id', vehicleId)
             .in('inspection_status', ['DRAFT', 'IN_PROGRESS'])
             .order('created_at', { ascending: false })
             .limit(1);
 
         if (fetchError) throw new Error(fetchError.message);
+        if (existingList && existingList.length > 0) return existingList[0];
 
-        if (existingList && existingList.length > 0) {
-            return existingList[0];
-        }
-
-        // 2. Fetch vehicle details for mileage fallback
         const { data: vehicle, error: vError } = await supabase
             .from('vehicles')
             .select('mileage')
@@ -101,47 +65,36 @@ export const inspectionService = {
         const { data: newInsp, error: createError } = await supabase
             .from('inspections')
             .insert([payload])
-            .select(`
-                *,
-                inspection_findings (
-                    *,
-                    finding_photos (*)
-                )
-            `)
+            .select(`*, inspection_findings (*, finding_photos (*))`)
             .single();
 
         if (createError) throw new Error(createError.message);
         return newInsp;
     },
 
-    /**
-     * Updates general inspection metadata.
-     */
     async updateInspectionDetails(inspectionId, updates) {
         if (!inspectionId) throw new Error('Inspection ID is required.');
-
-        const payload = {
-            ...updates,
-            updated_at: new Date().toISOString()
-        };
-
+        const payload = { ...updates, updated_at: new Date().toISOString() };
         const { data, error } = await supabase
             .from('inspections')
             .update(payload)
             .eq('id', inspectionId)
             .select()
             .single();
-
         if (error) throw new Error(error.message);
         return data;
     },
 
-    /**
-     * Adds or updates an inspection finding with strict severity integer validation.
-     */
     async addInspectionFinding(inspectionId, findingData) {
         if (!inspectionId) {
             throw new Error('Inspection ID is required.');
+        }
+
+        const allowedRatings = ['GOOD', 'FAIR', 'ATTENTION', 'CRITICAL'];
+        const rating = String(findingData.rating || 'GOOD').toUpperCase();
+
+        if (!allowedRatings.includes(rating)) {
+            throw new Error(`Invalid finding rating: ${rating}. Allowed values: GOOD, FAIR, ATTENTION, CRITICAL.`);
         }
 
         const severity = Number(findingData.severity);
@@ -149,8 +102,6 @@ export const inspectionService = {
         if (!Number.isInteger(severity) || severity < 1 || severity > 5) {
             throw new Error('Severity must be an integer from 1 to 5.');
         }
-
-        const rating = (findingData.rating || 'PASS').toUpperCase();
 
         const payload = {
             inspection_id: inspectionId,
@@ -187,27 +138,17 @@ export const inspectionService = {
                 .from('inspection_findings')
                 .update(payload)
                 .eq('id', findingData.id)
-                .select(`
-                    *,
-                    finding_photos (*)
-                `)
+                .select(`*, finding_photos (*)`)
                 .single();
-
             if (error) throw new Error(error.message);
-
             result = data;
         } else {
             const { data, error } = await supabase
                 .from('inspection_findings')
                 .insert([payload])
-                .select(`
-                    *,
-                    finding_photos (*)
-                `)
+                .select(`*, finding_photos (*)`)
                 .single();
-
             if (error) throw new Error(error.message);
-
             result = data;
         }
 
@@ -218,17 +159,9 @@ export const inspectionService = {
         return this.addInspectionFinding(inspectionId, findingData);
     },
 
-    /**
-     * Deletes an inspection finding.
-     */
     async deleteInspectionFinding(findingId) {
         if (!findingId) throw new Error('Finding ID is required.');
-
-        const { error } = await supabase
-            .from('inspection_findings')
-            .delete()
-            .eq('id', findingId);
-
+        const { error } = await supabase.from('inspection_findings').delete().eq('id', findingId);
         if (error) throw new Error(error.message);
         return true;
     },
@@ -237,33 +170,18 @@ export const inspectionService = {
         return this.deleteInspectionFinding(findingId);
     },
 
-    /**
-     * Uploads an evidence photo for a finding.
-     */
     async uploadFindingPhoto(findingId, file, caption = null) {
         if (!findingId || !file) throw new Error('Finding ID and file are required.');
-
         const fileExt = file.name.split('.').pop();
         const fileName = `findings/${findingId}/${Math.random().toString(36).substring(2, 10)}.${fileExt}`;
 
-        const { error: uploadError } = await supabase.storage
-            .from('vehicle-photos')
-            .upload(fileName, file);
-
+        const { error: uploadError } = await supabase.storage.from('vehicle-photos').upload(fileName, file);
         if (uploadError) throw new Error(uploadError.message);
 
-        const { data: { publicUrl } } = supabase.storage
-            .from('vehicle-photos')
-            .getPublicUrl(fileName);
-
+        const { data: { publicUrl } } = supabase.storage.from('vehicle-photos').getPublicUrl(fileName);
         const { data, error } = await supabase
             .from('finding_photos')
-            .insert([{
-                finding_id: findingId,
-                storage_path: fileName,
-                public_url: publicUrl,
-                caption: caption
-            }])
+            .insert([{ finding_id: findingId, storage_path: fileName, public_url: publicUrl, caption }])
             .select()
             .single();
 
@@ -271,35 +189,19 @@ export const inspectionService = {
             await supabase.storage.from('vehicle-photos').remove([fileName]);
             throw new Error(error.message);
         }
-
         return data;
     },
 
     async deleteFindingPhoto(photoId) {
-        const { data: photo, error: fetchErr } = await supabase
-            .from('finding_photos')
-            .select('*')
-            .eq('id', photoId)
-            .single();
-
+        const { data: photo, error: fetchErr } = await supabase.from('finding_photos').select('*').eq('id', photoId).single();
         if (fetchErr || !photo) throw new Error('Photo not found.');
-
-        if (photo.storage_path) {
-            await supabase.storage.from('vehicle-photos').remove([photo.storage_path]);
-        }
-
-        const { error } = await supabase
-            .from('finding_photos')
-            .delete()
-            .eq('id', photoId);
-
+        if (photo.storage_path) await supabase.storage.from('vehicle-photos').remove([photo.storage_path]);
+        
+        const { error } = await supabase.from('finding_photos').delete().eq('id', photoId);
         if (error) throw new Error(error.message);
         return true;
     },
 
-    /**
-     * Computes scores and marks inspection as COMPLETED.
-     */
     async completeInspection(inspectionId, finalData = {}) {
         if (!inspectionId) throw new Error('Inspection ID is required.');
 
@@ -329,13 +231,7 @@ export const inspectionService = {
             .from('inspections')
             .update(payload)
             .eq('id', inspectionId)
-            .select(`
-                *,
-                inspection_findings (
-                    *,
-                    finding_photos (*)
-                )
-            `)
+            .select(`*, inspection_findings (*, finding_photos (*))`)
             .single();
 
         if (error) throw new Error(error.message);
@@ -344,17 +240,12 @@ export const inspectionService = {
 
     async cancelInspection(inspectionId) {
         if (!inspectionId) throw new Error('Inspection ID is required.');
-
         const { data, error } = await supabase
             .from('inspections')
-            .update({
-                inspection_status: 'CANCELLED',
-                updated_at: new Date().toISOString()
-            })
+            .update({ inspection_status: 'CANCELLED', updated_at: new Date().toISOString() })
             .eq('id', inspectionId)
             .select()
             .single();
-
         if (error) throw new Error(error.message);
         return data;
     }
