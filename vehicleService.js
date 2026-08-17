@@ -140,7 +140,7 @@ export const vehicleService = {
             }
         }
 
-        // 2. Delete vehicle record (cascade handles findings, inspections, photo rows if configured, or delete explicitly)
+        // 2. Delete vehicle record
         const { error: deleteErr } = await supabase
             .from('vehicles')
             .delete()
@@ -176,118 +176,71 @@ export const vehicleService = {
     /**
      * ==========================================
      * VEHICLE LIFECYCLE ACTIONS
-     * Protected state changes MUST use database RPCs.
      * ==========================================
      */
 
     async verifyVehicle(vehicleId) {
-        if (!vehicleId) {
-            throw new Error('Vehicle ID is required.');
-        }
-
-        const { data, error } = await supabase.rpc('verify_vehicle', {
-            p_vehicle_id: vehicleId
-        });
-
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
+        const { data, error } = await supabase.rpc('verify_vehicle', { p_vehicle_id: vehicleId });
         if (error) throw new Error(error.message);
         return data;
     },
 
     async rejectVehicle(vehicleId, reason) {
-        if (!vehicleId) {
-            throw new Error('Vehicle ID is required.');
-        }
-
-        const { data, error } = await supabase.rpc('reject_vehicle', {
-            p_vehicle_id: vehicleId,
-            p_reason: reason || null
-        });
-
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
+        const { data, error } = await supabase.rpc('reject_vehicle', { p_vehicle_id: vehicleId, p_reason: reason || null });
         if (error) throw new Error(error.message);
         return data;
     },
 
     async publishVehicle(vehicleId) {
-        if (!vehicleId) {
-            throw new Error('Vehicle ID is required.');
-        }
-
-        const { data, error } = await supabase.rpc('publish_vehicle', {
-            p_vehicle_id: vehicleId
-        });
-
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
+        const { data, error } = await supabase.rpc('publish_vehicle', { p_vehicle_id: vehicleId });
         if (error) throw new Error(error.message);
         return data;
     },
 
     async unpublishVehicle(vehicleId) {
-        if (!vehicleId) {
-            throw new Error('Vehicle ID is required.');
-        }
-
-        const { data, error } = await supabase.rpc('unpublish_vehicle', {
-            p_vehicle_id: vehicleId
-        });
-
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
+        const { data, error } = await supabase.rpc('unpublish_vehicle', { p_vehicle_id: vehicleId });
         if (error) throw new Error(error.message);
         return data;
     },
 
     async reserveVehicle(vehicleId) {
-        if (!vehicleId) {
-            throw new Error('Vehicle ID is required.');
-        }
-
-        const { data, error } = await supabase.rpc('reserve_vehicle', {
-            p_vehicle_id: vehicleId
-        });
-
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
+        const { data, error } = await supabase.rpc('reserve_vehicle', { p_vehicle_id: vehicleId });
         if (error) throw new Error(error.message);
         return data;
     },
 
     async markAvailable(vehicleId) {
-        if (!vehicleId) {
-            throw new Error('Vehicle ID is required.');
-        }
-
-        const { data, error } = await supabase.rpc('mark_vehicle_available', {
-            p_vehicle_id: vehicleId
-        });
-
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
+        const { data, error } = await supabase.rpc('mark_vehicle_available', { p_vehicle_id: vehicleId });
         if (error) throw new Error(error.message);
         return data;
     },
 
     async markSold(vehicleId) {
-        if (!vehicleId) {
-            throw new Error('Vehicle ID is required.');
-        }
-
-        const { data, error } = await supabase.rpc('mark_vehicle_sold', {
-            p_vehicle_id: vehicleId
-        });
-
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
+        const { data, error } = await supabase.rpc('mark_vehicle_sold', { p_vehicle_id: vehicleId });
         if (error) throw new Error(error.message);
         return data;
     },
 
     async archiveVehicle(vehicleId) {
-        if (!vehicleId) {
-            throw new Error('Vehicle ID is required.');
-        }
-
-        const { data, error } = await supabase.rpc('archive_vehicle', {
-            p_vehicle_id: vehicleId
-        });
-
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
+        const { data, error } = await supabase.rpc('archive_vehicle', { p_vehicle_id: vehicleId });
         if (error) throw new Error(error.message);
         return data;
     },
 
     /**
-     * Uploads a vehicle gallery photo to Supabase Storage and creates a vehicle_photos record.
+     * ==========================================
+     * PHOTO MANAGEMENT METHODS
+     * ==========================================
      */
+
     async uploadVehiclePhoto(vehicleId, file, options = {}) {
         if (!file || !(file instanceof File)) {
             throw new Error('A valid file is required.');
@@ -306,7 +259,14 @@ export const vehicleService = {
             .from('vehicle-photos')
             .getPublicUrl(fileName);
 
-        const isPrimary = options.is_primary || false;
+        // Check if vehicle has existing photos
+        const { count } = await supabase
+            .from('vehicle_photos')
+            .select('*', { count: 'exact', head: true })
+            .eq('vehicle_id', vehicleId);
+
+        const isFirstPhoto = (count === 0);
+        const isPrimary = options.is_primary || isFirstPhoto;
 
         if (isPrimary) {
             await supabase
@@ -322,7 +282,7 @@ export const vehicleService = {
                 storage_path: fileName,
                 public_url: publicUrl,
                 is_primary: isPrimary,
-                sort_order: options.sort_order !== undefined ? parseInt(options.sort_order, 10) : 0,
+                sort_order: options.sort_order !== undefined ? parseInt(options.sort_order, 10) : (count || 0),
                 category: options.category || 'General',
                 caption: options.caption || null
             }])
@@ -343,24 +303,43 @@ export const vehicleService = {
         return this.uploadVehiclePhoto(vehicleId, file, options);
     },
 
-    /**
-     * Fetches photos for a vehicle.
-     */
     async getVehiclePhotos(vehicleId) {
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
         const { data, error } = await supabase
             .from('vehicle_photos')
             .select('*')
             .eq('vehicle_id', vehicleId)
+            .order('is_primary', { ascending: false })
             .order('sort_order', { ascending: true });
 
         if (error) throw new Error(error.message);
         return data || [];
     },
 
-    /**
-     * Deletes a vehicle photo from storage and database.
-     */
+    async setPrimaryPhoto(vehicleId, photoId) {
+        if (!vehicleId || !photoId) throw new Error('Vehicle ID and Photo ID are required.');
+
+        const { error: resetError } = await supabase
+            .from('vehicle_photos')
+            .update({ is_primary: false })
+            .eq('vehicle_id', vehicleId);
+
+        if (resetError) throw new Error(resetError.message);
+
+        const { data, error: setPrimaryError } = await supabase
+            .from('vehicle_photos')
+            .update({ is_primary: true })
+            .eq('id', photoId)
+            .select()
+            .single();
+
+        if (setPrimaryError) throw new Error(setPrimaryError.message);
+        return data;
+    },
+
     async deleteVehiclePhoto(photoId) {
+        if (!photoId) throw new Error('Photo ID is required.');
+
         const { data: photo, error: fetchError } = await supabase
             .from('vehicle_photos')
             .select('*')
@@ -368,6 +347,9 @@ export const vehicleService = {
             .single();
 
         if (fetchError || !photo) throw new Error('Photo not found.');
+
+        const vehicleId = photo.vehicle_id;
+        const wasPrimary = photo.is_primary;
 
         if (photo.storage_path) {
             await supabase.storage
@@ -381,12 +363,29 @@ export const vehicleService = {
             .eq('id', photoId);
 
         if (error) throw new Error(error.message);
+
+        // Automatic Primary Promotion if deleted photo was primary
+        if (wasPrimary && vehicleId) {
+            const { data: remainingPhotos } = await supabase
+                .from('vehicle_photos')
+                .select('*')
+                .eq('vehicle_id', vehicleId)
+                .order('sort_order', { ascending: true })
+                .limit(1);
+
+            if (remainingPhotos && remainingPhotos.length > 0) {
+                await supabase
+                    .from('vehicle_photos')
+                    .update({ is_primary: true })
+                    .eq('id', remainingPhotos[0].id);
+            }
+        }
+
         return true;
     },
 
     /**
-     * Fetches vehicles that are publicly verified and published,
-     * resolving gallery photos and primary image data.
+     * Fetches vehicles that are publicly verified and published.
      */
     async getVerifiedVehicles(filters = {}) {
         let query = supabase
@@ -653,6 +652,7 @@ export const {
     uploadVehiclePhoto,
     addVehiclePhoto,
     getVehiclePhotos,
+    setPrimaryPhoto,
     deleteVehiclePhoto,
     getVerifiedVehicles,
     getPublicVehicleDetails
