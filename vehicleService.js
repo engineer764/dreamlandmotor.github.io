@@ -355,35 +355,62 @@ export const vehicleService = {
         return true;
     },
 
-   /**
- * Fetches vehicles that are publicly verified and published,
- * including their gallery photos and resolved primary photo.
- */
-async getVerifiedVehicles() {
-    const { data, error } = await supabase
-        .from('vehicles')
-        .select(`
-            id,
-            vehicle_code,
-            year,
-            make,
-            model,
-            trim,
-            mileage,
-            engine,
-            transmission,
-            fuel_type,
-            colour,
-            body_type,
-            location,
-            price,
-            currency,
-            description,
-            verification_status,
-            publication_status,
-            verification_reference,
-            verified_at,
-            vehicle_photos (
+    /**
+     * Fetches vehicles that are publicly verified and published,
+     * resolving gallery photos and primary image data.
+     */
+    async getVerifiedVehicles(filters = {}) {
+        let query = supabase
+            .from('vehicles')
+            .select(`
+                id,
+                vehicle_code,
+                year,
+                make,
+                model,
+                trim,
+                mileage,
+                engine,
+                transmission,
+                fuel_type,
+                colour,
+                body_type,
+                location,
+                price,
+                currency,
+                description,
+                verification_status,
+                publication_status,
+                verification_reference,
+                verified_at
+            `)
+            .eq('verification_status', 'VERIFIED')
+            .eq('publication_status', 'PUBLISHED');
+
+        if (filters.location && filters.location.trim() !== '') {
+            query = query.eq('location', filters.location.trim());
+        }
+
+        if (filters.search && filters.search.trim() !== '') {
+            const term = `%${filters.search.trim()}%`;
+            query = query.or(`make.ilike.${term},model.ilike.${term},trim.ilike.${term},vehicle_code.ilike.${term}`);
+        }
+
+        const { data: vehicles, error: vehicleError } = await query.order('created_at', { ascending: false });
+
+        if (vehicleError) {
+            throw new Error(vehicleError.message);
+        }
+
+        if (!vehicles || vehicles.length === 0) {
+            return [];
+        }
+
+        const vehicleIds = vehicles.map(vehicle => vehicle.id);
+
+        const { data: photos, error: photoError } = await supabase
+            .from('vehicle_photos')
+            .select(`
                 id,
                 vehicle_id,
                 storage_path,
@@ -392,45 +419,49 @@ async getVerifiedVehicles() {
                 sort_order,
                 category,
                 caption
-            )
-        `)
-        .eq('verification_status', 'VERIFIED')
-        .eq('publication_status', 'PUBLISHED')
-        .order('created_at', { ascending: false });
+            `)
+            .in('vehicle_id', vehicleIds)
+            .order('sort_order', { ascending: true });
 
-    if (error) {
-        throw new Error(error.message);
-    }
+        if (photoError) {
+            throw new Error(photoError.message);
+        }
 
-    return (data || []).map(vehicle => {
-        const photos = (vehicle.vehicle_photos || [])
-            .filter(photo => photo.public_url)
-            .sort((a, b) => {
-                // Primary photos first.
-                if (a.is_primary && !b.is_primary) return -1;
-                if (!a.is_primary && b.is_primary) return 1;
+        const photosByVehicle = new Map();
 
-                // Then lowest sort order.
-                return (a.sort_order ?? 0) - (b.sort_order ?? 0);
-            });
+        for (const photo of photos || []) {
+            if (!photo.vehicle_id || !photo.public_url) {
+                continue;
+            }
 
-        const primaryPhoto =
-            photos.find(photo => photo.is_primary === true) ||
-            photos[0] ||
-            null;
+            if (!photosByVehicle.has(photo.vehicle_id)) {
+                photosByVehicle.set(photo.vehicle_id, []);
+            }
 
-        return {
-            ...vehicle,
+            photosByVehicle.get(photo.vehicle_id).push(photo);
+        }
 
-            // Normalized gallery expected by the public listing.
-            photos,
+        return vehicles.map(vehicle => {
+            const vehiclePhotos = photosByVehicle.get(vehicle.id) || [];
 
-            // Explicit primary image fields.
-            primary_photo_url: primaryPhoto?.public_url || null,
-            primary_photo_id: primaryPhoto?.id || null
-        };
-    });
-},
+            const primaryPhoto =
+                vehiclePhotos.find(
+                    photo => photo.is_primary === true && photo.public_url
+                ) ||
+                vehiclePhotos.find(
+                    photo => photo.public_url
+                ) ||
+                null;
+
+            return {
+                ...vehicle,
+                photos: vehiclePhotos,
+                primary_photo_url: primaryPhoto?.public_url || null,
+                primary_photo_id: primaryPhoto?.id || null
+            };
+        });
+    },
+
     /**
      * ==========================================
      * PUBLIC DATA ADAPTER (vehicle-details.html)
