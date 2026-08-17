@@ -92,6 +92,49 @@
         .btn-secondary:hover { background: #475569; }
         .btn:disabled { background: #94a3b8; cursor: not-allowed; }
 
+        /* Photo Manager Grid */
+        .photo-manager-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 16px;
+            margin-top: 8px;
+        }
+        .photo-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .photo-card img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+        .photo-card-body {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 0.75rem;
+        }
+        .photo-badge {
+            background: #dcfce7;
+            color: var(--verified-green);
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        .photo-actions {
+            display: flex;
+            gap: 4px;
+            justify-content: space-between;
+        }
+
         /* Inventory Table */
         table {
             width: 100%;
@@ -233,8 +276,10 @@
                 <label>Price (₦) *</label>
                 <input type="number" id="price" required placeholder="14500000">
             </div>
+
+            <!-- Photo Section -->
             <div class="form-group full-width" id="photoPickerGroup">
-               <label>Primary Photo</label>
+               <label id="photoSectionLabel">Primary Photo</label>
                 <div class="photo-picker">
                     <button type="button" id="cameraPhotoBtn" class="action-btn" style="padding: 8px 14px; margin-right: 8px;">
                         Camera
@@ -251,7 +296,13 @@
                         </div>
                     </div>
                 </div>
+                <!-- Existing Photos Manager in Edit Mode -->
+                <div id="existingPhotosContainer" class="hidden" style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
+                    <label style="margin-bottom: 8px; display: block;">Vehicle Photos Gallery</label>
+                    <div id="vehiclePhotosManager" class="photo-manager-grid"></div>
+                </div>
             </div>
+
             <div class="form-group full-width">
                 <label>Initial Inspection Notes / Description</label>
                 <textarea id="description" rows="2" placeholder="Single owner, clean engine bay, awaiting full inspection..."></textarea>
@@ -359,7 +410,6 @@
                 if (car.sales_status === 'ARCHIVED') {
                     actionButtons = `<span style="color:#64748b; font-size:0.75rem;">Locked (Archived)</span>`;
                 } else {
-                    // 1. Inspection action
                     if (isVerified) {
                         const inspectionButtonLabel = isInspectionCompleted ? 'View Inspection' : 'Inspect';
                         actionButtons += `
@@ -371,7 +421,6 @@
                         `;
                     }
 
-                    // 2. Verification actions
                     if (!isVerified) {
                         if (car.verification_status === 'PENDING' || car.verification_status === 'IN_REVIEW' || !car.verification_status) {
                             actionButtons += `<button class="action-btn btn-verify" onclick="runAction('verify', '${car.id}')">Verify</button>`;
@@ -381,7 +430,6 @@
                         }
                     }
 
-                    // 3. Publication actions
                     if (isVerified && isInspectionCompleted) {
                         if (car.publication_status === 'PUBLISHED') {
                             actionButtons += `<button class="action-btn" onclick="runAction('unpublish', '${car.id}')">Unpublish</button>`;
@@ -390,7 +438,6 @@
                         }
                     }
 
-                    // 4. Sales status actions
                     if (isVerified && isInspectionCompleted) {
                         if (car.sales_status === 'AVAILABLE') {
                             actionButtons += `<button class="action-btn btn-reserve" onclick="runAction('reserve', '${car.id}')">Reserve</button>`;
@@ -401,11 +448,8 @@
                         }
                     }
 
-                    // 5. Edit and Delete actions (Available for all non-archived vehicles)
                     actionButtons += `<button class="action-btn btn-edit" onclick="editVehicle('${car.id}')">Edit</button>`;
                     actionButtons += `<button class="action-btn btn-delete" onclick="deleteVehicle('${car.id}')">Delete</button>`;
-
-                    // 6. Archive option
                     actionButtons += `<button class="action-btn btn-archive" onclick="runAction('archive', '${car.id}')">Archive</button>`;
                 }
 
@@ -459,16 +503,16 @@
 
                 await vehicleService.updateVehicle(editingVehicleId, vehicleData);
 
-                // If a new photo was selected during edit, upload it as primary/secondary without breaking existing photos
                 if (photoFile) {
                     await vehicleService.addVehiclePhoto(editingVehicleId, photoFile, {
-                        category: 'EXTERIOR',
-                        is_primary: false
+                        category: 'EXTERIOR'
                     });
+                    window.vehiclePhotoPicker?.clear();
                 }
 
                 alert('Vehicle updated successfully!');
-                cancelEditMode();
+                const currentId = editingVehicleId;
+                await editVehicle(currentId);
             } else {
                 submitBtn.disabled = true;
                 submitBtn.textContent = 'Saving Draft...';
@@ -507,7 +551,7 @@
         }
     }
 
-    window.editVehicle = function(vehicleId) {
+    window.editVehicle = async function(vehicleId) {
         const car = loadedVehicles.find(v => v.id === vehicleId);
         if (!car) {
             alert('Vehicle not found in local memory.');
@@ -534,12 +578,75 @@
 
         document.getElementById('formTitle').querySelector('span').textContent = `Edit Vehicle (${car.vehicle_code || car.id.substring(0,8)})`;
         document.getElementById('cancelEditBtn').classList.remove('hidden');
+        document.getElementById('photoSectionLabel').textContent = 'Add Another Photo';
         
         const submitBtn = document.getElementById('submitBtn');
         submitBtn.textContent = 'Save Changes';
         submitBtn.className = 'btn btn-secondary';
 
+        await renderPhotoManager(editingVehicleId);
+
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    async function renderPhotoManager(vehicleId) {
+        const container = document.getElementById('existingPhotosContainer');
+        const manager = document.getElementById('vehiclePhotosManager');
+        container.classList.remove('hidden');
+        manager.innerHTML = '<div style="color:#64748b; font-size:0.875rem;">Loading photos...</div>';
+
+        try {
+            const photos = await vehicleService.getVehiclePhotos(vehicleId);
+            if (!photos || photos.length === 0) {
+                manager.innerHTML = '<div style="color:#64748b; font-size:0.875rem; grid-column:1/-1;">No photos uploaded yet for this vehicle. Use the uploader above to add photos.</div>';
+                return;
+            }
+
+            manager.innerHTML = '';
+            photos.forEach(photo => {
+                const isPrimary = photo.is_primary;
+                const card = document.createElement('div');
+                card.className = 'photo-card';
+                card.innerHTML = `
+                    <img src="${photo.public_url}" alt="Vehicle photo">
+                    <div class="photo-card-body">
+                        ${isPrimary ? '<div class="photo-badge">Primary</div>' : '<div style="color:#64748b; text-align:center; font-weight:500;">Gallery Photo</div>'}
+                        <div class="photo-actions">
+                            ${!isPrimary ? `<button type="button" class="action-btn" style="flex:1;" onclick="setPrimaryPhoto('${photo.id}', '${vehicleId}')">Set as Main</button>` : ''}
+                            <button type="button" class="action-btn btn-delete" style="${isPrimary ? 'width:100%;' : 'flex:1;'}" onclick="removePhoto('${photo.id}', '${vehicleId}')">Delete</button>
+                        </div>
+                    </div>
+                `;
+                manager.appendChild(card);
+            });
+        } catch (err) {
+            manager.innerHTML = `<div style="color:red; font-size:0.875rem;">Error loading photos: ${err.message}</div>`;
+        }
+    }
+
+    window.setPrimaryPhoto = async function(photoId, vehicleId) {
+        try {
+            await vehicleService.setPrimaryPhoto(vehicleId, photoId);
+            await renderPhotoManager(vehicleId);
+            loadInventory();
+        } catch (err) {
+            alert('Failed to set primary photo: ' + err.message);
+        }
+    };
+
+    window.removePhoto = async function(photoId, vehicleId) {
+        if (!confirm('Delete this photo permanently?')) {
+            return;
+        }
+
+        try {
+            await vehicleService.deleteVehiclePhoto(photoId);
+            window.vehiclePhotoPicker?.clear();
+            await renderPhotoManager(vehicleId);
+            loadInventory();
+        } catch (err) {
+            alert('Failed to delete photo: ' + err.message);
+        }
     };
 
     window.cancelEditMode = function() {
@@ -548,6 +655,9 @@
         window.vehiclePhotoPicker?.clear();
         document.getElementById('formTitle').querySelector('span').textContent = 'Register New Vehicle Draft';
         document.getElementById('cancelEditBtn').classList.add('hidden');
+        document.getElementById('photoSectionLabel').textContent = 'Primary Photo';
+        document.getElementById('existingPhotosContainer').classList.add('hidden');
+        document.getElementById('vehiclePhotosManager').innerHTML = '';
         
         const submitBtn = document.getElementById('submitBtn');
         submitBtn.textContent = 'Save as Draft';
