@@ -92,7 +92,7 @@
         .btn-secondary:hover { background: #475569; }
         .btn:disabled { background: #94a3b8; cursor: not-allowed; }
 
-        /* Photo Management Section in Edit Mode */
+        /* Photo Manager Grid */
         .photo-manager-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -277,7 +277,7 @@
                 <input type="number" id="price" required placeholder="14500000">
             </div>
 
-            <!-- Photo Section (Adapts for Create vs Edit Mode) -->
+            <!-- Photo Section -->
             <div class="form-group full-width" id="photoPickerGroup">
                <label id="photoSectionLabel">Primary Photo</label>
                 <div class="photo-picker">
@@ -296,7 +296,7 @@
                         </div>
                     </div>
                 </div>
-                <!-- Container for existing photos when editing -->
+                <!-- Existing Photos Manager in Edit Mode -->
                 <div id="existingPhotosContainer" class="hidden" style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
                     <label style="margin-bottom: 8px; display: block;">Vehicle Photos Gallery</label>
                     <div id="vehiclePhotosManager" class="photo-manager-grid"></div>
@@ -503,17 +503,16 @@
 
                 await vehicleService.updateVehicle(editingVehicleId, vehicleData);
 
-                // If a new photo was selected via the picker during edit, add it without touching existing photos
                 if (photoFile) {
                     await vehicleService.addVehiclePhoto(editingVehicleId, photoFile, {
                         category: 'EXTERIOR'
                     });
+                    window.vehiclePhotoPicker?.clear();
                 }
 
                 alert('Vehicle updated successfully!');
                 const currentId = editingVehicleId;
-                cancelEditMode();
-                await editVehicle(currentId); // Stay in edit mode to view updated gallery
+                await editVehicle(currentId);
             } else {
                 submitBtn.disabled = true;
                 submitBtn.textContent = 'Saving Draft...';
@@ -585,7 +584,6 @@
         submitBtn.textContent = 'Save Changes';
         submitBtn.className = 'btn btn-secondary';
 
-        // Load and render photo manager
         await renderPhotoManager(editingVehicleId);
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -643,6 +641,7 @@
 
         try {
             await vehicleService.deleteVehiclePhoto(photoId);
+            window.vehiclePhotoPicker?.clear();
             await renderPhotoManager(vehicleId);
             loadInventory();
         } catch (err) {
