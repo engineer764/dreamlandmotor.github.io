@@ -59,7 +59,7 @@ export const vehicleService = {
 
             return {
                 ...vehicle,
-                inspection_status: inspection?.inspection_status || 'PENDING',
+                inspection_status: inspection?.inspection_status || 'DRAFT',
                 inspection_id: inspection?.id || null,
                 inspection_date: inspection?.inspection_date || null,
                 inspection_completed_at: inspection?.completed_at || null
@@ -87,22 +87,22 @@ export const vehicleService = {
         return data;
     },
 
-   async createVehicle(vehicleData) {
-    if (!vehicleData || typeof vehicleData !== 'object') {
-        throw new Error('Vehicle data is required.');
-    }
+    async createVehicle(vehicleData) {
+        if (!vehicleData || typeof vehicleData !== 'object') {
+            throw new Error('Vehicle data is required.');
+        }
 
-    const { data, error } = await supabase.rpc('create_vehicle', {
-        p_data: vehicleData
-    });
+        const { data, error } = await supabase.rpc('create_vehicle', {
+            p_data: vehicleData
+        });
 
-    if (error) {
-        throw new Error(error.message);
-    }
+        if (error) {
+            throw new Error(error.message);
+        }
 
-    // RPC may return a single vehicle or an array depending on its definition.
-    return Array.isArray(data) ? data[0] : data;
-},
+        return Array.isArray(data) ? data[0] : data;
+    },
+
     /**
      * Updates an existing vehicle record.
      */
@@ -356,68 +356,62 @@ export const vehicleService = {
     },
 
     /**
- * Fetches vehicles that are publicly verified and available for display.
- */
-async getVerifiedVehicles() {
-    const { data, error } = await supabase
-        .from('vehicles')
-        .select(`
-            id,
-            vehicle_code,
-            year,
-            make,
-            model,
-            trim,
-            mileage,
-            engine,
-            transmission,
-            fuel_type,
-            colour,
-            body_type,
-            location,
-            price,
-            currency,
-            description,
-            verification_status,
-            verification_reference,
-            verified_at,
-            vehicle_photos (
+     * Fetches vehicles that are publicly verified and available for display.
+     */
+    async getVerifiedVehicles() {
+        const { data, error } = await supabase
+            .from('vehicles')
+            .select(`
                 id,
-                storage_path,
-                public_url,
-                is_primary,
-                sort_order
+                vehicle_code,
+                year,
+                make,
+                model,
+                trim,
+                mileage,
+                engine,
+                transmission,
+                fuel_type,
+                colour,
+                body_type,
+                location,
+                price,
+                currency,
+                description,
+                verification_status,
+                publication_status,
+                verification_reference,
+                verified_at,
+                vehicle_photos (
+                    id,
+                    storage_path,
+                    public_url,
+                    is_primary,
+                    sort_order
+                )
+            `)
+            .eq('verification_status', 'VERIFIED')
+            .eq('publication_status', 'PUBLISHED')
+            .order('created_at', { ascending: false });
+
+        if (error) throw new Error(error.message);
+
+        return (data || []).map(vehicle => ({
+            ...vehicle,
+            photos: (vehicle.vehicle_photos || []).sort(
+                (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
             )
-        `)
-        .eq('verification_status', 'VERIFIED')
-         .eq('publication_status', 'PUBLISHED')
-        .order('created_at', { ascending: false });
-
-    if (error) throw new Error(error.message);
-
-    return (data || []).map(vehicle => ({
-        ...vehicle,
-        photos: (vehicle.vehicle_photos || []).sort(
-            (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
-        )
-    }));
-},
+        }));
+    },
 
     /**
      * ==========================================
      * PUBLIC DATA ADAPTER (vehicle-details.html)
      * ==========================================
      */
-
-    /**
-     * Data Adapter for public vehicle-details.html:
-     * Fetches verified vehicle details with explicit public fields, gallery photos, 
-     * and completed inspections complete with explicit public findings and evidence photos.
-     */
     async getPublicVehicleDetails(vehicleId) {
         if (!vehicleId) throw new Error('Vehicle ID is required.');
 
-        // 1. Fetch Vehicle Record with Explicit Public Fields required by vehicle-details.html
         const { data: vehicle, error: vehicleError } = await supabase
             .from('vehicles')
             .select(`
@@ -448,7 +442,6 @@ async getVerifiedVehicles() {
 
         if (vehicleError || !vehicle) return null;
 
-        // 2. Fetch Vehicle Gallery Photos with Explicit Public Fields
         const { data: photos, error: photosError } = await supabase
             .from('vehicle_photos')
             .select(`
@@ -467,7 +460,6 @@ async getVerifiedVehicles() {
 
         vehicle.photos = (!photosError && photos) ? photos : [];
 
-        // 3. Fetch Completed Inspections with Explicit Public Fields for Findings & Evidence Photos
         const { data: inspections, error: inspError } = await supabase
             .from('inspections')
             .select(`
@@ -520,12 +512,14 @@ async getVerifiedVehicles() {
             vehicle.inspections = inspections.map(insp => {
                 const mappedFindings = (insp.inspection_findings || []).map(f => {
                     let severityLabel = f.rating;
-                    if (f.rating === 'FAIL') {
-                        severityLabel = f.severity >= 4 ? 'CRITICAL' : 'MAJOR';
+                    if (f.rating === 'CRITICAL') {
+                        severityLabel = f.is_safety_critical ? 'CRITICAL SAFETY' : 'CRITICAL';
                     } else if (f.rating === 'ATTENTION') {
                         severityLabel = f.severity >= 3 ? 'MODERATE' : 'MINOR';
+                    } else if (f.rating === 'FAIR') {
+                        severityLabel = 'FAIR';
                     } else {
-                        severityLabel = 'NOTE';
+                        severityLabel = 'GOOD';
                     }
 
                     return {
