@@ -121,13 +121,14 @@ export const vehicleService = {
         return Array.isArray(data) ? data[0] : data;
     },
 
-    /**
-     * Permanently deletes a vehicle record and cleans up associated storage files.
+  /**
+     * Permanently deletes a vehicle record using the secure atomic database RPC
+     * and cleans up associated storage objects from the bucket.
      */
     async deleteVehicle(vehicleId) {
         if (!vehicleId) throw new Error('Vehicle ID is required.');
 
-        // 1. Fetch associated photos to clean up storage bucket
+        // 1. Fetch associated photo storage paths before database cleanup
         const { data: photos, error: photoFetchErr } = await supabase
             .from('vehicle_photos')
             .select('storage_path')
@@ -140,39 +141,17 @@ export const vehicleService = {
             }
         }
 
-        // 2. Delete vehicle record
-        const { error: deleteErr } = await supabase
-            .from('vehicles')
-            .delete()
-            .eq('id', vehicleId);
-
-        if (deleteErr) throw new Error(deleteErr.message);
-        return true;
-    },
-
-    /**
-     * Updates vehicle price securely via database RPC.
-     */
-    async updateVehiclePrice(vehicleId, newPrice) {
-        if (!vehicleId) {
-            throw new Error('Vehicle ID is required.');
-        }
-
-        const price = parseFloat(newPrice);
-
-        if (!Number.isFinite(price) || price < 0) {
-            throw new Error('A valid vehicle price is required.');
-        }
-
-        const { data, error } = await supabase.rpc('update_vehicle_price', {
-            p_vehicle_id: vehicleId,
-            p_new_price: price
+        // 2. Execute atomic database cascade deletion via secure RPC
+        const { error: rpcError } = await supabase.rpc('delete_vehicle', {
+            p_vehicle_id: vehicleId
         });
 
-        if (error) throw new Error(error.message);
-        return data;
-    },
+        if (rpcError) {
+            throw new Error(rpcError.message);
+        }
 
+        return true;
+    },
     /**
      * ==========================================
      * VEHICLE LIFECYCLE ACTIONS
