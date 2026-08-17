@@ -104,21 +104,50 @@ export const vehicleService = {
     },
 
     /**
-     * Updates an existing vehicle record.
+     * Updates an existing vehicle record securely via database RPC.
      */
     async updateVehicle(vehicleId, updateData) {
-        const { data, error } = await supabase
-            .from('vehicles')
-            .update({
-                ...updateData,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', vehicleId)
-            .select()
-            .single();
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
+        if (!updateData || typeof updateData !== 'object') {
+            throw new Error('Update data is required.');
+        }
+
+        const { data, error } = await supabase.rpc('update_vehicle', {
+            p_vehicle_id: vehicleId,
+            p_data: updateData
+        });
 
         if (error) throw new Error(error.message);
-        return data;
+        return Array.isArray(data) ? data[0] : data;
+    },
+
+    /**
+     * Permanently deletes a vehicle record and cleans up associated storage files.
+     */
+    async deleteVehicle(vehicleId) {
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
+
+        // 1. Fetch associated photos to clean up storage bucket
+        const { data: photos, error: photoFetchErr } = await supabase
+            .from('vehicle_photos')
+            .select('storage_path')
+            .eq('vehicle_id', vehicleId);
+
+        if (!photoFetchErr && photos && photos.length > 0) {
+            const pathsToRemove = photos.map(p => p.storage_path).filter(Boolean);
+            if (pathsToRemove.length > 0) {
+                await supabase.storage.from('vehicle-photos').remove(pathsToRemove);
+            }
+        }
+
+        // 2. Delete vehicle record (cascade handles findings, inspections, photo rows if configured, or delete explicitly)
+        const { error: deleteErr } = await supabase
+            .from('vehicles')
+            .delete()
+            .eq('id', vehicleId);
+
+        if (deleteErr) throw new Error(deleteErr.message);
+        return true;
     },
 
     /**
@@ -611,6 +640,7 @@ export const {
     getVehicleById,
     createVehicle,
     updateVehicle,
+    deleteVehicle,
     updateVehiclePrice,
     verifyVehicle,
     rejectVehicle,
