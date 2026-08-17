@@ -1,657 +1,630 @@
-import { supabase } from './supabaseClient.js';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dreamland Admin Portal — Lifecycle & Inspection Operations</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --verified-green: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--primary);
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 { margin: 0; font-size: 1.25rem; }
+        .user-info { font-size: 0.875rem; color: #94a3b8; display: flex; gap: 16px; align-items: center; }
+        .logout-btn { background: #334155; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .logout-btn:hover { background: var(--danger); }
 
-export const vehicleService = {
-    /**
-     * ==========================================
-     * ADMIN & INVENTORY MANAGEMENT METHODS
-     * ==========================================
-     */
-
-    /**
-     * Fetches all vehicles for the admin inventory dashboard, 
-     * enriching each vehicle record with its latest inspection status.
-     */
-    async getAdminVehicles() {
-        const { data: vehicles, error: vehicleError } = await supabase
-            .from('vehicles')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-        if (vehicleError) {
-            throw new Error(vehicleError.message);
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 16px;
         }
 
-        if (!vehicles || vehicles.length === 0) {
-            return [];
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .card h2 { margin-top: 0; font-size: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+
+        form {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+        @media(min-width: 768px) {
+            form { grid-template-columns: repeat(4, 1fr); }
+            .full-width { grid-column: span 4; }
         }
 
-        const vehicleIds = vehicles.map(v => v.id);
-
-        const { data: inspections, error: inspectionError } = await supabase
-            .from('inspections')
-            .select(`
-                id,
-                vehicle_id,
-                inspection_status,
-                completed_at,
-                inspection_date
-            `)
-            .in('vehicle_id', vehicleIds)
-            .order('completed_at', { ascending: false, nullsFirst: false });
-
-        if (inspectionError) {
-            throw new Error(inspectionError.message);
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        label { font-size: 0.8125rem; font-weight: bold; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
+        input, select, textarea {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+            box-sizing: border-box;
+            outline: none;
         }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 
-        const latestInspectionByVehicle = new Map();
-
-        for (const inspection of inspections || []) {
-            if (!latestInspectionByVehicle.has(inspection.vehicle_id)) {
-                latestInspectionByVehicle.set(
-                    inspection.vehicle_id,
-                    inspection
-                );
-            }
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
         }
+        .btn:hover { background: #1d4ed8; }
+        .btn-success { background: var(--verified-green); }
+        .btn-success:hover { background: #15803d; }
+        .btn-secondary { background: #64748b; }
+        .btn-secondary:hover { background: #475569; }
+        .btn:disabled { background: #94a3b8; cursor: not-allowed; }
 
-        return vehicles.map(vehicle => {
-            const inspection = latestInspectionByVehicle.get(vehicle.id);
+        /* Inventory Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 0.875rem;
+        }
+        th, td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        th { background: #f1f5f9; font-weight: bold; color: #334155; }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .badge-verified { background: #dcfce7; color: var(--verified-green); }
+        .badge-pending { background: #fef9c3; color: #a16207; }
+        .badge-rejected { background: #fee2e2; color: var(--danger); }
+        .badge-published { background: #e0f2fe; color: #0369a1; }
+        .badge-unpublished { background: #f1f5f9; color: #475569; }
+        .badge-sales { background: #f3e8ff; color: #6b21a8; }
+        .badge-reserved { background: #ffedd5; color: #c2410c; }
+        .badge-sold { background: #f1f5f9; color: #334155; }
+        .badge-archived { background: #e2e8f0; color: #64748b; }
 
-            return {
-                ...vehicle,
-                inspection_status: inspection?.inspection_status || 'DRAFT',
-                inspection_id: inspection?.id || null,
-                inspection_date: inspection?.inspection_date || null,
-                inspection_completed_at: inspection?.completed_at || null
-            };
+        .action-cell { display: flex; flex-wrap: wrap; gap: 6px; }
+        .action-btn { padding: 5px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: white; cursor: pointer; font-weight: 600; }
+        .action-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+        
+        .btn-inspect { color: #7c3aed; border-color: #ddd6fe; background: #faf5ff; }
+        .btn-inspect:hover { background: #f3e8ff; border-color: #c4b5fd; }
+        .btn-verify { color: var(--verified-green); border-color: #bbf7d0; }
+        .btn-reject { color: var(--danger); border-color: #fca5a5; }
+        .btn-publish { color: #0284c7; border-color: #bae6fd; }
+        .btn-reserve { color: #c2410c; border-color: #fed7aa; }
+        .btn-sold { color: #475569; border-color: #cbd5e1; }
+        .btn-archive { color: #64748b; border-color: #cbd5e1; }
+        .btn-edit { color: #2563eb; border-color: #bfdbfe; background: #eff6ff; }
+        .btn-edit:hover { background: #dbeafe; }
+        .btn-delete { color: var(--danger); border-color: #fecaca; background: #fef2f2; }
+        .btn-delete:hover { background: #fee2e2; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Dreamland Admin Portal</h1>
+    <div class="user-info">
+        <span id="userEmail">Loading session...</span>
+        <button class="logout-btn" id="logoutBtn">Logout</button>
+    </div>
+</header>
+
+<div class="container">
+    <!-- Add / Edit Vehicle Form Card -->
+    <div class="card">
+        <h2 id="formTitle">
+            <span>Register New Vehicle Draft</span>
+            <button type="button" id="cancelEditBtn" class="action-btn hidden" onclick="cancelEditMode()">Cancel Edit</button>
+        </h2>
+        <form id="vehicleForm">
+            <div class="form-group">
+                <label>Make *</label>
+                <input type="text" id="make" required placeholder="e.g. Toyota">
+            </div>
+            <div class="form-group">
+                <label>Model *</label>
+                <input type="text" id="model" required placeholder="e.g. Camry">
+            </div>
+            <div class="form-group">
+                <label>Trim</label>
+                <input type="text" id="trim" placeholder="e.g. XLE">
+            </div>
+            <div class="form-group">
+                <label>Year *</label>
+                <input type="number" id="year" required placeholder="2020" min="1990" max="2035">
+            </div>
+            <div class="form-group">
+                <label>Mileage (km) *</label>
+                <input type="number" id="mileage" required placeholder="45000">
+            </div>
+            <div class="form-group">
+                <label>Engine Spec *</label>
+                <input type="text" id="engine" required placeholder="2.5L 4-Cylinder">
+            </div>
+            <div class="form-group">
+                <label>VIN</label>
+                <input type="text" id="vin" placeholder="Vehicle Identification Number">
+            </div>
+            <div class="form-group">
+                <label>Registration Number</label>
+                <input type="text" id="registration_number" placeholder="e.g. ABC-123XY">
+            </div>
+            <div class="form-group">
+                <label>Body Type</label>
+                <select id="body_type">
+                    <option value="Sedan">Sedan</option>
+                    <option value="SUV">SUV</option>
+                    <option value="Hatchback">Hatchback</option>
+                    <option value="Coupe">Coupe</option>
+                    <option value="Pickup">Pickup</option>
+                    <option value="Van">Van</option>
+                    <option value="Crossover">Crossover</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Transmission</label>
+                <select id="transmission">
+                    <option value="Automatic">Automatic</option>
+                    <option value="Manual">Manual</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Fuel Type</label>
+                <select id="fuel_type">
+                    <option value="Petrol">Petrol</option>
+                    <option value="Diesel">Diesel</option>
+                    <option value="Hybrid">Hybrid</option>
+                    <option value="Electric">Electric</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Colour</label>
+                <input type="text" id="colour" placeholder="Midnight Black">
+            </div>
+            <div class="form-group">
+                <label>Location</label>
+                <input type="text" id="location" value="Lagos Workshop">
+            </div>
+            <div class="form-group">
+                <label>Price (₦) *</label>
+                <input type="number" id="price" required placeholder="14500000">
+            </div>
+            <div class="form-group full-width" id="photoPickerGroup">
+               <label>Primary Photo</label>
+                <div class="photo-picker">
+                    <button type="button" id="cameraPhotoBtn" class="action-btn" style="padding: 8px 14px; margin-right: 8px;">
+                        Camera
+                    </button>
+                    <button type="button" id="galleryPhotoBtn" class="action-btn" style="padding: 8px 14px;">
+                        Choose from Gallery
+                    </button>
+                    <input type="file" id="cameraPhotoInput" accept="image/*" capture="environment" hidden>
+                    <input type="file" id="galleryPhotoInput" accept="image/*" hidden>
+                    <div id="photoPreviewContainer" style="margin-top:12px;">
+                        <img id="photoPreview" alt="Selected vehicle photo" hidden style="max-width:100%; max-height:250px; border-radius:8px;">
+                        <div id="photoFilename" style="font-size: 0.875rem; color: #64748b; margin-top: 4px;">
+                            No photo selected
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group full-width">
+                <label>Initial Inspection Notes / Description</label>
+                <textarea id="description" rows="2" placeholder="Single owner, clean engine bay, awaiting full inspection..."></textarea>
+            </div>
+            <div class="form-group">
+                <button type="submit" id="submitBtn" class="btn btn-success">Save as Draft</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Inventory Management List Card -->
+    <div class="card">
+        <h2>Inventory Lifecycle Management</h2>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Vehicle</th>
+                        <th>Price</th>
+                        <th>Verification</th>
+                        <th>Inspection</th>
+                        <th>Publication</th>
+                        <th>Sales Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="adminInventoryTable">
+                    <tr><td colspan="8" style="text-align: center; color: #64748b;">Loading inventory through service layer...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { requireAuth, logoutStaff } from './supabaseClient.js';
+    import { vehicleService } from './vehicleService.js';
+    import { createPhotoPicker } from './photo.js';
+
+    let loadedVehicles = [];
+    let editingVehicleId = null;
+
+    async function init() {
+        const auth = await requireAuth();
+        if (!auth) return;
+
+        document.getElementById('userEmail').textContent = `${auth.profile.full_name || auth.profile.email} (${auth.profile.role})`;
+
+        document.getElementById('logoutBtn').addEventListener('click', logoutStaff);
+        document.getElementById('vehicleForm').addEventListener('submit', handleFormSubmit);
+
+        window.vehiclePhotoPicker = createPhotoPicker({
+            cameraButtonId: 'cameraPhotoBtn',
+            galleryButtonId: 'galleryPhotoBtn',
+            cameraInputId: 'cameraPhotoInput',
+            galleryInputId: 'galleryPhotoInput',
+            previewId: 'photoPreview',
+            filenameId: 'photoFilename'
         });
-    },
 
-    async getAllVehicles() {
-        return this.getAdminVehicles();
-    },
-
-    /**
-     * Fetches a single vehicle by its UUID.
-     */
-    async getVehicleById(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
-
-        const { data, error } = await supabase
-            .from('vehicles')
-            .select('*')
-            .eq('id', vehicleId)
-            .single();
-
-        if (error) throw new Error(error.message);
-        return data;
-    },
-
-    async createVehicle(vehicleData) {
-        if (!vehicleData || typeof vehicleData !== 'object') {
-            throw new Error('Vehicle data is required.');
-        }
-
-        const { data, error } = await supabase.rpc('create_vehicle', {
-            p_data: vehicleData
-        });
-
-        if (error) {
-            throw new Error(error.message);
-        }
-
-        return Array.isArray(data) ? data[0] : data;
-    },
-
-    /**
-     * Updates an existing vehicle record securely via database RPC, including VIN and registration number.
-     */
-    async updateVehicle(vehicleId, updateData) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
-        if (!updateData || typeof updateData !== 'object') {
-            throw new Error('Update data is required.');
-        }
-
-        const { data, error } = await supabase.rpc('update_vehicle', {
-            p_vehicle_id: vehicleId,
-            p_data: updateData
-        });
-
-        if (error) throw new Error(error.message);
-        return Array.isArray(data) ? data[0] : data;
-    },
-
-    /**
-     * Permanently deletes a vehicle record and cleans up associated storage files.
-     */
-    async deleteVehicle(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
-
-        // 1. Fetch associated photos to clean up storage bucket
-        const { data: photos, error: photoFetchErr } = await supabase
-            .from('vehicle_photos')
-            .select('storage_path')
-            .eq('vehicle_id', vehicleId);
-
-        if (!photoFetchErr && photos && photos.length > 0) {
-            const pathsToRemove = photos.map(p => p.storage_path).filter(Boolean);
-            if (pathsToRemove.length > 0) {
-                await supabase.storage.from('vehicle-photos').remove(pathsToRemove);
-            }
-        }
-
-        // 2. Delete vehicle record
-        const { error: deleteErr } = await supabase
-            .from('vehicles')
-            .delete()
-            .eq('id', vehicleId);
-
-        if (deleteErr) throw new Error(deleteErr.message);
-        return true;
-    },
-
-    /**
-     * Updates vehicle price securely via database RPC.
-     */
-    async updateVehiclePrice(vehicleId, newPrice) {
-        if (!vehicleId) {
-            throw new Error('Vehicle ID is required.');
-        }
-
-        const price = parseFloat(newPrice);
-
-        if (!Number.isFinite(price) || price < 0) {
-            throw new Error('A valid vehicle price is required.');
-        }
-
-        const { data, error } = await supabase.rpc('update_vehicle_price', {
-            p_vehicle_id: vehicleId,
-            p_new_price: price
-        });
-
-        if (error) throw new Error(error.message);
-        return data;
-    },
-
-    /**
-     * ==========================================
-     * VEHICLE LIFECYCLE ACTIONS
-     * ==========================================
-     */
-
-    async verifyVehicle(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
-        const { data, error } = await supabase.rpc('verify_vehicle', { p_vehicle_id: vehicleId });
-        if (error) throw new Error(error.message);
-        return data;
-    },
-
-    async rejectVehicle(vehicleId, reason) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
-        const { data, error } = await supabase.rpc('reject_vehicle', { p_vehicle_id: vehicleId, p_reason: reason || null });
-        if (error) throw new Error(error.message);
-        return data;
-    },
-
-    async publishVehicle(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
-        const { data, error } = await supabase.rpc('publish_vehicle', { p_vehicle_id: vehicleId });
-        if (error) throw new Error(error.message);
-        return data;
-    },
-
-    async unpublishVehicle(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
-        const { data, error } = await supabase.rpc('unpublish_vehicle', { p_vehicle_id: vehicleId });
-        if (error) throw new Error(error.message);
-        return data;
-    },
-
-    async reserveVehicle(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
-        const { data, error } = await supabase.rpc('reserve_vehicle', { p_vehicle_id: vehicleId });
-        if (error) throw new Error(error.message);
-        return data;
-    },
-
-    async markAvailable(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
-        const { data, error } = await supabase.rpc('mark_vehicle_available', { p_vehicle_id: vehicleId });
-        if (error) throw new Error(error.message);
-        return data;
-    },
-
-    async markSold(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
-        const { data, error } = await supabase.rpc('mark_vehicle_sold', { p_vehicle_id: vehicleId });
-        if (error) throw new Error(error.message);
-        return data;
-    },
-
-    async archiveVehicle(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
-        const { data, error } = await supabase.rpc('archive_vehicle', { p_vehicle_id: vehicleId });
-        if (error) throw new Error(error.message);
-        return data;
-    },
-
-    /**
-     * ==========================================
-     * PHOTO MANAGEMENT METHODS
-     * ==========================================
-     */
-
-    async uploadVehiclePhoto(vehicleId, file, options = {}) {
-        if (!file || !(file instanceof File)) {
-            throw new Error('A valid file is required.');
-        }
-
-        const fileExt = file.name.split('.').pop();
-        const fileName = `inventory/${vehicleId}/${Math.random().toString(36).substring(2, 10)}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-            .from('vehicle-photos')
-            .upload(fileName, file);
-
-        if (uploadError) throw new Error(uploadError.message);
-
-        const { data: { publicUrl } } = supabase.storage
-            .from('vehicle-photos')
-            .getPublicUrl(fileName);
-
-        const { count } = await supabase
-            .from('vehicle_photos')
-            .select('*', { count: 'exact', head: true })
-            .eq('vehicle_id', vehicleId);
-
-        const isFirstPhoto = (count === 0);
-        const isPrimary = options.is_primary || isFirstPhoto;
-
-        if (isPrimary) {
-            await supabase
-                .from('vehicle_photos')
-                .update({ is_primary: false })
-                .eq('vehicle_id', vehicleId);
-        }
-
-        const { data, error } = await supabase
-            .from('vehicle_photos')
-            .insert([{
-                vehicle_id: vehicleId,
-                storage_path: fileName,
-                public_url: publicUrl,
-                is_primary: isPrimary,
-                sort_order: options.sort_order !== undefined ? parseInt(options.sort_order, 10) : (count || 0),
-                category: options.category || 'General',
-                caption: options.caption || null
-            }])
-            .select()
-            .single();
-
-        if (error) {
-            await supabase.storage
-                .from('vehicle-photos')
-                .remove([fileName]);
-            throw new Error(error.message);
-        }
-
-        return data;
-    },
-
-    async addVehiclePhoto(vehicleId, file, options = {}) {
-        return this.uploadVehiclePhoto(vehicleId, file, options);
-    },
-
-    async getVehiclePhotos(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
-        const { data, error } = await supabase
-            .from('vehicle_photos')
-            .select('*')
-            .eq('vehicle_id', vehicleId)
-            .order('is_primary', { ascending: false })
-            .order('sort_order', { ascending: true });
-
-        if (error) throw new Error(error.message);
-        return data || [];
-    },
-
-    async setPrimaryPhoto(vehicleId, photoId) {
-        if (!vehicleId || !photoId) throw new Error('Vehicle ID and Photo ID are required.');
-
-        const { error: resetError } = await supabase
-            .from('vehicle_photos')
-            .update({ is_primary: false })
-            .eq('vehicle_id', vehicleId);
-
-        if (resetError) throw new Error(resetError.message);
-
-        const { data, error: setPrimaryError } = await supabase
-            .from('vehicle_photos')
-            .update({ is_primary: true })
-            .eq('id', photoId)
-            .select()
-            .single();
-
-        if (setPrimaryError) throw new Error(setPrimaryError.message);
-        return data;
-    },
-
-    async deleteVehiclePhoto(photoId) {
-        if (!photoId) throw new Error('Photo ID is required.');
-
-        const { data: photo, error: fetchError } = await supabase
-            .from('vehicle_photos')
-            .select('*')
-            .eq('id', photoId)
-            .single();
-
-        if (fetchError || !photo) throw new Error('Photo not found.');
-
-        const vehicleId = photo.vehicle_id;
-        const wasPrimary = photo.is_primary;
-
-        if (photo.storage_path) {
-            await supabase.storage
-                .from('vehicle-photos')
-                .remove([photo.storage_path]);
-        }
-
-        const { error } = await supabase
-            .from('vehicle_photos')
-            .delete()
-            .eq('id', photoId);
-
-        if (error) throw new Error(error.message);
-
-        if (wasPrimary && vehicleId) {
-            const { data: remainingPhotos } = await supabase
-                .from('vehicle_photos')
-                .select('*')
-                .eq('vehicle_id', vehicleId)
-                .order('sort_order', { ascending: true })
-                .limit(1);
-
-            if (remainingPhotos && remainingPhotos.length > 0) {
-                await supabase
-                    .from('vehicle_photos')
-                    .update({ is_primary: true })
-                    .eq('id', remainingPhotos[0].id);
-            }
-        }
-
-        return true;
-    },
-
-    /**
-     * Fetches vehicles that are publicly verified and published.
-     */
-    async getVerifiedVehicles(filters = {}) {
-        let query = supabase
-            .from('vehicles')
-            .select(`
-                id,
-                vehicle_code,
-                year,
-                make,
-                model,
-                trim,
-                mileage,
-                engine,
-                transmission,
-                fuel_type,
-                colour,
-                body_type,
-                location,
-                price,
-                currency,
-                description,
-                verification_status,
-                publication_status,
-                verification_reference,
-                verified_at
-            `)
-            .eq('verification_status', 'VERIFIED')
-            .eq('publication_status', 'PUBLISHED');
-
-        if (filters.location && filters.location.trim() !== '') {
-            query = query.eq('location', filters.location.trim());
-        }
-
-        if (filters.search && filters.search.trim() !== '') {
-            const term = `%${filters.search.trim()}%`;
-            query = query.or(`make.ilike.${term},model.ilike.${term},trim.ilike.${term},vehicle_code.ilike.${term}`);
-        }
-
-        const { data: vehicles, error: vehicleError } = await query.order('created_at', { ascending: false });
-
-        if (vehicleError) {
-            throw new Error(vehicleError.message);
-        }
-
-        if (!vehicles || vehicles.length === 0) {
-            return [];
-        }
-
-        const vehicleIds = vehicles.map(vehicle => vehicle.id);
-
-        const { data: photos, error: photoError } = await supabase
-            .from('vehicle_photos')
-            .select(`
-                id,
-                vehicle_id,
-                storage_path,
-                public_url,
-                is_primary,
-                sort_order,
-                category,
-                caption
-            `)
-            .in('vehicle_id', vehicleIds)
-            .order('sort_order', { ascending: true });
-
-        if (photoError) {
-            throw new Error(photoError.message);
-        }
-
-        const photosByVehicle = new Map();
-
-        for (const photo of photos || []) {
-            if (!photo.vehicle_id || !photo.public_url) {
-                continue;
+        loadInventory();
+    }
+
+    async function loadInventory() {
+        const tbody = document.getElementById('adminInventoryTable');
+        
+        try {
+            loadedVehicles = await vehicleService.getAdminVehicles();
+
+            if (!loadedVehicles || loadedVehicles.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#64748b;">No vehicles in database. Use the form above to add a draft.</td></tr>`;
+                return;
             }
 
-            if (!photosByVehicle.has(photo.vehicle_id)) {
-                photosByVehicle.set(photo.vehicle_id, []);
-            }
+            tbody.innerHTML = '';
+            loadedVehicles.forEach(car => {
+                const formattedPrice = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(car.price);
+                
+                const vBadge = car.verification_status === 'VERIFIED' ? 'badge-verified' : car.verification_status === 'REJECTED' ? 'badge-rejected' : 'badge-pending';
+                const pBadge = car.publication_status === 'PUBLISHED' ? 'badge-published' : 'badge-unpublished';
+                
+                let sBadgeClass = 'badge-sales';
+                if (car.sales_status === 'RESERVED') sBadgeClass = 'badge-reserved';
+                if (car.sales_status === 'SOLD') sBadgeClass = 'badge-sold';
+                if (car.sales_status === 'ARCHIVED') sBadgeClass = 'badge-archived';
 
-            photosByVehicle.get(photo.vehicle_id).push(photo);
-        }
+                const inspectionStatus = car.inspection_status || 'DRAFT';
+                
+                let inspBadgeClass = 'badge-pending';
+                if (inspectionStatus === 'COMPLETED') {
+                    inspBadgeClass = 'badge-verified';
+                } else if (inspectionStatus === 'IN_PROGRESS') {
+                    inspBadgeClass = 'badge-published';
+                } else if (inspectionStatus === 'CANCELLED') {
+                    inspBadgeClass = 'badge-rejected';
+                }
 
-        return vehicles.map(vehicle => {
-            const vehiclePhotos = photosByVehicle.get(vehicle.id) || [];
+                const inspectionBadge = `<span class="badge ${inspBadgeClass}">${inspectionStatus}</span>`;
+                const isVerified = car.verification_status === 'VERIFIED';
+                const isInspectionCompleted = inspectionStatus === 'COMPLETED';
 
-            const primaryPhoto =
-                vehiclePhotos.find(
-                    photo => photo.is_primary === true && photo.public_url
-                ) ||
-                vehiclePhotos.find(
-                    photo => photo.public_url
-                ) ||
-                null;
+                let actionButtons = '';
 
-            return {
-                ...vehicle,
-                photos: vehiclePhotos,
-                primary_photo_url: primaryPhoto?.public_url || null,
-                primary_photo_id: primaryPhoto?.id || null
-            };
-        });
-    },
-
-    /**
-     * ==========================================
-     * PUBLIC DATA ADAPTER (vehicle-details.html)
-     * ==========================================
-     */
-    async getPublicVehicleDetails(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
-
-        const { data: vehicle, error: vehicleError } = await supabase
-            .from('vehicles')
-            .select(`
-                id,
-                vehicle_code,
-                year,
-                make,
-                model,
-                trim,
-                mileage,
-                engine,
-                transmission,
-                fuel_type,
-                colour,
-                body_type,
-                location,
-                price,
-                currency,
-                description,
-                vin,
-                registration_number,
-                verification_status,
-                verification_reference,
-                verified_at
-            `)
-            .eq('id', vehicleId)
-            .single();
-
-        if (vehicleError || !vehicle) return null;
-
-        const { data: photos, error: photosError } = await supabase
-            .from('vehicle_photos')
-            .select(`
-                id,
-                vehicle_id,
-                storage_path,
-                public_url,
-                category,
-                caption,
-                sort_order,
-                is_primary
-            `)
-            .eq('vehicle_id', vehicleId)
-            .order('is_primary', { ascending: false })
-            .order('sort_order', { ascending: true });
-
-        vehicle.photos = (!photosError && photos) ? photos : [];
-
-        const { data: inspections, error: inspError } = await supabase
-            .from('inspections')
-            .select(`
-                id,
-                vehicle_id,
-                inspection_number,
-                inspection_date,
-                mileage,
-                overall_score,
-                mechanical_score,
-                electrical_score,
-                body_score,
-                interior_score,
-                suspension_score,
-                brake_score,
-                diagnostic_score,
-                road_test_score,
-                overall_condition,
-                recommendation,
-                summary,
-                inspection_status,
-                report_path,
-                completed_at,
-                inspection_findings (
-                    id,
-                    inspection_id,
-                    area,
-                    component,
-                    rating,
-                    severity,
-                    finding,
-                    significance,
-                    recommended_action,
-                    estimated_cost,
-                    is_safety_critical,
-                    finding_photos (
-                        id,
-                        finding_id,
-                        public_url,
-                        caption,
-                        sort_order
-                    )
-                )
-            `)
-            .eq('vehicle_id', vehicleId)
-            .eq('inspection_status', 'COMPLETED')
-            .order('completed_at', { ascending: false });
-
-        if (!inspError && inspections) {
-            vehicle.inspections = inspections.map(insp => {
-                const mappedFindings = (insp.inspection_findings || []).map(f => {
-                    let severityLabel = f.rating;
-                    if (f.rating === 'CRITICAL') {
-                        severityLabel = f.is_safety_critical ? 'CRITICAL SAFETY' : 'CRITICAL';
-                    } else if (f.rating === 'ATTENTION') {
-                        severityLabel = f.severity >= 3 ? 'MODERATE' : 'MINOR';
-                    } else if (f.rating === 'FAIR') {
-                        severityLabel = 'FAIR';
-                    } else {
-                        severityLabel = 'GOOD';
+                if (car.sales_status === 'ARCHIVED') {
+                    actionButtons = `<span style="color:#64748b; font-size:0.75rem;">Locked (Archived)</span>`;
+                } else {
+                    // 1. Inspection action
+                    if (isVerified) {
+                        const inspectionButtonLabel = isInspectionCompleted ? 'View Inspection' : 'Inspect';
+                        actionButtons += `
+                            <button
+                                class="action-btn btn-inspect"
+                                onclick="openInspection('${car.id}')">
+                                ${inspectionButtonLabel}
+                            </button>
+                        `;
                     }
 
-                    return {
-                        ...f,
-                        category: f.component ? `${f.area} — ${f.component}` : f.area,
-                        description: f.finding || 'No details provided.',
-                        severity: severityLabel,
-                        photos: (f.finding_photos || []).map(fp => ({
-                            public_url: fp.public_url,
-                            caption: fp.caption
-                        }))
-                    };
-                });
+                    // 2. Verification actions
+                    if (!isVerified) {
+                        if (car.verification_status === 'PENDING' || car.verification_status === 'IN_REVIEW' || !car.verification_status) {
+                            actionButtons += `<button class="action-btn btn-verify" onclick="runAction('verify', '${car.id}')">Verify</button>`;
+                            actionButtons += `<button class="action-btn btn-reject" onclick="runAction('reject', '${car.id}')">Reject</button>`;
+                        } else if (car.verification_status === 'REJECTED') {
+                            actionButtons += `<button class="action-btn btn-verify" onclick="runAction('verify', '${car.id}')">Re-Verify</button>`;
+                        }
+                    }
 
-                return {
-                    ...insp,
-                    findings: mappedFindings
-                };
+                    // 3. Publication actions
+                    if (isVerified && isInspectionCompleted) {
+                        if (car.publication_status === 'PUBLISHED') {
+                            actionButtons += `<button class="action-btn" onclick="runAction('unpublish', '${car.id}')">Unpublish</button>`;
+                        } else {
+                            actionButtons += `<button class="action-btn btn-publish" onclick="runAction('publish', '${car.id}')">Publish</button>`;
+                        }
+                    }
+
+                    // 4. Sales status actions
+                    if (isVerified && isInspectionCompleted) {
+                        if (car.sales_status === 'AVAILABLE') {
+                            actionButtons += `<button class="action-btn btn-reserve" onclick="runAction('reserve', '${car.id}')">Reserve</button>`;
+                            actionButtons += `<button class="action-btn btn-sold" onclick="runAction('sold', '${car.id}')">Mark Sold</button>`;
+                        } else if (car.sales_status === 'RESERVED') {
+                            actionButtons += `<button class="action-btn" onclick="runAction('available', '${car.id}')">Make Available</button>`;
+                            actionButtons += `<button class="action-btn btn-sold" onclick="runAction('sold', '${car.id}')">Mark Sold</button>`;
+                        }
+                    }
+
+                    // 5. Edit and Delete actions (Available for all non-archived vehicles)
+                    actionButtons += `<button class="action-btn btn-edit" onclick="editVehicle('${car.id}')">Edit</button>`;
+                    actionButtons += `<button class="action-btn btn-delete" onclick="deleteVehicle('${car.id}')">Delete</button>`;
+
+                    // 6. Archive option
+                    actionButtons += `<button class="action-btn btn-archive" onclick="runAction('archive', '${car.id}')">Archive</button>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><code>${car.vehicle_code || car.id.substring(0,8)}</code></td>
+                    <td><strong>${car.year} ${car.make} ${car.model}</strong><br><small style="color:#64748b">${car.trim || ''} • ${car.mileage.toLocaleString()} km</small></td>
+                    <td>${formattedPrice}</td>
+                    <td><span class="badge ${vBadge}">${car.verification_status}</span></td>
+                    <td>${inspectionBadge}</td>
+                    <td><span class="badge ${pBadge}">${car.publication_status}</span></td>
+                    <td><span class="badge ${sBadgeClass}">${car.sales_status}</span></td>
+                    <td><div class="action-cell">${actionButtons}</div></td>
+                `;
+                tbody.appendChild(tr);
             });
-        } else {
-            vehicle.inspections = [];
+        } catch (error) {
+            tbody.innerHTML = `<tr><td colspan="8" style="color:red; text-align:center;">Error loading inventory: ${error.message}</td></tr>`;
+        }
+    }
+
+    async function handleFormSubmit(e) {
+        e.preventDefault();
+        const submitBtn = document.getElementById('submitBtn');
+        
+        const vehicleData = {
+            make: document.getElementById('make').value.trim(),
+            model: document.getElementById('model').value.trim(),
+            trim: document.getElementById('trim').value.trim(),
+            year: parseInt(document.getElementById('year').value),
+            mileage: parseInt(document.getElementById('mileage').value),
+            engine: document.getElementById('engine').value.trim(),
+            vin: document.getElementById('vin').value.trim() || null,
+            registration_number: document.getElementById('registration_number').value.trim() || null,
+            body_type: document.getElementById('body_type').value,
+            transmission: document.getElementById('transmission').value,
+            fuel_type: document.getElementById('fuel_type').value,
+            colour: document.getElementById('colour').value.trim(),
+            location: document.getElementById('location').value.trim(),
+            price: parseFloat(document.getElementById('price').value),
+            description: document.getElementById('description').value.trim(),
+            currency: 'NGN'
+        };
+
+        const photoFile = window.vehiclePhotoPicker?.getFile() || null;
+
+        try {
+            if (editingVehicleId) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Updating Vehicle...';
+
+                await vehicleService.updateVehicle(editingVehicleId, vehicleData);
+
+                // If a new photo was selected during edit, upload it as primary/secondary without breaking existing photos
+                if (photoFile) {
+                    await vehicleService.addVehiclePhoto(editingVehicleId, photoFile, {
+                        category: 'EXTERIOR',
+                        is_primary: false
+                    });
+                }
+
+                alert('Vehicle updated successfully!');
+                cancelEditMode();
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Saving Draft...';
+
+                const newCar = await vehicleService.createVehicle(vehicleData);
+
+                if (photoFile && newCar && newCar.id) {
+                    try {
+                        await vehicleService.addVehiclePhoto(
+                            newCar.id,
+                            photoFile,
+                            {
+                                category: 'EXTERIOR',
+                                is_primary: true
+                            }
+                        );
+                    } catch (photoErr) {
+                        console.warn('Vehicle created, but photo upload failed:', photoErr.message);
+                        alert('Vehicle draft created successfully, but photo upload failed.');
+                    }
+                } else {
+                    alert('Vehicle draft created successfully!');
+                }
+
+                document.getElementById('vehicleForm').reset();
+                window.vehiclePhotoPicker?.clear();
+            }
+
+            loadInventory();
+
+        } catch (error) {
+            alert('Operation failed: ' + error.message);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = editingVehicleId ? 'Save Changes' : 'Save as Draft';
+        }
+    }
+
+    window.editVehicle = function(vehicleId) {
+        const car = loadedVehicles.find(v => v.id === vehicleId);
+        if (!car) {
+            alert('Vehicle not found in local memory.');
+            return;
         }
 
-        return vehicle;
-    }
-};
+        editingVehicleId = car.id;
 
-export const {
-    getAllVehicles,
-    getAdminVehicles,
-    getVehicleById,
-    createVehicle,
-    updateVehicle,
-    deleteVehicle,
-    updateVehiclePrice,
-    verifyVehicle,
-    rejectVehicle,
-    publishVehicle,
-    unpublishVehicle,
-    reserveVehicle,
-    markAvailable,
-    markSold,
-    archiveVehicle,
-    uploadVehiclePhoto,
-    addVehiclePhoto,
-    getVehiclePhotos,
-    setPrimaryPhoto,
-    deleteVehiclePhoto,
-    getVerifiedVehicles,
-    getPublicVehicleDetails
-} = vehicleService;
+        document.getElementById('make').value = car.make || '';
+        document.getElementById('model').value = car.model || '';
+        document.getElementById('trim').value = car.trim || '';
+        document.getElementById('year').value = car.year || '';
+        document.getElementById('mileage').value = car.mileage || '';
+        document.getElementById('engine').value = car.engine || '';
+        document.getElementById('vin').value = car.vin || '';
+        document.getElementById('registration_number').value = car.registration_number || '';
+        document.getElementById('body_type').value = car.body_type || 'Sedan';
+        document.getElementById('transmission').value = car.transmission || 'Automatic';
+        document.getElementById('fuel_type').value = car.fuel_type || 'Petrol';
+        document.getElementById('colour').value = car.colour || '';
+        document.getElementById('location').value = car.location || 'Lagos Workshop';
+        document.getElementById('price').value = car.price || '';
+        document.getElementById('description').value = car.description || '';
+
+        document.getElementById('formTitle').querySelector('span').textContent = `Edit Vehicle (${car.vehicle_code || car.id.substring(0,8)})`;
+        document.getElementById('cancelEditBtn').classList.remove('hidden');
+        
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.textContent = 'Save Changes';
+        submitBtn.className = 'btn btn-secondary';
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.cancelEditMode = function() {
+        editingVehicleId = null;
+        document.getElementById('vehicleForm').reset();
+        window.vehiclePhotoPicker?.clear();
+        document.getElementById('formTitle').querySelector('span').textContent = 'Register New Vehicle Draft';
+        document.getElementById('cancelEditBtn').classList.add('hidden');
+        
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.textContent = 'Save as Draft';
+        submitBtn.className = 'btn btn-success';
+    };
+
+    window.deleteVehicle = async function(vehicleId) {
+        if (!confirm('Delete this vehicle permanently? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            await vehicleService.deleteVehicle(vehicleId);
+            alert('Vehicle deleted successfully.');
+            if (editingVehicleId === vehicleId) {
+                cancelEditMode();
+            }
+            loadInventory();
+        } catch (err) {
+            alert('Failed to delete vehicle: ' + err.message);
+        }
+    };
+
+    window.openInspection = function(vehicleId) {
+        if (!vehicleId) {
+            alert('Vehicle ID is missing.');
+            return;
+        }
+        window.location.href = `inspection.html?vehicleId=${encodeURIComponent(vehicleId)}`;
+    };
+
+    window.runAction = async function(action, id) {
+        try {
+            switch (action) {
+                case 'verify':
+                    if (!confirm('Mark this vehicle as VERIFIED?')) return;
+                    await vehicleService.verifyVehicle(id);
+                    break;
+                case 'reject': {
+                    const reason = prompt('Enter the rejection reason:');
+                    if (!reason || !reason.trim()) return;
+                    await vehicleService.rejectVehicle(id, reason.trim());
+                    break;
+                }
+                case 'publish':
+                    if (!confirm('Publish this verified vehicle to the live catalog?')) return;
+                    await vehicleService.publishVehicle(id);
+                    break;
+                case 'unpublish':
+                    if (!confirm('Unpublish this vehicle from the live catalog?')) return;
+                    await vehicleService.unpublishVehicle(id);
+                    break;
+                case 'reserve':
+                    if (!confirm('Mark this vehicle as RESERVED?')) return;
+                    await vehicleService.reserveVehicle(id);
+                    break;
+                case 'available':
+                    if (!confirm('Return this vehicle to AVAILABLE status?')) return;
+                    await vehicleService.markAvailable(id);
+                    break;
+                case 'sold':
+                    if (!confirm('Mark this vehicle as SOLD?')) return;
+                    await vehicleService.markSold(id);
+                    break;
+                case 'archive':
+                    if (!confirm('Archive this vehicle record? This preserves audit history.')) return;
+                    await vehicleService.archiveVehicle(id);
+                    break;
+            }
+            loadInventory();
+        } catch (err) {
+            alert('Action failed: ' + err.message);
+        }
+    };
+
+    init();
+</script>
+
+</body>
+</html>
