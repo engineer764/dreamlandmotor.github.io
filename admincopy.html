@@ -49,7 +49,7 @@
             margin-bottom: 24px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
-        .card h2 { margin-top: 0; font-size: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+        .card h2 { margin-top: 0; font-size: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
 
         form {
             display: grid;
@@ -88,6 +88,8 @@
         .btn:hover { background: #1d4ed8; }
         .btn-success { background: var(--verified-green); }
         .btn-success:hover { background: #15803d; }
+        .btn-secondary { background: #64748b; }
+        .btn-secondary:hover { background: #475569; }
         .btn:disabled { background: #94a3b8; cursor: not-allowed; }
 
         /* Inventory Table */
@@ -127,21 +129,18 @@
         .action-btn { padding: 5px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: white; cursor: pointer; font-weight: 600; }
         .action-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
         
-        .btn-inspect {
-            color: #7c3aed;
-            border-color: #ddd6fe;
-            background: #faf5ff;
-        }
-        .btn-inspect:hover {
-            background: #f3e8ff;
-            border-color: #c4b5fd;
-        }
+        .btn-inspect { color: #7c3aed; border-color: #ddd6fe; background: #faf5ff; }
+        .btn-inspect:hover { background: #f3e8ff; border-color: #c4b5fd; }
         .btn-verify { color: var(--verified-green); border-color: #bbf7d0; }
         .btn-reject { color: var(--danger); border-color: #fca5a5; }
         .btn-publish { color: #0284c7; border-color: #bae6fd; }
         .btn-reserve { color: #c2410c; border-color: #fed7aa; }
         .btn-sold { color: #475569; border-color: #cbd5e1; }
         .btn-archive { color: #64748b; border-color: #cbd5e1; }
+        .btn-edit { color: #2563eb; border-color: #bfdbfe; background: #eff6ff; }
+        .btn-edit:hover { background: #dbeafe; }
+        .btn-delete { color: var(--danger); border-color: #fecaca; background: #fef2f2; }
+        .btn-delete:hover { background: #fee2e2; }
     </style>
 </head>
 <body>
@@ -155,9 +154,12 @@
 </header>
 
 <div class="container">
-    <!-- Add Vehicle Form Card -->
+    <!-- Add / Edit Vehicle Form Card -->
     <div class="card">
-        <h2>Register New Vehicle Draft</h2>
+        <h2 id="formTitle">
+            <span>Register New Vehicle Draft</span>
+            <button type="button" id="cancelEditBtn" class="action-btn hidden" onclick="cancelEditMode()">Cancel Edit</button>
+        </h2>
         <form id="vehicleForm">
             <div class="form-group">
                 <label>Make *</label>
@@ -182,6 +184,14 @@
             <div class="form-group">
                 <label>Engine Spec *</label>
                 <input type="text" id="engine" required placeholder="2.5L 4-Cylinder">
+            </div>
+            <div class="form-group">
+                <label>VIN</label>
+                <input type="text" id="vin" placeholder="Vehicle Identification Number">
+            </div>
+            <div class="form-group">
+                <label>Registration Number</label>
+                <input type="text" id="registration_number" placeholder="e.g. ABC-123XY">
             </div>
             <div class="form-group">
                 <label>Body Type</label>
@@ -223,21 +233,17 @@
                 <label>Price (₦) *</label>
                 <input type="number" id="price" required placeholder="14500000">
             </div>
-            <div class="form-group full-width">
+            <div class="form-group full-width" id="photoPickerGroup">
                <label>Primary Photo</label>
-
                 <div class="photo-picker">
                     <button type="button" id="cameraPhotoBtn" class="action-btn" style="padding: 8px 14px; margin-right: 8px;">
                         Camera
                     </button>
-
                     <button type="button" id="galleryPhotoBtn" class="action-btn" style="padding: 8px 14px;">
                         Choose from Gallery
                     </button>
-
                     <input type="file" id="cameraPhotoInput" accept="image/*" capture="environment" hidden>
                     <input type="file" id="galleryPhotoInput" accept="image/*" hidden>
-
                     <div id="photoPreviewContainer" style="margin-top:12px;">
                         <img id="photoPreview" alt="Selected vehicle photo" hidden style="max-width:100%; max-height:250px; border-radius:8px;">
                         <div id="photoFilename" style="font-size: 0.875rem; color: #64748b; margin-top: 4px;">
@@ -286,6 +292,9 @@
     import { vehicleService } from './vehicleService.js';
     import { createPhotoPicker } from './photo.js';
 
+    let loadedVehicles = [];
+    let editingVehicleId = null;
+
     async function init() {
         const auth = await requireAuth();
         if (!auth) return;
@@ -293,7 +302,7 @@
         document.getElementById('userEmail').textContent = `${auth.profile.full_name || auth.profile.email} (${auth.profile.role})`;
 
         document.getElementById('logoutBtn').addEventListener('click', logoutStaff);
-        document.getElementById('vehicleForm').addEventListener('submit', handleCreateVehicle);
+        document.getElementById('vehicleForm').addEventListener('submit', handleFormSubmit);
 
         window.vehiclePhotoPicker = createPhotoPicker({
             cameraButtonId: 'cameraPhotoBtn',
@@ -311,15 +320,15 @@
         const tbody = document.getElementById('adminInventoryTable');
         
         try {
-            const vehicles = await vehicleService.getAdminVehicles();
+            loadedVehicles = await vehicleService.getAdminVehicles();
 
-            if (!vehicles || vehicles.length === 0) {
+            if (!loadedVehicles || loadedVehicles.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#64748b;">No vehicles in database. Use the form above to add a draft.</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = '';
-            vehicles.forEach(car => {
+            loadedVehicles.forEach(car => {
                 const formattedPrice = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(car.price);
                 
                 const vBadge = car.verification_status === 'VERIFIED' ? 'badge-verified' : car.verification_status === 'REJECTED' ? 'badge-rejected' : 'badge-pending';
@@ -345,23 +354,12 @@
                 const isVerified = car.verification_status === 'VERIFIED';
                 const isInspectionCompleted = inspectionStatus === 'COMPLETED';
 
-                // Render contextual state machine actions
                 let actionButtons = '';
 
                 if (car.sales_status === 'ARCHIVED') {
                     actionButtons = `<span style="color:#64748b; font-size:0.75rem;">Locked (Archived)</span>`;
                 } else {
-                    // 1. Verification actions (If not verified)
-                    if (!isVerified) {
-                        if (car.verification_status === 'PENDING' || car.verification_status === 'IN_REVIEW' || !car.verification_status) {
-                            actionButtons += `<button class="action-btn btn-verify" onclick="runAction('verify', '${car.id}')">Verify</button>`;
-                            actionButtons += `<button class="action-btn btn-reject" onclick="runAction('reject', '${car.id}')">Reject</button>`;
-                        } else if (car.verification_status === 'REJECTED') {
-                            actionButtons += `<button class="action-btn btn-verify" onclick="runAction('verify', '${car.id}')">Re-Verify</button>`;
-                        }
-                    }
-
-                    // 2. Inspection action (ONLY available if vehicle is VERIFIED)
+                    // 1. Inspection action
                     if (isVerified) {
                         const inspectionButtonLabel = isInspectionCompleted ? 'View Inspection' : 'Inspect';
                         actionButtons += `
@@ -373,7 +371,17 @@
                         `;
                     }
 
-                    // 3. Publication actions (ONLY if Verified AND Inspection Completed)
+                    // 2. Verification actions
+                    if (!isVerified) {
+                        if (car.verification_status === 'PENDING' || car.verification_status === 'IN_REVIEW' || !car.verification_status) {
+                            actionButtons += `<button class="action-btn btn-verify" onclick="runAction('verify', '${car.id}')">Verify</button>`;
+                            actionButtons += `<button class="action-btn btn-reject" onclick="runAction('reject', '${car.id}')">Reject</button>`;
+                        } else if (car.verification_status === 'REJECTED') {
+                            actionButtons += `<button class="action-btn btn-verify" onclick="runAction('verify', '${car.id}')">Re-Verify</button>`;
+                        }
+                    }
+
+                    // 3. Publication actions
                     if (isVerified && isInspectionCompleted) {
                         if (car.publication_status === 'PUBLISHED') {
                             actionButtons += `<button class="action-btn" onclick="runAction('unpublish', '${car.id}')">Unpublish</button>`;
@@ -382,7 +390,7 @@
                         }
                     }
 
-                    // 4. Sales status actions (Available / Reserved / Sold)
+                    // 4. Sales status actions
                     if (isVerified && isInspectionCompleted) {
                         if (car.sales_status === 'AVAILABLE') {
                             actionButtons += `<button class="action-btn btn-reserve" onclick="runAction('reserve', '${car.id}')">Reserve</button>`;
@@ -393,7 +401,11 @@
                         }
                     }
 
-                    // 5. Archive option
+                    // 5. Edit and Delete actions (Available for all non-archived vehicles)
+                    actionButtons += `<button class="action-btn btn-edit" onclick="editVehicle('${car.id}')">Edit</button>`;
+                    actionButtons += `<button class="action-btn btn-delete" onclick="deleteVehicle('${car.id}')">Delete</button>`;
+
+                    // 6. Archive option
                     actionButtons += `<button class="action-btn btn-archive" onclick="runAction('archive', '${car.id}')">Archive</button>`;
                 }
 
@@ -415,12 +427,10 @@
         }
     }
 
-    async function handleCreateVehicle(e) {
+    async function handleFormSubmit(e) {
         e.preventDefault();
         const submitBtn = document.getElementById('submitBtn');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Saving Draft...';
-
+        
         const vehicleData = {
             make: document.getElementById('make').value.trim(),
             model: document.getElementById('model').value.trim(),
@@ -428,6 +438,8 @@
             year: parseInt(document.getElementById('year').value),
             mileage: parseInt(document.getElementById('mileage').value),
             engine: document.getElementById('engine').value.trim(),
+            vin: document.getElementById('vin').value.trim() || null,
+            registration_number: document.getElementById('registration_number').value.trim() || null,
             body_type: document.getElementById('body_type').value,
             transmission: document.getElementById('transmission').value,
             fuel_type: document.getElementById('fuel_type').value,
@@ -441,39 +453,124 @@
         const photoFile = window.vehiclePhotoPicker?.getFile() || null;
 
         try {
-            const newCar = await vehicleService.createVehicle(vehicleData);
+            if (editingVehicleId) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Updating Vehicle...';
 
-            if (photoFile && newCar && newCar.id) {
-                try {
-                    await vehicleService.addVehiclePhoto(
-                        newCar.id,
-                        photoFile,
-                        {
-                            category: 'EXTERIOR',
-                            is_primary: true
-                        }
-                    );
-                } catch (photoErr) {
-                    console.warn('Vehicle created, but photo upload failed:', photoErr.message);
-                    alert('Vehicle draft created successfully, but the photo upload failed. You can add photos later.');
+                await vehicleService.updateVehicle(editingVehicleId, vehicleData);
+
+                // If a new photo was selected during edit, upload it as primary/secondary without breaking existing photos
+                if (photoFile) {
+                    await vehicleService.addVehiclePhoto(editingVehicleId, photoFile, {
+                        category: 'EXTERIOR',
+                        is_primary: false
+                    });
                 }
+
+                alert('Vehicle updated successfully!');
+                cancelEditMode();
             } else {
-                alert('Vehicle draft created successfully!');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Saving Draft...';
+
+                const newCar = await vehicleService.createVehicle(vehicleData);
+
+                if (photoFile && newCar && newCar.id) {
+                    try {
+                        await vehicleService.addVehiclePhoto(
+                            newCar.id,
+                            photoFile,
+                            {
+                                category: 'EXTERIOR',
+                                is_primary: true
+                            }
+                        );
+                    } catch (photoErr) {
+                        console.warn('Vehicle created, but photo upload failed:', photoErr.message);
+                        alert('Vehicle draft created successfully, but photo upload failed.');
+                    }
+                } else {
+                    alert('Vehicle draft created successfully!');
+                }
+
+                document.getElementById('vehicleForm').reset();
+                window.vehiclePhotoPicker?.clear();
             }
 
-            document.getElementById('vehicleForm').reset();
-            window.vehiclePhotoPicker?.clear();
             loadInventory();
 
         } catch (error) {
-            alert('Failed to create vehicle: ' + error.message);
+            alert('Operation failed: ' + error.message);
         } finally {
             submitBtn.disabled = false;
-            submitBtn.textContent = 'Save as Draft';
+            submitBtn.textContent = editingVehicleId ? 'Save Changes' : 'Save as Draft';
         }
     }
 
-    // Navigation function to open inspection workflow for any vehicle UUID
+    window.editVehicle = function(vehicleId) {
+        const car = loadedVehicles.find(v => v.id === vehicleId);
+        if (!car) {
+            alert('Vehicle not found in local memory.');
+            return;
+        }
+
+        editingVehicleId = car.id;
+
+        document.getElementById('make').value = car.make || '';
+        document.getElementById('model').value = car.model || '';
+        document.getElementById('trim').value = car.trim || '';
+        document.getElementById('year').value = car.year || '';
+        document.getElementById('mileage').value = car.mileage || '';
+        document.getElementById('engine').value = car.engine || '';
+        document.getElementById('vin').value = car.vin || '';
+        document.getElementById('registration_number').value = car.registration_number || '';
+        document.getElementById('body_type').value = car.body_type || 'Sedan';
+        document.getElementById('transmission').value = car.transmission || 'Automatic';
+        document.getElementById('fuel_type').value = car.fuel_type || 'Petrol';
+        document.getElementById('colour').value = car.colour || '';
+        document.getElementById('location').value = car.location || 'Lagos Workshop';
+        document.getElementById('price').value = car.price || '';
+        document.getElementById('description').value = car.description || '';
+
+        document.getElementById('formTitle').querySelector('span').textContent = `Edit Vehicle (${car.vehicle_code || car.id.substring(0,8)})`;
+        document.getElementById('cancelEditBtn').classList.remove('hidden');
+        
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.textContent = 'Save Changes';
+        submitBtn.className = 'btn btn-secondary';
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.cancelEditMode = function() {
+        editingVehicleId = null;
+        document.getElementById('vehicleForm').reset();
+        window.vehiclePhotoPicker?.clear();
+        document.getElementById('formTitle').querySelector('span').textContent = 'Register New Vehicle Draft';
+        document.getElementById('cancelEditBtn').classList.add('hidden');
+        
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.textContent = 'Save as Draft';
+        submitBtn.className = 'btn btn-success';
+    };
+
+    window.deleteVehicle = async function(vehicleId) {
+        if (!confirm('Delete this vehicle permanently? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            await vehicleService.deleteVehicle(vehicleId);
+            alert('Vehicle deleted successfully.');
+            if (editingVehicleId === vehicleId) {
+                cancelEditMode();
+            }
+            loadInventory();
+        } catch (err) {
+            alert('Failed to delete vehicle: ' + err.message);
+        }
+    };
+
     window.openInspection = function(vehicleId) {
         if (!vehicleId) {
             alert('Vehicle ID is missing.');
@@ -482,7 +579,6 @@
         window.location.href = `inspection.html?vehicleId=${encodeURIComponent(vehicleId)}`;
     };
 
-    // Centralized lifecycle action dispatcher with confirmation and error catching
     window.runAction = async function(action, id) {
         try {
             switch (action) {
