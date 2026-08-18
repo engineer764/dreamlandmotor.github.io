@@ -1,1 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verified Vehicle Details & Inspection Report — Dreamland Verified Cars</title>
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 font-sans text-slate-900 antialiased min-h-screen flex flex-col">
 
+    <!-- Public Header -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-car-shield text-blue-500 text-2xl"></i>
+                <span class="font-bold text-lg tracking-wide">Dreamland Verified Cars</span>
+            </div>
+            <div>
+                <a href="verified-cars.html" class="text-sm text-slate-300 hover:text-white flex items-center space-x-2 transition-colors">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Back to Verified Cars</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Loading State -->
+        <div id="loading-state" class="py-24 text-center">
+            <i class="fa-solid fa-spinner fa-spin text-3xl text-blue-600 mb-4"></i>
+            <p class="text-slate-600 font-medium">Loading verified vehicle details...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="error-state" class="py-24 text-center hidden">
+            <div class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                <i class="fa-solid fa-circle-exclamation text-red-500 text-4xl mb-3"></i>
+                <h2 id="error-title" class="text-xl font-bold text-slate-900 mb-2">Unable to load vehicle details.</h2>
+                <p id="error-message" class="text-sm text-slate-600 mb-6">Please check the vehicle ID or try again later.</p>
+                <a href="verified-cars.html" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors">
+                    Return to Catalog
+                </a>
+            </div>
+        </div>
+
+        <!-- Vehicle Content Wrapper (Hidden initially) -->
+        <div id="vehicle-content" class="hidden space-y-8">
+
+            <!-- Top Header Details (Title, Reference, Verification Badge) -->
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <div>
+                    <div class="flex items-center space-x-3 mb-1">
+                        <span id="vehicle-code-badge" class="bg-slate-100 text-slate-700 font-mono text-xs px-2.5 py-1 rounded-md font-semibold">REF: --</span>
+                        <span class="inline-flex items-center space-x-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-3 py-1 rounded-full font-bold">
+                            <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                            <span>DREAMLAND VERIFIED</span>
+                        </span>
+                    </div>
+                    <h1 id="vehicle-title" class="text-2xl sm:text-3xl font-extrabold text-slate-900">Loading Vehicle...</h1>
+                    <p id="vehicle-location" class="text-sm text-slate-500 mt-1 flex items-center space-x-1.5">
+                        <i class="fa-solid fa-location-dot text-slate-400"></i>
+                        <span>Location not specified</span>
+                    </p>
+                </div>
+                <div class="text-left md:text-right">
+                    <div class="text-xs font-semibold uppercase text-slate-400 tracking-wider">Verified Price</div>
+                    <div id="vehicle-price" class="text-3xl font-extrabold text-blue-600 mt-0.5">₦0</div>
+                </div>
+            </div>
+
+            <!-- Hero Section: Primary Photo & Quick Info / Gallery -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- Photo Gallery (2 columns on lg) -->
+                <div class="lg:col-span-2 space-y-4">
+                    <!-- Main Active Photo Frame -->
+                    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm aspect-[16/10] flex items-center justify-center bg-slate-900 relative">
+                        <img id="main-hero-photo" src="" alt="Vehicle Main Photo" class="w-full h-full object-cover">
+                        <div id="no-photo-placeholder" class="hidden absolute inset-0 flex flex-col items-center justify-center text-slate-400 bg-slate-100">
+                            <i class="fa-solid fa-car text-5xl mb-2"></i>
+                            <p class="text-sm font-medium">No photo available</p>
+                        </div>
+                    </div>
+
+                    <!-- Thumbnails Strip -->
+                    <div id="gallery-thumbnails" class="grid grid-cols-5 sm:grid-cols-6 gap-3 overflow-x-auto pb-2">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Right Column: Key Specifications Summary Card -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between space-y-6">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-lg border-b border-slate-100 pb-3 mb-4">Quick Specifications</h3>
+                        <ul class="space-y-3.5 text-sm">
+                            <li class="flex justify-between items-center">
+                                <span class="text-slate-500 font-medium">Year</span>
+                                <span id="spec-year" class="font-bold text-slate-800">--</span>
+                            </li>
+                            <li class="flex justify-between items-center">
+                                <span class="text-slate-500 font-medium">Mileage</span>
+                                <span id="spec-mileage" class="font-bold text-slate-800">--</span>
+                            </li>
+                            <li class="flex justify-between items-center">
+                                <span class="text-slate-500 font-medium">Transmission</span>
+                                <span id="spec-transmission" class="font-bold text-slate-800">--</span>
+                            </li>
+                            <li class="flex justify-between items-center">
+                                <span class="text-slate-500 font-medium">Fuel Type</span>
+                                <span id="spec-fuel" class="font-bold text-slate-800">--</span>
+                            </li>
+                            <li class="flex justify-between items-center">
+                                <span class="text-slate-500 font-medium">Body Type</span>
+                                <span id="spec-body" class="font-bold text-slate-800">--</span>
+                            </li>
+                            <li class="flex justify-between items-center">
+                                <span class="text-slate-500 font-medium">Colour</span>
+                                <span id="spec-colour" class="font-bold text-slate-800">--</span>
+                            </li>
+                            <li class="flex justify-between items-center">
+                                <span class="text-slate-500 font-medium">Engine</span>
+                                <span id="spec-engine" class="font-bold text-slate-800">--</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-100 bg-blue-50/50 p-4 rounded-xl">
+                        <div class="flex items-start space-x-3">
+                            <i class="fa-solid fa-shield-halved text-blue-600 text-xl mt-0.5"></i>
+                            <div>
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-blue-900">Dreamland Inspection Guarantee</h4>
+                                <p class="text-xs text-blue-700 mt-1">This vehicle has undergone our rigorous multi-point professional inspection.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Description & Full Technical Specifications Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- Description Card (1 col) -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                    <h3 class="font-bold text-slate-900 text-lg border-b border-slate-100 pb-3">Vehicle Description</h3>
+                    <p id="vehicle-description" class="text-sm text-slate-600 leading-relaxed whitespace-pre-line">No description provided.</p>
+                </div>
+
+                <!-- Complete Specifications Table/Grid (2 cols) -->
+                <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                    <h3 class="font-bold text-slate-900 text-lg border-b border-slate-100 pb-3">Complete Specifications</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Make</span>
+                            <span id="full-make" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Model</span>
+                            <span id="full-model" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Trim</span>
+                            <span id="full-trim" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Year</span>
+                            <span id="full-year" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Mileage</span>
+                            <span id="full-mileage" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Engine</span>
+                            <span id="full-engine" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Transmission</span>
+                            <span id="full-transmission" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Fuel Type</span>
+                            <span id="full-fuel" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Colour</span>
+                            <span id="full-colour" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Body Type</span>
+                            <span id="full-body" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Location</span>
+                            <span id="full-location" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">VIN</span>
+                            <span id="full-vin" class="font-semibold font-mono text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between sm:col-span-2">
+                            <span class="text-slate-500 font-medium">Registration Number</span>
+                            <span id="full-reg" class="font-semibold font-mono text-slate-800">--</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Inspection Section -->
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-8">
+                
+                <div class="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                        <div class="text-xs font-bold uppercase tracking-wider text-blue-600 mb-1">DREAMLAND INSPECTION REPORT</div>
+                        <h2 class="text-2xl font-extrabold text-slate-900">Multi-Point Mechanical & Structural Evaluation</h2>
+                    </div>
+                </div>
+
+                <!-- If No Inspection Available -->
+                <div id="no-inspection-notice" class="hidden py-12 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    <i class="fa-solid fa-file-lines text-slate-300 text-4xl mb-3"></i>
+                    <h3 class="font-bold text-slate-700 text-lg">Inspection Report Pending</h3>
+                    <p class="text-sm text-slate-500 mt-1">Inspection has not yet been completed or published for this vehicle.</p>
+                </div>
+
+                <!-- Inspection Content (Shown if inspection exists) -->
+                <div id="inspection-data-container" class="space-y-8 hidden">
+                    
+                    <!-- Inspection Header Stats Bar -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm">
+                        <div>
+                            <div class="text-xs text-slate-400 font-semibold uppercase">Inspection No</div>
+                            <div id="insp-number" class="font-bold text-slate-800 font-mono mt-0.5">Not assigned</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-400 font-semibold uppercase">Inspection Date</div>
+                            <div id="insp-date" class="font-bold text-slate-800 mt-0.5">--</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-400 font-semibold uppercase">Status</div>
+                            <div id="insp-status" class="font-bold text-emerald-600 mt-0.5 uppercase">--</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-400 font-semibold uppercase">Mileage at Inspection</div>
+                            <div id="insp-mileage" class="font-bold text-slate-800 mt-0.5">--</div>
+                        </div>
+                    </div>
+
+                    <!-- Overall Score & Condition Banner -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-gradient-to-br from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-sm">
+                        <div class="flex items-center space-x-4 border-b md:border-b-0 md:border-r border-slate-700 pb-4 md:pb-0">
+                            <div class="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center text-2xl font-black shadow-inner">
+                                <span id="insp-overall-score-num">--</span>
+                            </div>
+                            <div>
+                                <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">Overall Score</div>
+                                <div id="insp-overall-score-text" class="text-xl font-extrabold mt-0.5">Score not available</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4 border-b md:border-b-0 md:border-r border-slate-700 pb-4 md:pb-0">
+                            <div class="w-16 h-16 rounded-2xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl">
+                                <i class="fa-solid fa-award"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">Overall Condition</div>
+                                <div id="insp-condition" class="text-xl font-extrabold text-emerald-400 mt-0.5">Not provided</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="w-16 h-16 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-2xl">
+                                <i class="fa-solid fa-thumbs-up"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">Recommendation</div>
+                                <div id="insp-recommendation-short" class="text-sm font-bold text-indigo-300 mt-0.5 line-clamp-2">No recommendation provided.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Score Breakdown Grid -->
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-lg mb-4">Detailed Score Breakdown</h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            <!-- Mechanical -->
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div class="text-xs text-slate-500 font-semibold uppercase mb-1">Mechanical</div>
+                                <div id="score-mechanical" class="text-2xl font-extrabold text-slate-800">N/A</div>
+                            </div>
+                            <!-- Electrical -->
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div class="text-xs text-slate-500 font-semibold uppercase mb-1">Electrical</div>
+                                <div id="score-electrical" class="text-2xl font-extrabold text-slate-800">N/A</div>
+                            </div>
+                            <!-- Body -->
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div class="text-xs text-slate-500 font-semibold uppercase mb-1">Body & Frame</div>
+                                <div id="score-body" class="text-2xl font-extrabold text-slate-800">N/A</div>
+                            </div>
+                            <!-- Interior -->
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div class="text-xs text-slate-500 font-semibold uppercase mb-1">Interior</div>
+                                <div id="score-interior" class="text-2xl font-extrabold text-slate-800">N/A</div>
+                            </div>
+                            <!-- Suspension -->
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div class="text-xs text-slate-500 font-semibold uppercase mb-1">Suspension</div>
+                                <div id="score-suspension" class="text-2xl font-extrabold text-slate-800">N/A</div>
+                            </div>
+                            <!-- Brakes -->
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div class="text-xs text-slate-500 font-semibold uppercase mb-1">Brakes</div>
+                                <div id="score-brakes" class="text-2xl font-extrabold text-slate-800">N/A</div>
+                            </div>
+                            <!-- Diagnostics -->
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div class="text-xs text-slate-500 font-semibold uppercase mb-1">Diagnostics</div>
+                                <div id="score-diagnostic" class="text-2xl font-extrabold text-slate-800">N/A</div>
+                            </div>
+                            <!-- Road Test -->
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div class="text-xs text-slate-500 font-semibold uppercase mb-1">Road Test</div>
+                                <div id="score-road" class="text-2xl font-extrabold text-slate-800">N/A</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Recommendation & Summary -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                        <div class="space-y-2">
+                            <h4 class="font-bold text-slate-900 flex items-center space-x-2">
+                                <i class="fa-solid fa-stethoscope text-blue-600"></i>
+                                <span>Professional Recommendation</span>
+                            </h4>
+                            <p id="insp-recommendation" class="text-sm text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-100 leading-relaxed">No recommendation provided.</p>
+                        </div>
+                        <div class="space-y-2">
+                            <h4 class="font-bold text-slate-900 flex items-center space-x-2">
+                                <i class="fa-solid fa-file-waveform text-blue-600"></i>
+                                <span>Inspection Summary</span>
+                            </h4>
+                            <p id="insp-summary" class="text-sm text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-100 leading-relaxed">No inspection summary available.</p>
+                        </div>
+                    </div>
+
+                    <!-- Inspection Findings Section (Rich Evidence & Findings) -->
+                    <div id="findings-section" class="hidden space-y-4 pt-4 border-t border-slate-100">
+                        <h4 class="font-bold text-slate-900 text-lg flex items-center space-x-2">
+                            <i class="fa-solid fa-clipboard-list text-blue-600"></i>
+                            <span>Evaluated Inspection Findings & Evidence</span>
+                        </h4>
+                        <div id="findings-container" class="space-y-3">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Verification Information & Report Link Card -->
+                    <div class="bg-blue-50/60 rounded-2xl border border-blue-100 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div class="space-y-1">
+                            <div class="text-xs font-bold uppercase tracking-wider text-blue-900">Verification Certificate Details</div>
+                            <div class="text-xs text-blue-700 flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                                <span><strong>Status:</strong> <span id="cert-status">VERIFIED</span></span>
+                                <span id="cert-ref-wrapper"><strong>Ref:</strong> <span id="cert-ref">--</span></span>
+                                <span id="cert-date-wrapper"><strong>Verified Date:</strong> <span id="cert-date">--</span></span>
+                            </div>
+                        </div>
+                        <div id="report-btn-container" class="hidden">
+                            <a id="report-download-link" href="#" target="_blank" class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2.5 rounded-xl text-sm transition-colors shadow-sm">
+                                <i class="fa-solid fa-file-pdf"></i>
+                                <span>View Inspection Report</span>
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Public Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-8 border-t border-slate-800 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs space-y-2">
+            <p>&copy; 2026 Dreamland Verified Cars. All rights reserved.</p>
+            <p>Professional vehicle inspections, transparent condition grading, and verified sales.</p>
+        </div>
+    </footer>
+
+    <!-- Page Controller Script -->
+    <script type="module">
+        import { vehicleService } from './vehicleService.js';
+
+        async function initVehicleDetails() {
+            const params = new URLSearchParams(window.location.search);
+            const vehicleId = params.get('id');
+
+            const loadingState = document.getElementById('loading-state');
+            const errorState = document.getElementById('error-state');
+            const vehicleContent = document.getElementById('vehicle-content');
+
+            if (!vehicleId) {
+                loadingState.classList.add('hidden');
+                document.getElementById('error-title').textContent = 'Vehicle not specified.';
+                document.getElementById('error-message').textContent = 'Please provide a valid vehicle ID in the URL.';
+                errorState.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                // Using getPublicVehicleDetails to fetch verified vehicle, public photos, and enriched inspections with findings
+                const vehicle = await vehicleService.getPublicVehicleDetails(vehicleId);
+
+                if (!vehicle) {
+                    throw new Error('Vehicle record not found.');
+                }
+
+                renderVehicleDetails(vehicle);
+
+                loadingState.classList.add('hidden');
+                vehicleContent.classList.remove('hidden');
+
+            } catch (err) {
+                console.error('Failed to load public vehicle details:', err);
+                loadingState.classList.add('hidden');
+                document.getElementById('error-title').textContent = 'Vehicle not found.';
+                document.getElementById('error-message').textContent = 'Unable to load vehicle details or the record does not exist in the verified catalog.';
+                errorState.classList.remove('hidden');
+            }
+        }
+
+        function renderVehicleDetails(v) {
+            // Header & Title
+            const code = v.vehicle_code || v.id.substring(0, 8);
+            document.getElementById('vehicle-code-badge').textContent = `REF: ${code}`;
+            document.getElementById('vehicle-title').textContent = `${v.year || ''} ${v.make || ''} ${v.model || ''} ${v.trim || ''}`.trim();
+            document.getElementById('vehicle-location').querySelector('span').textContent = v.location || 'Location not specified';
+
+            // Price formatting
+            const currency = v.currency || 'NGN';
+            const formattedPrice = v.price ? new Intl.NumberFormat('en-NG', { style: 'currency', currency: currency, maximumFractionDigits: 0 }).format(v.price) : 'Price TBD';
+            document.getElementById('vehicle-price').textContent = formattedPrice;
+
+            // Hero Photo & Gallery (Using v.photos from getPublicVehicleDetails)
+            renderPhotoGallery(v.photos);
+
+            // Quick Specs
+            document.getElementById('spec-year').textContent = v.year || 'Not provided';
+            document.getElementById('spec-mileage').textContent = v.mileage !== null && v.mileage !== undefined ? `${Number(v.mileage).toLocaleString()} km` : 'Not provided';
+            document.getElementById('spec-transmission').textContent = v.transmission || 'Not provided';
+            document.getElementById('spec-fuel').textContent = v.fuel_type || 'Not provided';
+            document.getElementById('spec-body').textContent = v.body_type || 'Not provided';
+            document.getElementById('spec-colour').textContent = v.colour || 'Not provided';
+            document.getElementById('spec-engine').textContent = v.engine || 'Not provided';
+
+            // Description
+            document.getElementById('vehicle-description').textContent = v.description || 'No description provided.';
+
+            // Full Specs Grid
+            document.getElementById('full-make').textContent = v.make || 'Not provided';
+            document.getElementById('full-model').textContent = v.model || 'Not provided';
+            document.getElementById('full-trim').textContent = v.trim || 'Not provided';
+            document.getElementById('full-year').textContent = v.year || 'Not provided';
+            document.getElementById('full-mileage').textContent = v.mileage !== null && v.mileage !== undefined ? `${Number(v.mileage).toLocaleString()} km` : 'Not provided';
+            document.getElementById('full-engine').textContent = v.engine || 'Not provided';
+            document.getElementById('full-transmission').textContent = v.transmission || 'Not provided';
+            document.getElementById('full-fuel').textContent = v.fuel_type || 'Not provided';
+            document.getElementById('full-colour').textContent = v.colour || 'Not provided';
+            document.getElementById('full-body').textContent = v.body_type || 'Not provided';
+            document.getElementById('full-location').textContent = v.location || 'Not provided';
+            document.getElementById('full-vin').textContent = v.vin || 'Not provided';
+            document.getElementById('full-reg').textContent = v.registration_number || 'Not provided';
+
+            // Inspection Rendering (Selecting latest inspection from v.inspections)
+            renderInspectionSection(v);
+
+            // Certificate Info
+            document.getElementById('cert-status').textContent = v.verification_status || 'VERIFIED';
+            if (v.verification_reference) {
+                document.getElementById('cert-ref').textContent = v.verification_reference;
+            } else {
+                document.getElementById('cert-ref-wrapper').classList.add('hidden');
+            }
+            if (v.verified_at) {
+                document.getElementById('cert-date').textContent = new Date(v.verified_at).toLocaleDateString();
+            } else {
+                document.getElementById('cert-date-wrapper').classList.add('hidden');
+            }
+        }
+
+        function renderPhotoGallery(photos) {
+            const mainHero = document.getElementById('main-hero-photo');
+            const placeholder = document.getElementById('no-photo-placeholder');
+            const thumbsContainer = document.getElementById('gallery-thumbnails');
+
+            const validPhotos = photos ? photos.filter(p => p.public_url && p.public_url.trim() !== '') : [];
+
+            if (validPhotos.length === 0) {
+                mainHero.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+                thumbsContainer.innerHTML = '<p class="text-xs text-slate-400 col-span-full">No photos available for this vehicle.</p>';
+                return;
+            }
+
+            let primaryPhoto = validPhotos.find(p => p.is_primary === true) || validPhotos[0];
+            let activeUrl = primaryPhoto.public_url;
+
+            mainHero.src = activeUrl;
+            mainHero.classList.remove('hidden');
+            placeholder.classList.add('hidden');
+
+            thumbsContainer.innerHTML = validPhotos.map((p, idx) => {
+                const url = p.public_url;
+                const isActive = (p.id === primaryPhoto.id);
+                const borderClass = isActive ? 'ring-2 ring-blue-600 opacity-100' : 'opacity-70 hover:opacity-100';
+
+                return `
+                    <div onclick="window.switchHeroPhoto('${url}', this)" class="cursor-pointer rounded-xl overflow-hidden aspect-[4/3] border border-slate-200 bg-slate-100 transition-all ${borderClass}">
+                        <img src="${url}" alt="Thumbnail ${idx + 1}" class="w-full h-full object-cover">
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.switchHeroPhoto = function(url, el) {
+            document.getElementById('main-hero-photo').src = url;
+            document.querySelectorAll('#gallery-thumbnails > div').forEach(div => {
+                div.classList.remove('ring-2', 'ring-blue-600', 'opacity-100');
+                div.classList.add('opacity-70');
+            });
+            el.classList.remove('opacity-70');
+            el.classList.add('ring-2', 'ring-blue-600', 'opacity-100');
+        };
+
+        function renderInspectionSection(v) {
+            const noInspNotice = document.getElementById('no-inspection-notice');
+            const inspDataContainer = document.getElementById('inspection-data-container');
+
+            const rawInspections = v.inspections;
+            if (!rawInspections || rawInspections.length === 0) {
+                noInspNotice.classList.remove('hidden');
+                inspDataContainer.classList.add('hidden');
+                return;
+            }
+
+            // Select the latest inspection by inspection_date or created_at descending
+            const inspections = [...rawInspections].sort((a, b) => {
+                const dateA = new Date(a.inspection_date || a.created_at || 0);
+                const dateB = new Date(b.inspection_date || b.created_at || 0);
+                return dateB - dateA;
+            });
+
+            const insp = inspections[0];
+
+            noInspNotice.classList.add('hidden');
+            inspDataContainer.classList.remove('hidden');
+
+            // Meta stats
+            document.getElementById('insp-number').textContent = insp.inspection_number || 'Not assigned';
+            document.getElementById('insp-date').textContent = insp.inspection_date ? new Date(insp.inspection_date).toLocaleDateString() : (insp.completed_at ? new Date(insp.completed_at).toLocaleDateString() : 'N/A');
+            document.getElementById('insp-status').textContent = insp.inspection_status || 'COMPLETED';
+            document.getElementById('insp-mileage').textContent = insp.mileage !== null && insp.mileage !== undefined ? `${Number(insp.mileage).toLocaleString()} km` : (v.mileage ? `${Number(v.mileage).toLocaleString()} km` : 'N/A');
+
+            // Overall Score
+            if (insp.overall_score !== null && insp.overall_score !== undefined) {
+                document.getElementById('insp-overall-score-num').textContent = insp.overall_score;
+                document.getElementById('insp-overall-score-text').textContent = `${insp.overall_score} / 100 Overall Score`;
+            } else {
+                document.getElementById('insp-overall-score-num').textContent = '--';
+                document.getElementById('insp-overall-score-text').textContent = 'Score not available';
+            }
+
+            // Overall Condition
+            document.getElementById('insp-condition').textContent = insp.overall_condition || 'Not provided';
+            document.getElementById('insp-recommendation-short').textContent = insp.recommendation || 'No recommendation provided.';
+
+            // Score Breakdown
+            const setScore = (id, val) => {
+                document.getElementById(id).textContent = (val !== null && val !== undefined) ? val : 'N/A';
+            };
+            setScore('score-mechanical', insp.mechanical_score);
+            setScore('score-electrical', insp.electrical_score);
+            setScore('score-body', insp.body_score);
+            setScore('score-interior', insp.interior_score);
+            setScore('score-suspension', insp.suspension_score);
+            setScore('score-brakes', insp.brake_score);
+            setScore('score-diagnostic', insp.diagnostic_score);
+            setScore('score-road', insp.road_test_score);
+
+            // Recommendation & Summary
+            document.getElementById('insp-recommendation').textContent = insp.recommendation || 'No recommendation provided.';
+            document.getElementById('insp-summary').textContent = insp.summary || 'No inspection summary available.';
+
+            // Render Findings and Evidence Photos if present
+            renderInspectionFindings(insp.findings);
+
+            // Report Path
+            if (insp.report_path) {
+                const reportLink = document.getElementById('report-download-link');
+                reportLink.href = insp.report_path;
+                document.getElementById('report-btn-container').classList.remove('hidden');
+            }
+        }
+
+        function renderInspectionFindings(findings) {
+            const section = document.getElementById('findings-section');
+            const container = document.getElementById('findings-container');
+
+            if (!findings || findings.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+
+            section.classList.remove('hidden');
+            container.innerHTML = findings.map(f => {
+                const severityColor = f.severity === 'MAJOR' || f.severity === 'CRITICAL' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-800 border-amber-200';
+                
+                const photosHtml = (f.photos && f.photos.length > 0) ? `
+                    <div class="flex gap-2 mt-3 overflow-x-auto pb-1">
+                        ${f.photos.map(p => `<a href="${p.public_url}" target="_blank" class="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0 block"><img src="${p.public_url}" class="w-full h-full object-cover"></a>`).join('')}
+                    </div>
+                ` : '';
+
+                return `
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                        <div class="space-y-1">
+                            <div class="flex items-center space-x-2">
+                                <span class="font-bold text-slate-800">${f.category || 'General'}</span>
+                                <span class="text-xs px-2 py-0.5 rounded font-semibold uppercase border ${severityColor}">${f.severity || 'NOTE'}</span>
+                            </div>
+                            <p class="text-slate-600">${f.description || f.finding || 'No details provided.'}</p>
+                            ${photosHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        initVehicleDetails();
+    </script>
+</body>
+</html>
