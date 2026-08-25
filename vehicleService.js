@@ -264,7 +264,7 @@ export const vehicleService = {
         return data;
     },
 
-    /**
+   /**
      * ==========================================
      * PHOTO MANAGEMENT METHODS
      * ==========================================
@@ -348,26 +348,51 @@ export const vehicleService = {
     },
 
     /**
-     * Sets a specific photo as primary for a vehicle.
+     * Sets a specific photo as primary for a vehicle safely:
+     * 1. Validates that the photo belongs to the vehicle.
+     * 2. Unsets is_primary for all vehicle photos (bulk update without .single()).
+     * 3. Sets is_primary = true for the targeted photo ID.
      */
     async setPrimaryPhoto(vehicleId, photoId) {
-        if (!vehicleId || !photoId) throw new Error('Vehicle ID and Photo ID are required.');
+        if (!vehicleId || !photoId) {
+            throw new Error('Vehicle ID and Photo ID are required.');
+        }
 
+        // Step 1: Verify ownership and existence
+        const { data: targetPhoto, error: fetchErr } = await supabase
+            .from('vehicle_photos')
+            .select('id, vehicle_id')
+            .eq('id', photoId)
+            .eq('vehicle_id', vehicleId)
+            .single();
+
+        if (fetchErr || !targetPhoto) {
+            throw new Error('Photo does not exist or does not belong to this vehicle.');
+        }
+
+        // Step 2: Unset primary for all photos of this vehicle (Bulk update - NO .single())
         const { error: resetError } = await supabase
             .from('vehicle_photos')
             .update({ is_primary: false })
             .eq('vehicle_id', vehicleId);
 
-        if (resetError) throw new Error(resetError.message);
+        if (resetError) {
+            throw new Error(resetError.message);
+        }
 
+        // Step 3: Set target photo as primary (Safe for .single() because id is unique)
         const { data, error: setPrimaryError } = await supabase
             .from('vehicle_photos')
             .update({ is_primary: true })
             .eq('id', photoId)
+            .eq('vehicle_id', vehicleId)
             .select()
             .single();
 
-        if (setPrimaryError) throw new Error(setPrimaryError.message);
+        if (setPrimaryError) {
+            throw new Error(setPrimaryError.message);
+        }
+
         return data;
     },
 
