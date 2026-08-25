@@ -184,6 +184,7 @@
         .btn-edit:hover { background: #dbeafe; }
         .btn-delete { color: var(--danger); border-color: #fecaca; background: #fef2f2; }
         .btn-delete:hover { background: #fee2e2; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -300,6 +301,23 @@
                 <div id="existingPhotosContainer" class="hidden" style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
                     <label style="margin-bottom: 8px; display: block;">Vehicle Photos Gallery</label>
                     <div id="vehiclePhotosManager" class="photo-manager-grid"></div>
+                </div>
+            </div>
+
+            <!-- Inspection PDF Reports Upload Section -->
+            <div class="form-group full-width" style="border-top: 1px solid var(--border); padding-top: 16px; margin-top: 8px;">
+                <label style="margin-bottom: 8px; display: block; color: var(--accent);">Digital Inspection & Scanner Reports (PDF)</label>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                    <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+                        <label style="font-size: 0.75rem; color: #475569; display: block; margin-bottom: 4px;">Raw Scanner Health Report (PDF)</label>
+                        <input type="file" id="adminScannerPdfInput" accept=".pdf" style="width: 100%; font-size: 0.875rem;">
+                        <small style="color: #64748b; font-size: 0.7rem; display: block; margin-top: 4px;">Upload unedited OBD2 scanner health log.</small>
+                    </div>
+                    <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+                        <label style="font-size: 0.75rem; color: #475569; display: block; margin-bottom: 4px;">Main Inspection Summary Report (PDF)</label>
+                        <input type="file" id="adminMainPdfInput" accept=".pdf" style="width: 100%; font-size: 0.875rem;">
+                        <small style="color: #64748b; font-size: 0.7rem; display: block; margin-top: 4px;">Upload multi-point vehicle inspection certificate.</small>
+                    </div>
                 </div>
             </div>
 
@@ -495,8 +513,12 @@
         };
 
         const photoFile = window.vehiclePhotoPicker?.getFile() || null;
+        const scannerPdfFile = document.getElementById('adminScannerPdfInput')?.files[0] || null;
+        const mainPdfFile = document.getElementById('adminMainPdfInput')?.files[0] || null;
 
         try {
+            let targetVehicleId = editingVehicleId;
+
             if (editingVehicleId) {
                 submitBtn.disabled = true;
                 submitBtn.textContent = 'Updating Vehicle...';
@@ -511,18 +533,18 @@
                 }
 
                 alert('Vehicle updated successfully!');
-                const currentId = editingVehicleId;
-                await editVehicle(currentId);
             } else {
                 submitBtn.disabled = true;
                 submitBtn.textContent = 'Saving Draft...';
 
                 const newCar = await vehicleService.createVehicle(vehicleData);
+                if (!newCar || !newCar.id) throw new Error('Failed to create vehicle record.');
+                targetVehicleId = newCar.id;
 
-                if (photoFile && newCar && newCar.id) {
+                if (photoFile) {
                     try {
                         await vehicleService.addVehiclePhoto(
-                            newCar.id,
+                            targetVehicleId,
                             photoFile,
                             {
                                 category: 'EXTERIOR',
@@ -531,14 +553,41 @@
                         );
                     } catch (photoErr) {
                         console.warn('Vehicle created, but photo upload failed:', photoErr.message);
-                        alert('Vehicle draft created successfully, but photo upload failed.');
                     }
-                } else {
-                    alert('Vehicle draft created successfully!');
                 }
 
+                alert('Vehicle draft created successfully!');
                 document.getElementById('vehicleForm').reset();
                 window.vehiclePhotoPicker?.clear();
+            }
+
+            // Upload PDF reports dynamically if selected (works for any vehicle brand)
+            if (targetVehicleId) {
+                if (scannerPdfFile) {
+                    try {
+                        await vehicleService.uploadInspectionReportPdf(targetVehicleId, scannerPdfFile, 'scanner');
+                    } catch (pdfErr) {
+                        console.warn('Scanner PDF upload failed:', pdfErr.message);
+                        alert('Vehicle saved, but Scanner PDF upload failed: ' + pdfErr.message);
+                    }
+                }
+
+                if (mainPdfFile) {
+                    try {
+                        await vehicleService.uploadInspectionReportPdf(targetVehicleId, mainPdfFile, 'main');
+                    } catch (pdfErr) {
+                        console.warn('Main PDF upload failed:', pdfErr.message);
+                        alert('Vehicle saved, but Main Inspection PDF upload failed: ' + pdfErr.message);
+                    }
+                }
+            }
+
+            // Reset file inputs
+            document.getElementById('adminScannerPdfInput').value = '';
+            document.getElementById('adminMainPdfInput').value = '';
+
+            if (editingVehicleId) {
+                await editVehicle(editingVehicleId);
             }
 
             loadInventory();
@@ -658,6 +707,8 @@
         document.getElementById('photoSectionLabel').textContent = 'Primary Photo';
         document.getElementById('existingPhotosContainer').classList.add('hidden');
         document.getElementById('vehiclePhotosManager').innerHTML = '';
+        document.getElementById('adminScannerPdfInput').value = '';
+        document.getElementById('adminMainPdfInput').value = '';
         
         const submitBtn = document.getElementById('submitBtn');
         submitBtn.textContent = 'Save as Draft';
