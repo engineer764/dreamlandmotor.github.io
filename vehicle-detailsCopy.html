@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-slate-50 font-sans text-slate-900 antialiased min-h-screen flex flex-col">
+<body class="bg-slate-50 font-sans text-slate-900 antialiased min-h-screen flex flex-col pb-20 sm:pb-0">
 
     <!-- Public Header -->
     <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40">
@@ -139,6 +139,25 @@
                     </div>
                 </div>
 
+            </div>
+
+            <!-- WhatsApp Action Box 1 (After Vehicle Details & Specs) -->
+            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="space-y-1 text-center md:text-left">
+                    <div class="text-xs font-bold uppercase tracking-wider text-emerald-800">Instant Enquiry & Assistance</div>
+                    <h3 class="text-xl font-extrabold text-slate-900">Interested in this verified vehicle?</h3>
+                    <p class="text-sm text-slate-600">Chat directly with Dreamland Motor Engineering Works with this vehicle pre-attached.</p>
+                </div>
+                <div class="flex flex-wrap gap-3 justify-center">
+                    <button type="button" onclick="openWhatsApp('enquiry')" class="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm">
+                        <i class="fa-brands fa-whatsapp text-lg"></i>
+                        <span>WhatsApp Us About This Vehicle</span>
+                    </button>
+                    <button type="button" onclick="openWhatsApp('schedule')" class="inline-flex items-center space-x-2 bg-white hover:bg-slate-100 text-emerald-800 border border-emerald-300 font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm">
+                        <i class="fa-solid fa-calendar-days"></i>
+                        <span>Schedule an Inspection</span>
+                    </button>
+                </div>
             </div>
 
             <!-- Description & Full Technical Specifications Grid -->
@@ -358,6 +377,25 @@
                         </div>
                     </div>
 
+                    <!-- WhatsApp Action Box 2 (After Inspection Findings) -->
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div class="space-y-1 text-center md:text-left">
+                            <div class="text-xs font-bold uppercase tracking-wider text-emerald-800">Expert Engineer Consultation</div>
+                            <h3 class="text-xl font-extrabold text-slate-900">Questions about this inspection report?</h3>
+                            <p class="text-sm text-slate-600">Discuss specific findings or inspection scores with our automotive technicians.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-3 justify-center">
+                            <button type="button" onclick="openWhatsApp('inspection_q')" class="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm">
+                                <i class="fa-brands fa-whatsapp text-lg"></i>
+                                <span>Ask About This Inspection</span>
+                            </button>
+                            <button type="button" onclick="openWhatsApp('schedule')" class="inline-flex items-center space-x-2 bg-white hover:bg-slate-100 text-emerald-800 border border-emerald-300 font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm">
+                                <i class="fa-solid fa-calendar-days"></i>
+                                <span>Schedule an Inspection</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Verification Information & Report Link Card -->
                     <div class="bg-blue-50/60 rounded-2xl border border-blue-100 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div class="space-y-1">
@@ -384,8 +422,20 @@
 
     </main>
 
+    <!-- Sticky Mobile WhatsApp Action Bar -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-slate-200 p-3 sm:hidden z-50 flex gap-2 shadow-lg">
+        <button type="button" onclick="openWhatsApp('enquiry')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-sm">
+            <i class="fa-brands fa-whatsapp text-sm"></i>
+            <span>WhatsApp Vehicle</span>
+        </button>
+        <button type="button" onclick="openWhatsApp('schedule')" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-sm">
+            <i class="fa-solid fa-calendar-days"></i>
+            <span>Schedule Inspection</span>
+        </button>
+    </div>
+
     <!-- Public Footer -->
-    <footer class="bg-slate-900 text-slate-400 py-8 border-t border-slate-800 mt-16">
+    <footer class="bg-slate-900 text-slate-400 py-8 border-t border-slate-800 mt-16 mb-12 sm:mb-0">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs space-y-2">
             <p>&copy; 2026 Dreamland Verified Cars. All rights reserved.</p>
             <p>Professional vehicle inspections, transparent condition grading, and verified sales.</p>
@@ -395,6 +445,9 @@
     <!-- Page Controller Script -->
     <script type="module">
         import { vehicleService } from './vehicleService.js';
+
+        const WHATSAPP_NUMBER = '2349066616152'; // Dreamland Motor Engineering Works WhatsApp Number
+        let activeVehicleData = null;
 
         async function initVehicleDetails() {
             const params = new URLSearchParams(window.location.search);
@@ -420,6 +473,7 @@
                     throw new Error('Vehicle record not found.');
                 }
 
+                activeVehicleData = vehicle;
                 renderVehicleDetails(vehicle);
 
                 loadingState.classList.add('hidden');
@@ -640,6 +694,68 @@
                 `;
             }).join('');
         }
+
+        // Global WhatsApp Handler
+        window.openWhatsApp = function(type) {
+            if (!activeVehicleData) {
+                alert('Vehicle details are still loading.');
+                return;
+            }
+
+            const v = activeVehicleData;
+            const vehicleName = `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim();
+            const vehicleCode = v.vehicle_code || v.id.substring(0, 8);
+            const currentUrl = window.location.href;
+            const WHATSAPP_NUMBER = '2349066616152';
+
+            let message = '';
+
+            if (type === 'enquiry') {
+                message = `Hello Dreamland Motor Engineering Works.
+
+I am interested in this vehicle:
+
+Vehicle: ${vehicleName}
+Reference: ${vehicleCode}
+Vehicle ID: ${v.id}
+
+Please provide more information about this vehicle.
+
+Vehicle link:
+${currentUrl}`;
+            } else if (type === 'schedule') {
+                message = `Hello Dreamland Motor Engineering Works.
+
+I would like to schedule a vehicle inspection for another car.
+
+I was viewing this vehicle on your website:
+
+Vehicle: ${vehicleName}
+Reference: ${vehicleCode}
+Vehicle ID: ${v.id}
+
+I would like to discuss arranging an inspection.
+
+Vehicle link:
+${currentUrl}`;
+            } else if (type === 'inspection_q') {
+                message = `Hello Dreamland Motor Engineering Works.
+
+I have reviewed the inspection report for:
+
+Vehicle: ${vehicleName}
+Reference: ${vehicleCode}
+Vehicle ID: ${v.id}
+
+I have a question about the inspection findings.
+
+Vehicle link:
+${currentUrl}`;
+            }
+
+            const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank', 'noopener');
+        };
 
         initVehicleDetails();
     </script>
