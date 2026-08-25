@@ -121,13 +121,14 @@ export const vehicleService = {
         return Array.isArray(data) ? data[0] : data;
     },
 
-    /**
-     * Permanently deletes a vehicle record and cleans up associated storage files.
+  /**
+     * Permanently deletes a vehicle record using the secure atomic database RPC
+     * and cleans up associated storage objects from the bucket.
      */
     async deleteVehicle(vehicleId) {
         if (!vehicleId) throw new Error('Vehicle ID is required.');
 
-        // 1. Fetch associated photos to clean up storage bucket
+        // 1. Fetch associated photo storage paths before database cleanup
         const { data: photos, error: photoFetchErr } = await supabase
             .from('vehicle_photos')
             .select('storage_path')
@@ -140,39 +141,17 @@ export const vehicleService = {
             }
         }
 
-        // 2. Delete vehicle record (cascade handles findings, inspections, photo rows if configured, or delete explicitly)
-        const { error: deleteErr } = await supabase
-            .from('vehicles')
-            .delete()
-            .eq('id', vehicleId);
-
-        if (deleteErr) throw new Error(deleteErr.message);
-        return true;
-    },
-
-    /**
-     * Updates vehicle price securely via database RPC.
-     */
-    async updateVehiclePrice(vehicleId, newPrice) {
-        if (!vehicleId) {
-            throw new Error('Vehicle ID is required.');
-        }
-
-        const price = parseFloat(newPrice);
-
-        if (!Number.isFinite(price) || price < 0) {
-            throw new Error('A valid vehicle price is required.');
-        }
-
-        const { data, error } = await supabase.rpc('update_vehicle_price', {
-            p_vehicle_id: vehicleId,
-            p_new_price: price
+        // 2. Execute atomic database cascade deletion via secure RPC
+        const { error: rpcError } = await supabase.rpc('delete_vehicle', {
+            p_vehicle_id: vehicleId
         });
 
-        if (error) throw new Error(error.message);
-        return data;
-    },
+        if (rpcError) {
+            throw new Error(rpcError.message);
+        }
 
+        return true;
+    },
     /**
      * ==========================================
      * VEHICLE LIFECYCLE ACTIONS
@@ -285,9 +264,12 @@ export const vehicleService = {
         return data;
     },
 
-    /**
-     * Uploads a vehicle gallery photo to Supabase Storage and creates a vehicle_photos record.
+  /**
+     * ==========================================
+     * PHOTO MANAGEMENT METHODS
+     * ==========================================
      */
+
     async uploadVehiclePhoto(vehicleId, file, options = {}) {
         if (!file || !(file instanceof File)) {
             throw new Error('A valid file is required.');
@@ -306,7 +288,13 @@ export const vehicleService = {
             .from('vehicle-photos')
             .getPublicUrl(fileName);
 
-        const isPrimary = options.is_primary || false;
+        const { count } = await supabase
+            .from('vehicle_photos')
+            .select('*', { count: 'exact', head: true })
+            .eq('vehicle_id', vehicleId);
+
+        const isFirstPhoto = (count === 0);
+        const isPrimary = options.is_primary || isFirstPhoto;
 
         if (isPrimary) {
             await supabase
@@ -322,7 +310,7 @@ export const vehicleService = {
                 storage_path: fileName,
                 public_url: publicUrl,
                 is_primary: isPrimary,
-                sort_order: options.sort_order !== undefined ? parseInt(options.sort_order, 10) : 0,
+                sort_order: options.sort_order !== undefined ? parseInt(options.sort_order, 10) : (count || 0),
                 category: options.category || 'General',
                 caption: options.caption || null
             }])
@@ -344,13 +332,15 @@ export const vehicleService = {
     },
 
     /**
-     * Fetches photos for a vehicle.
+     * Fetches photos for a vehicle, ordered by primary first then sort order.
      */
     async getVehiclePhotos(vehicleId) {
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
         const { data, error } = await supabase
             .from('vehicle_photos')
             .select('*')
             .eq('vehicle_id', vehicleId)
+            .order('is_primary', { ascending: false })
             .order('sort_order', { ascending: true });
 
         if (error) throw new Error(error.message);
@@ -358,9 +348,48 @@ export const vehicleService = {
     },
 
     /**
-     * Deletes a vehicle photo from storage and database.
+     * Sets a specific photo as primary for a vehicle safely without PGRST116 coercion errors.
+     */
+    async setPrimaryPhoto(vehicleId, photoId) {
+        if (!vehicleId || !photoId) {
+            throw new Error('Vehicle ID and Photo ID are required.');
+        }
+
+        // Step 1: Unset primary for all photos of this vehicle (Bulk update - NO .single())
+        const { error: resetError } = await supabase
+            .from('vehicle_photos')
+            .update({ is_primary: false })
+            .eq('vehicle_id', vehicleId);
+
+        if (resetError) {
+            throw new Error(`Failed to reset primary status: ${resetError.message}`);
+        }
+
+        // Step 2: Set target photo as primary (Using array check instead of .single() to prevent coercion crashes)
+        const { data, error: setPrimaryError } = await supabase
+            .from('vehicle_photos')
+            .update({ is_primary: true })
+            .eq('id', photoId)
+            .eq('vehicle_id', vehicleId)
+            .select();
+
+        if (setPrimaryError) {
+            throw new Error(`Failed to set primary photo: ${setPrimaryError.message}`);
+        }
+
+        if (!data || data.length === 0) {
+            throw new Error('Photo not found or update unauthorized by RLS policies.');
+        }
+
+        return data[0];
+    },
+
+    /**
+     * Deletes a vehicle photo from storage and database, promoting another photo if primary was deleted.
      */
     async deleteVehiclePhoto(photoId) {
+        if (!photoId) throw new Error('Photo ID is required.');
+
         const { data: photo, error: fetchError } = await supabase
             .from('vehicle_photos')
             .select('*')
@@ -368,6 +397,9 @@ export const vehicleService = {
             .single();
 
         if (fetchError || !photo) throw new Error('Photo not found.');
+
+        const vehicleId = photo.vehicle_id;
+        const wasPrimary = photo.is_primary;
 
         if (photo.storage_path) {
             await supabase.storage
@@ -381,8 +413,31 @@ export const vehicleService = {
             .eq('id', photoId);
 
         if (error) throw new Error(error.message);
+
+        if (wasPrimary && vehicleId) {
+            const { data: remainingPhotos } = await supabase
+                .from('vehicle_photos')
+                .select('*')
+                .eq('vehicle_id', vehicleId)
+                .order('sort_order', { ascending: true })
+                .limit(1);
+
+            if (remainingPhotos && remainingPhotos.length > 0) {
+                await supabase
+                    .from('vehicle_photos')
+                    .update({ is_primary: true })
+                    .eq('id', remainingPhotos[0].id);
+            }
+        }
+
         return true;
     },
+
+    /**
+     * ==========================================
+     * PUBLIC DATA ADAPTERS & LISTINGS
+     * ==========================================
+     */
 
     /**
      * Fetches vehicles that are publicly verified and published,
@@ -653,6 +708,7 @@ export const {
     uploadVehiclePhoto,
     addVehiclePhoto,
     getVehiclePhotos,
+    setPrimaryPhoto,
     deleteVehiclePhoto,
     getVerifiedVehicles,
     getPublicVehicleDetails
