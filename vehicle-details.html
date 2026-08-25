@@ -138,8 +138,8 @@
                         <div class="flex items-start space-x-3">
                             <i class="fa-solid fa-shield-halved text-blue-600 text-xl mt-0.5"></i>
                             <div>
-                                <h4 class="text-xs font-bold uppercase tracking-wider text-blue-900">Dreamland Inspection Guarantee</h4>
-                                <p class="text-xs text-blue-700 mt-1">This vehicle has undergone our rigorous multi-point professional inspection.</p>
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-blue-900">Dreamland Engineering Guarantee</h4>
+                                <p class="text-xs text-blue-700 mt-1">Independent Forensic Audit: Evaluated for structural integrity, live OBD fault codes, and powertrain wear by Dreamland diagnostic engineers.</p>
                             </div>
                         </div>
                     </div>
@@ -391,8 +391,8 @@
                     <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
                         <div class="space-y-1 text-center md:text-left">
                             <div class="text-xs font-bold uppercase tracking-wider text-emerald-800">Expert Engineer Consultation</div>
-                            <h3 class="text-xl font-extrabold text-slate-900">Questions about this inspection report?</h3>
-                            <p class="text-sm text-slate-600">Discuss specific findings or share this report with your mechanic.</p>
+                            <h3 class="text-xl font-extrabold text-slate-900">Reviewing with your mechanic?</h3>
+                            <p class="text-sm text-slate-600">Send them this exact link or discuss specific diagnostic values directly with our lead engineer on WhatsApp.</p>
                         </div>
                         <div class="flex flex-wrap gap-3 justify-center">
                             <button type="button" onclick="openWhatsApp('inspection_q')" class="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm">
@@ -417,7 +417,7 @@
                             </div>
                         </div>
                         <div class="flex flex-wrap items-center gap-3">
-                            <!-- Scanner Report Render Container (Dynamically switches between download link or fallback notice) -->
+                            <!-- Scanner Report Render Container (Dynamically switches between download link or professional request notice) -->
                             <div id="scanner-report-container">
                                 <!-- Populated dynamically -->
                             </div>
@@ -680,7 +680,7 @@
                 scannerContainer.innerHTML = `
                     <div class="text-xs text-slate-500 bg-slate-100 px-3 py-2.5 rounded-xl flex items-center space-x-2 border border-slate-200">
                         <i class="fa-solid fa-circle-exclamation text-amber-500"></i>
-                        <span>Scanning health report not uploaded, <button type="button" onclick="openWhatsApp('scanner_q')" class="text-emerald-700 font-bold hover:underline ml-1">contact us on WhatsApp for it</button>.</span>
+                        <span>Raw OBD-II diagnostic log available upon request. <button type="button" onclick="openWhatsApp('scanner_q')" class="text-emerald-700 font-bold hover:underline ml-1">Contact our engineers on WhatsApp for dispatch</button>.</span>
                     </div>
                 `;
             }
@@ -829,7 +829,7 @@ Vehicle: ${vehicleName}
 Reference: ${vehicleCode}
 Vehicle ID: ${v.id}
 
-I have a question about the inspection findings.
+I am reviewing this with my mechanic and have questions about specific diagnostic values.
 
 Vehicle link:
 ${currentUrl}`;
@@ -842,7 +842,7 @@ Vehicle: ${vehicleName}
 Reference: ${vehicleCode}
 Vehicle ID: ${v.id}
 
-The scanning health report has not been uploaded yet. Please send me the unedited scanner health report for this vehicle.
+Please dispatch the raw OBD-II diagnostic log / scanning health report for this vehicle.
 
 Vehicle link:
 ${currentUrl}`;
