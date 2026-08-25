@@ -121,7 +121,7 @@ export const vehicleService = {
         return Array.isArray(data) ? data[0] : data;
     },
 
-  /**
+    /**
      * Permanently deletes a vehicle record using the secure atomic database RPC
      * and cleans up associated storage objects from the bucket.
      */
@@ -152,6 +152,7 @@ export const vehicleService = {
 
         return true;
     },
+
     /**
      * ==========================================
      * VEHICLE LIFECYCLE ACTIONS
@@ -264,7 +265,7 @@ export const vehicleService = {
         return data;
     },
 
-  /**
+    /**
      * ==========================================
      * PHOTO MANAGEMENT METHODS
      * ==========================================
@@ -355,7 +356,6 @@ export const vehicleService = {
             throw new Error('Vehicle ID and Photo ID are required.');
         }
 
-        // Step 1: Unset primary for all photos of this vehicle (Bulk update - NO .single())
         const { error: resetError } = await supabase
             .from('vehicle_photos')
             .update({ is_primary: false })
@@ -365,7 +365,6 @@ export const vehicleService = {
             throw new Error(`Failed to reset primary status: ${resetError.message}`);
         }
 
-        // Step 2: Set target photo as primary (Using array check instead of .single() to prevent coercion crashes)
         const { data, error: setPrimaryError } = await supabase
             .from('vehicle_photos')
             .update({ is_primary: true })
@@ -434,15 +433,70 @@ export const vehicleService = {
     },
 
     /**
+     * Uploads an inspection PDF report (main or scanner health report) to storage 
+     * and updates the vehicle's inspection record dynamically by vehicleId.
+     */
+    async uploadInspectionReportPdf(vehicleId, file, reportType = 'scanner') {
+        if (!file || !(file instanceof File)) {
+            throw new Error('A valid PDF file is required.');
+        }
+
+        const fileExt = file.name.split('.').pop().toLowerCase();
+        if (fileExt !== 'pdf') {
+            throw new Error('Only PDF files are allowed for inspection reports.');
+        }
+
+        const fileName = `inspections/${vehicleId}/${reportType}_${Math.random().toString(36).substring(2, 10)}.pdf`;
+
+        // 1. Upload to Supabase Storage bucket ('vehicle-photos')
+        const { error: uploadError } = await supabase.storage
+            .from('vehicle-photos')
+            .upload(fileName, file, { upsert: true });
+
+        if (uploadError) throw new Error(uploadError.message);
+
+        // 2. Get Public URL
+        const { data: { publicUrl } } = supabase.storage
+            .from('vehicle-photos')
+            .getPublicUrl(fileName);
+
+        // 3. Find existing inspection for this vehicle or create a basic one if missing
+        let { data: inspection, error: fetchErr } = await supabase
+            .from('inspections')
+            .select('id')
+            .eq('vehicle_id', vehicleId)
+            .maybeSingle();
+
+        if (!inspection) {
+            const { data: newInsp, error: createErr } = await supabase
+                .from('inspections')
+                .insert([{ vehicle_id: vehicleId, inspection_status: 'PENDING' }])
+                .select('id')
+                .single();
+            
+            if (createErr) throw new Error(`Failed to initialize inspection record: ${createErr.message}`);
+            inspection = newInsp;
+        }
+
+        // 4. Update the correct column dynamically ('scanner_report_path' or 'report_path')
+        const updateField = reportType === 'scanner' ? 'scanner_report_path' : 'report_path';
+        
+        const { error: updateErr } = await supabase
+            .from('inspections')
+            .update({ [updateField]: publicUrl })
+            .eq('id', inspection.id);
+
+        if (updateErr) throw new Error(`Failed to save report link: ${updateErr.message}`);
+
+        return publicUrl;
+    },
+
+    /**
      * ==========================================
      * PUBLIC DATA ADAPTERS & LISTINGS
      * ==========================================
      */
 
-    /**
-     * Fetches vehicles that are publicly verified and published,
-     * resolving gallery photos and primary image data.
-     */
     async getVerifiedVehicles(filters = {}) {
         let query = supabase
             .from('vehicles')
@@ -624,6 +678,7 @@ export const vehicleService = {
                 summary,
                 inspection_status,
                 report_path,
+                scanner_report_path,
                 completed_at,
                 inspection_findings (
                     id,
@@ -696,7 +751,6 @@ export const {
     createVehicle,
     updateVehicle,
     deleteVehicle,
-    updateVehiclePrice,
     verifyVehicle,
     rejectVehicle,
     publishVehicle,
@@ -711,5 +765,6 @@ export const {
     setPrimaryPhoto,
     deleteVehiclePhoto,
     getVerifiedVehicles,
-    getPublicVehicleDetails
+    getPublicVehicleDetails,
+    uploadInspectionReportPdf
 } = vehicleService;
