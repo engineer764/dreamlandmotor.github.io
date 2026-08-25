@@ -17,7 +17,11 @@
                 <i class="fa-solid fa-car-shield text-blue-500 text-2xl"></i>
                 <span class="font-bold text-lg tracking-wide">Dreamland Verified Cars</span>
             </div>
-            <div>
+            <div class="flex items-center space-x-4">
+                <button type="button" onclick="shareVehicle()" class="text-sm text-slate-300 hover:text-white flex items-center space-x-1.5 transition-colors bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700">
+                    <i class="fa-solid fa-share-nodes text-blue-400"></i>
+                    <span class="hidden sm:inline">Share</span>
+                </button>
                 <a href="verified-cars.html" class="text-sm text-slate-300 hover:text-white flex items-center space-x-2 transition-colors">
                     <i class="fa-solid fa-arrow-left"></i>
                     <span>Back to Verified Cars</span>
@@ -66,9 +70,11 @@
                         <span>Location not specified</span>
                     </p>
                 </div>
-                <div class="text-left md:text-right">
-                    <div class="text-xs font-semibold uppercase text-slate-400 tracking-wider">Verified Price</div>
-                    <div id="vehicle-price" class="text-3xl font-extrabold text-blue-600 mt-0.5">₦0</div>
+                <div class="flex items-center justify-between md:justify-end gap-6">
+                    <div class="text-left md:text-right">
+                        <div class="text-xs font-semibold uppercase text-slate-400 tracking-wider">Verified Price</div>
+                        <div id="vehicle-price" class="text-3xl font-extrabold text-blue-600 mt-0.5">₦0</div>
+                    </div>
                 </div>
             </div>
 
@@ -141,21 +147,25 @@
 
             </div>
 
-            <!-- WhatsApp Action Box 1 (After Vehicle Details & Specs) -->
+            <!-- WhatsApp & Share Action Box 1 -->
             <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
                 <div class="space-y-1 text-center md:text-left">
                     <div class="text-xs font-bold uppercase tracking-wider text-emerald-800">Instant Enquiry & Assistance</div>
                     <h3 class="text-xl font-extrabold text-slate-900">Interested in this verified vehicle?</h3>
-                    <p class="text-sm text-slate-600">Chat directly with Dreamland Motor Engineering Works with this vehicle pre-attached.</p>
+                    <p class="text-sm text-slate-600">Chat directly with Dreamland or share this report with friends.</p>
                 </div>
                 <div class="flex flex-wrap gap-3 justify-center">
                     <button type="button" onclick="openWhatsApp('enquiry')" class="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm">
                         <i class="fa-brands fa-whatsapp text-lg"></i>
-                        <span>WhatsApp Us About This Vehicle</span>
+                        <span>WhatsApp About Vehicle</span>
+                    </button>
+                    <button type="button" onclick="shareVehicle()" class="inline-flex items-center space-x-2 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm">
+                        <i class="fa-solid fa-share-nodes text-blue-600"></i>
+                        <span>Share Vehicle</span>
                     </button>
                     <button type="button" onclick="openWhatsApp('schedule')" class="inline-flex items-center space-x-2 bg-white hover:bg-slate-100 text-emerald-800 border border-emerald-300 font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm">
                         <i class="fa-solid fa-calendar-days"></i>
-                        <span>Schedule an Inspection</span>
+                        <span>Schedule Inspection</span>
                     </button>
                 </div>
             </div>
@@ -377,21 +387,21 @@
                         </div>
                     </div>
 
-                    <!-- WhatsApp Action Box 2 (After Inspection Findings) -->
+                    <!-- WhatsApp & Share Action Box 2 -->
                     <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
                         <div class="space-y-1 text-center md:text-left">
                             <div class="text-xs font-bold uppercase tracking-wider text-emerald-800">Expert Engineer Consultation</div>
                             <h3 class="text-xl font-extrabold text-slate-900">Questions about this inspection report?</h3>
-                            <p class="text-sm text-slate-600">Discuss specific findings or inspection scores with our automotive technicians.</p>
+                            <p class="text-sm text-slate-600">Discuss specific findings or share this report with your mechanic.</p>
                         </div>
                         <div class="flex flex-wrap gap-3 justify-center">
                             <button type="button" onclick="openWhatsApp('inspection_q')" class="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm">
                                 <i class="fa-brands fa-whatsapp text-lg"></i>
-                                <span>Ask About This Inspection</span>
+                                <span>Ask About Inspection</span>
                             </button>
-                            <button type="button" onclick="openWhatsApp('schedule')" class="inline-flex items-center space-x-2 bg-white hover:bg-slate-100 text-emerald-800 border border-emerald-300 font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm">
-                                <i class="fa-solid fa-calendar-days"></i>
-                                <span>Schedule an Inspection</span>
+                            <button type="button" onclick="shareVehicle()" class="inline-flex items-center space-x-2 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm">
+                                <i class="fa-solid fa-share-nodes text-blue-600"></i>
+                                <span>Share Vehicle</span>
                             </button>
                         </div>
                     </div>
@@ -422,15 +432,18 @@
 
     </main>
 
-    <!-- Sticky Mobile WhatsApp Action Bar -->
+    <!-- Sticky Mobile Action Bar -->
     <div class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-slate-200 p-3 sm:hidden z-50 flex gap-2 shadow-lg">
-        <button type="button" onclick="openWhatsApp('enquiry')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-sm">
+        <button type="button" onclick="openWhatsApp('enquiry')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-2 rounded-xl text-xs flex items-center justify-center space-x-1 shadow-sm">
             <i class="fa-brands fa-whatsapp text-sm"></i>
-            <span>WhatsApp Vehicle</span>
+            <span>WhatsApp</span>
         </button>
-        <button type="button" onclick="openWhatsApp('schedule')" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-sm">
+        <button type="button" onclick="shareVehicle()" class="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center shadow-sm">
+            <i class="fa-solid fa-share-nodes text-blue-600 text-sm"></i>
+        </button>
+        <button type="button" onclick="openWhatsApp('schedule')" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 px-2 rounded-xl text-xs flex items-center justify-center space-x-1 shadow-sm">
             <i class="fa-solid fa-calendar-days"></i>
-            <span>Schedule Inspection</span>
+            <span>Schedule</span>
         </button>
     </div>
 
@@ -466,7 +479,6 @@
             }
 
             try {
-                // Using getPublicVehicleDetails to fetch verified vehicle, public photos, and enriched inspections with findings
                 const vehicle = await vehicleService.getPublicVehicleDetails(vehicleId);
 
                 if (!vehicle) {
@@ -489,21 +501,17 @@
         }
 
         function renderVehicleDetails(v) {
-            // Header & Title
             const code = v.vehicle_code || v.id.substring(0, 8);
             document.getElementById('vehicle-code-badge').textContent = `REF: ${code}`;
             document.getElementById('vehicle-title').textContent = `${v.year || ''} ${v.make || ''} ${v.model || ''} ${v.trim || ''}`.trim();
             document.getElementById('vehicle-location').querySelector('span').textContent = v.location || 'Location not specified';
 
-            // Price formatting
             const currency = v.currency || 'NGN';
             const formattedPrice = v.price ? new Intl.NumberFormat('en-NG', { style: 'currency', currency: currency, maximumFractionDigits: 0 }).format(v.price) : 'Price TBD';
             document.getElementById('vehicle-price').textContent = formattedPrice;
 
-            // Hero Photo & Gallery (Using v.photos from getPublicVehicleDetails)
             renderPhotoGallery(v.photos);
 
-            // Quick Specs
             document.getElementById('spec-year').textContent = v.year || 'Not provided';
             document.getElementById('spec-mileage').textContent = v.mileage !== null && v.mileage !== undefined ? `${Number(v.mileage).toLocaleString()} km` : 'Not provided';
             document.getElementById('spec-transmission').textContent = v.transmission || 'Not provided';
@@ -512,10 +520,8 @@
             document.getElementById('spec-colour').textContent = v.colour || 'Not provided';
             document.getElementById('spec-engine').textContent = v.engine || 'Not provided';
 
-            // Description
             document.getElementById('vehicle-description').textContent = v.description || 'No description provided.';
 
-            // Full Specs Grid
             document.getElementById('full-make').textContent = v.make || 'Not provided';
             document.getElementById('full-model').textContent = v.model || 'Not provided';
             document.getElementById('full-trim').textContent = v.trim || 'Not provided';
@@ -530,10 +536,8 @@
             document.getElementById('full-vin').textContent = v.vin || 'Not provided';
             document.getElementById('full-reg').textContent = v.registration_number || 'Not provided';
 
-            // Inspection Rendering (Selecting latest inspection from v.inspections)
             renderInspectionSection(v);
 
-            // Certificate Info
             document.getElementById('cert-status').textContent = v.verification_status || 'VERIFIED';
             if (v.verification_reference) {
                 document.getElementById('cert-ref').textContent = v.verification_reference;
@@ -602,7 +606,6 @@
                 return;
             }
 
-            // Select the latest inspection by inspection_date or created_at descending
             const inspections = [...rawInspections].sort((a, b) => {
                 const dateA = new Date(a.inspection_date || a.created_at || 0);
                 const dateB = new Date(b.inspection_date || b.created_at || 0);
@@ -614,13 +617,11 @@
             noInspNotice.classList.add('hidden');
             inspDataContainer.classList.remove('hidden');
 
-            // Meta stats
             document.getElementById('insp-number').textContent = insp.inspection_number || 'Not assigned';
             document.getElementById('insp-date').textContent = insp.inspection_date ? new Date(insp.inspection_date).toLocaleDateString() : (insp.completed_at ? new Date(insp.completed_at).toLocaleDateString() : 'N/A');
             document.getElementById('insp-status').textContent = insp.inspection_status || 'COMPLETED';
             document.getElementById('insp-mileage').textContent = insp.mileage !== null && insp.mileage !== undefined ? `${Number(insp.mileage).toLocaleString()} km` : (v.mileage ? `${Number(v.mileage).toLocaleString()} km` : 'N/A');
 
-            // Overall Score
             if (insp.overall_score !== null && insp.overall_score !== undefined) {
                 document.getElementById('insp-overall-score-num').textContent = insp.overall_score;
                 document.getElementById('insp-overall-score-text').textContent = `${insp.overall_score} / 100 Overall Score`;
@@ -629,11 +630,9 @@
                 document.getElementById('insp-overall-score-text').textContent = 'Score not available';
             }
 
-            // Overall Condition
             document.getElementById('insp-condition').textContent = insp.overall_condition || 'Not provided';
             document.getElementById('insp-recommendation-short').textContent = insp.recommendation || 'No recommendation provided.';
 
-            // Score Breakdown
             const setScore = (id, val) => {
                 document.getElementById(id).textContent = (val !== null && val !== undefined) ? val : 'N/A';
             };
@@ -646,14 +645,11 @@
             setScore('score-diagnostic', insp.diagnostic_score);
             setScore('score-road', insp.road_test_score);
 
-            // Recommendation & Summary
             document.getElementById('insp-recommendation').textContent = insp.recommendation || 'No recommendation provided.';
             document.getElementById('insp-summary').textContent = insp.summary || 'No inspection summary available.';
 
-            // Render Findings and Evidence Photos if present
             renderInspectionFindings(insp.findings);
 
-            // Report Path
             if (insp.report_path) {
                 const reportLink = document.getElementById('report-download-link');
                 reportLink.href = insp.report_path;
@@ -695,6 +691,64 @@
             }).join('');
         }
 
+        // Global Share Handler
+        window.shareVehicle = async function() {
+            if (!activeVehicleData) {
+                alert('Vehicle details are still loading.');
+                return;
+            }
+
+            const v = activeVehicleData;
+            const vehicleName = `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim();
+            const shareTitle = `Verified ${vehicleName} — Dreamland Motor Engineering Works`;
+            const shareText = `Check out this verified vehicle inspection report for ${vehicleName} (Ref: ${v.vehicle_code || 'N/A'}) from Dreamland.`;
+            const shareUrl = window.location.href;
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: shareTitle,
+                        text: shareText,
+                        url: shareUrl
+                    });
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        fallbackCopyClipboard(shareUrl);
+                    }
+                }
+            } else {
+                fallbackCopyClipboard(shareUrl);
+            }
+        };
+
+        function fallbackCopyClipboard(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                showToast('Vehicle link copied to clipboard!');
+            }).catch(() => {
+                prompt('Copy vehicle link:', url);
+            });
+        }
+
+        function showToast(message) {
+            const existingToast = document.getElementById('toast-notification');
+            if (existingToast) existingToast.remove();
+
+            const toast = document.createElement('div');
+            toast.id = 'toast-notification';
+            toast.className = 'fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white px-5 py-3 rounded-2xl text-xs font-bold shadow-2xl z-50 transition-all duration-300 opacity-0 translate-y-2 border border-slate-700 flex items-center space-x-2';
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i><span>${message}</span>`;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-0', 'translate-y-2');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
         // Global WhatsApp Handler
         window.openWhatsApp = function(type) {
             if (!activeVehicleData) {
@@ -706,7 +760,6 @@
             const vehicleName = `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim();
             const vehicleCode = v.vehicle_code || v.id.substring(0, 8);
             const currentUrl = window.location.href;
-            const WHATSAPP_NUMBER = '2349066616152';
 
             let message = '';
 
