@@ -406,21 +406,29 @@
                         </div>
                     </div>
 
-                    <!-- Verification Information & Report Link Card -->
+                    <!-- Verification Information & Report Link Card (Conditional Scanner Health Report / Notice) -->
                     <div class="bg-blue-50/60 rounded-2xl border border-blue-100 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div class="space-y-1">
-                            <div class="text-xs font-bold uppercase tracking-wider text-blue-900">Verification Certificate Details</div>
+                            <div class="text-xs font-bold uppercase tracking-wider text-blue-900">Verification Certificate & Reports</div>
                             <div class="text-xs text-blue-700 flex flex-wrap gap-x-4 gap-y-1 mt-1">
                                 <span><strong>Status:</strong> <span id="cert-status">VERIFIED</span></span>
                                 <span id="cert-ref-wrapper"><strong>Ref:</strong> <span id="cert-ref">--</span></span>
                                 <span id="cert-date-wrapper"><strong>Verified Date:</strong> <span id="cert-date">--</span></span>
                             </div>
                         </div>
-                        <div id="report-btn-container" class="hidden">
-                            <a id="report-download-link" href="#" target="_blank" class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2.5 rounded-xl text-sm transition-colors shadow-sm">
-                                <i class="fa-solid fa-file-pdf"></i>
-                                <span>View Inspection Report</span>
-                            </a>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <!-- Scanner Report Render Container (Dynamically switches between download link or fallback notice) -->
+                            <div id="scanner-report-container">
+                                <!-- Populated dynamically -->
+                            </div>
+
+                            <!-- Main Inspection Report Download Button -->
+                            <div id="report-btn-container" class="hidden">
+                                <a id="report-download-link" href="#" target="_blank" class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2.5 rounded-xl text-sm transition-colors shadow-sm">
+                                    <i class="fa-solid fa-file-pdf"></i>
+                                    <span>View Inspection Report</span>
+                                </a>
+                            </div>
                         </div>
                     </div>
 
@@ -650,10 +658,31 @@
 
             renderInspectionFindings(insp.findings);
 
+            // Handle Main Inspection Report PDF
             if (insp.report_path) {
                 const reportLink = document.getElementById('report-download-link');
                 reportLink.href = insp.report_path;
                 document.getElementById('report-btn-container').classList.remove('hidden');
+            } else {
+                document.getElementById('report-btn-container').classList.add('hidden');
+            }
+
+            // Handle Scanner Health Report (Conditional rendering based on whether scanner_report_path exists)
+            const scannerContainer = document.getElementById('scanner-report-container');
+            if (insp.scanner_report_path) {
+                scannerContainer.innerHTML = `
+                    <a href="${insp.scanner_report_path}" target="_blank" class="inline-flex items-center space-x-2 bg-slate-800 hover:bg-slate-900 text-white font-medium px-4 py-2.5 rounded-xl text-sm transition-colors shadow-sm">
+                        <i class="fa-solid fa-file-waveform text-emerald-400"></i>
+                        <span>View Scanning Health Report</span>
+                    </a>
+                `;
+            } else {
+                scannerContainer.innerHTML = `
+                    <div class="text-xs text-slate-500 bg-slate-100 px-3 py-2.5 rounded-xl flex items-center space-x-2 border border-slate-200">
+                        <i class="fa-solid fa-circle-exclamation text-amber-500"></i>
+                        <span>Scanning health report not uploaded, <button type="button" onclick="openWhatsApp('scanner_q')" class="text-emerald-700 font-bold hover:underline ml-1">contact us on WhatsApp for it</button>.</span>
+                    </div>
+                `;
             }
         }
 
@@ -801,6 +830,19 @@ Reference: ${vehicleCode}
 Vehicle ID: ${v.id}
 
 I have a question about the inspection findings.
+
+Vehicle link:
+${currentUrl}`;
+            } else if (type === 'scanner_q') {
+                message = `Hello Dreamland Motor Engineering Works.
+
+I am viewing this vehicle:
+
+Vehicle: ${vehicleName}
+Reference: ${vehicleCode}
+Vehicle ID: ${v.id}
+
+The scanning health report has not been uploaded yet. Please send me the unedited scanner health report for this vehicle.
 
 Vehicle link:
 ${currentUrl}`;
