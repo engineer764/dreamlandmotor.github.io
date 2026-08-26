@@ -509,7 +509,7 @@ export const vehicleService = {
         }
 
         return publicUrl;
-    }
+    },
     /**
      * ==========================================
      * PUBLIC DATA ADAPTERS & LISTINGS
