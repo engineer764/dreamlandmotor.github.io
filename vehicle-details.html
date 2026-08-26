@@ -658,7 +658,7 @@
 
             renderInspectionFindings(insp.findings);
 
-            // Handle Main Inspection Report PDF
+           // Handle Main Inspection Report PDF
             if (insp.report_path) {
                 const reportLink = document.getElementById('report-download-link');
                 reportLink.href = insp.report_path;
@@ -667,25 +667,63 @@
                 document.getElementById('report-btn-container').classList.add('hidden');
             }
 
-            // Handle Scanner Health Report (Conditional rendering based on whether scanner_report_path exists)
+            // Handle Scanner Diagnostic Report (Additive conditional rendering)
             const scannerContainer = document.getElementById('scanner-report-container');
             if (insp.scanner_report_path) {
                 scannerContainer.innerHTML = `
-                    <a href="${insp.scanner_report_path}" target="_blank" class="inline-flex items-center space-x-2 bg-slate-800 hover:bg-slate-900 text-white font-medium px-4 py-2.5 rounded-xl text-sm transition-colors shadow-sm">
-                        <i class="fa-solid fa-file-waveform text-emerald-400"></i>
-                        <span>View Scanning Health Report</span>
-                    </a>
-                `;
-            } else {
-                scannerContainer.innerHTML = `
-                    <div class="text-xs text-slate-500 bg-slate-100 px-3 py-2.5 rounded-xl flex items-center space-x-2 border border-slate-200">
-                        <i class="fa-solid fa-circle-exclamation text-amber-500"></i>
-                        <span>Raw OBD-II diagnostic log available upon request. <button type="button" onclick="openWhatsApp('scanner_q')" class="text-emerald-700 font-bold hover:underline ml-1">Contact our engineers on WhatsApp for dispatch</button>.</span>
+                    <div class="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                        <div>
+                            <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Supplementary Evidence</div>
+                            <h4 class="font-bold text-slate-900 text-sm mt-0.5">Scanner Diagnostic Report</h4>
+                            <p class="text-xs text-slate-500">Unedited OBD-II electronic scan log attached by engineering team.</p>
+                        </div>
+                        <a href="${insp.scanner_report_path}" target="_blank" class="inline-flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 text-white font-medium px-4 py-2.5 rounded-xl text-sm transition-colors shadow-sm flex-shrink-0">
+                            <i class="fa-solid fa-file-waveform text-emerald-400"></i>
+                            <span>View Scanner Diagnostic Report</span>
+                        </a>
                     </div>
                 `;
+                scannerContainer.classList.remove('hidden');
+            } else {
+                // Render nothing for the scanner report if it hasn't arrived yet
+                scannerContainer.innerHTML = '';
+                scannerContainer.classList.add('hidden');
             }
-        }
+        } // <--- THIS CLOSING BRACKET WAS MISSING OR MISPLACED
 
+        function renderInspectionFindings(findings) {
+            const section = document.getElementById('findings-section');
+            const container = document.getElementById('findings-container');
+
+            if (!findings || findings.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+
+            section.classList.remove('hidden');
+            container.innerHTML = findings.map(f => {
+                const severityColor = f.severity === 'MAJOR' || f.severity === 'CRITICAL' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-800 border-amber-200';
+                
+                const photosHtml = (f.photos && f.photos.length > 0) ? `
+                    <div class="flex gap-2 mt-3 overflow-x-auto pb-1">
+                        ${f.photos.map(p => `<a href="${p.public_url}" target="_blank" class="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0 block"><img src="${p.public_url}" class="w-full h-full object-cover"></a>`).join('')}
+                    </div>
+                ` : '';
+
+                return `
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                        <div class="space-y-1">
+                            <div class="flex items-center space-x-2">
+                                <span class="font-bold text-slate-800">${f.category || 'General'}</span>
+                                <span class="text-xs px-2 py-0.5 rounded font-semibold uppercase border ${severityColor}">${f.severity || 'NOTE'}</span>
+                            </div>
+                            <p class="text-slate-600">${f.description || f.finding || 'No details provided.'}</p>
+                            ${photosHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
         function renderInspectionFindings(findings) {
             const section = document.getElementById('findings-section');
             const container = document.getElementById('findings-container');
