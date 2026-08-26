@@ -432,11 +432,11 @@ export const vehicleService = {
         return true;
     },
 
-    /**
+   /**
      * Uploads an inspection PDF report (main or scanner health report) to storage 
-     * and updates the vehicle's inspection record dynamically by vehicleId.
+     * and updates the existing vehicle inspection record cleanly without duplicates.
      */
-    async uploadInspectionReportPdf(vehicleId, file, reportType = 'scanner') {
+    async function uploadInspectionReportPdf(vehicleId, file, reportType = 'scanner') {
         if (!file || !(file instanceof File)) {
             throw new Error('A valid PDF file is required.');
         }
@@ -460,31 +460,38 @@ export const vehicleService = {
             .from('vehicle-photos')
             .getPublicUrl(fileName);
 
-        // 3. Find existing inspection for this vehicle or create a basic one if missing
-        let { data: inspection, error: fetchErr } = await supabase
+        // 3. Find the existing inspection record for this vehicle
+        let { data: existingInspections, error: fetchErr } = await supabase
             .from('inspections')
             .select('id')
             .eq('vehicle_id', vehicleId)
-            .maybeSingle();
+            .order('created_at', { ascending: false })
+            .limit(1);
 
-        if (!inspection) {
+        let targetInspectionId;
+
+        if (fetchErr || !existingInspections || existingInspections.length === 0) {
+            // Only create if no inspection record exists at all, using 'DRAFT'
             const { data: newInsp, error: createErr } = await supabase
                 .from('inspections')
-                .insert([{ vehicle_id: vehicleId, inspection_status: 'PENDING' }])
+                .insert([{ vehicle_id: vehicleId, inspection_status: 'DRAFT' }])
                 .select('id')
                 .single();
             
             if (createErr) throw new Error(`Failed to initialize inspection record: ${createErr.message}`);
-            inspection = newInsp;
+            targetInspectionId = newInsp.id;
+        } else {
+            // Use the existing inspection record ID to prevent duplicates
+            targetInspectionId = existingInspections[0].id;
         }
 
-        // 4. Update the correct column dynamically ('scanner_report_path' or 'report_path')
+        // 4. Update the exact existing inspection record with the new PDF report path
         const updateField = reportType === 'scanner' ? 'scanner_report_path' : 'report_path';
         
         const { error: updateErr } = await supabase
             .from('inspections')
             .update({ [updateField]: publicUrl })
-            .eq('id', inspection.id);
+            .eq('id', targetInspectionId);
 
         if (updateErr) throw new Error(`Failed to save report link: ${updateErr.message}`);
 
