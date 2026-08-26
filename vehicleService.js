@@ -432,9 +432,9 @@ export const vehicleService = {
         return true;
     },
 
-    /**
-     * Uploads an inspection PDF report (main or scanner health report) to storage 
-     * and updates the existing vehicle inspection record cleanly without duplicates.
+  /**
+     * Uploads an inspection PDF report (scanner or main report) to storage 
+     * and updates the vehicle inspection record securely via database RPC.
      */
     async uploadInspectionReportPdf(vehicleId, file, reportType = 'scanner') {
         if (!file || !(file instanceof File)) {
@@ -448,7 +448,7 @@ export const vehicleService = {
 
         const fileName = `inspections/${vehicleId}/${reportType}_${Math.random().toString(36).substring(2, 10)}.pdf`;
 
-        // 1. Upload to Supabase Storage bucket ('vehicle-photos')
+        // 1. Upload file to Supabase Storage bucket ('vehicle-photos')
         const { error: uploadError } = await supabase.storage
             .from('vehicle-photos')
             .upload(fileName, file, { upsert: true });
@@ -460,44 +460,19 @@ export const vehicleService = {
             .from('vehicle-photos')
             .getPublicUrl(fileName);
 
-        // 3. Find the existing inspection record for this vehicle
-        let { data: existingInspections, error: fetchErr } = await supabase
-            .from('inspections')
-            .select('id')
-            .eq('vehicle_id', vehicleId)
-            .order('created_at', { ascending: false })
-            .limit(1);
+        // 3. Execute atomic database update via secure RPC (bypasses RLS blocks)
+        const { error: rpcError } = await supabase.rpc('update_inspection_report', {
+            p_vehicle_id: vehicleId,
+            p_report_url: publicUrl,
+            p_report_type: reportType
+        });
 
-        let targetInspectionId;
-
-        if (fetchErr || !existingInspections || existingInspections.length === 0) {
-            // Only create if no inspection record exists at all, using 'DRAFT'
-            const { data: newInsp, error: createErr } = await supabase
-                .from('inspections')
-                .insert([{ vehicle_id: vehicleId, inspection_status: 'DRAFT' }])
-                .select('id')
-                .single();
-            
-            if (createErr) throw new Error(`Failed to initialize inspection record: ${createErr.message}`);
-            targetInspectionId = newInsp.id;
-        } else {
-            // Use the existing inspection record ID to prevent duplicates
-            targetInspectionId = existingInspections[0].id;
+        if (rpcError) {
+            throw new Error(`Failed to save report link: ${rpcError.message}`);
         }
-
-        // 4. Update the exact existing inspection record with the new PDF report path
-        const updateField = reportType === 'scanner' ? 'scanner_report_path' : 'report_path';
-        
-        const { error: updateErr } = await supabase
-            .from('inspections')
-            .update({ [updateField]: publicUrl })
-            .eq('id', targetInspectionId);
-
-        if (updateErr) throw new Error(`Failed to save report link: ${updateErr.message}`);
 
         return publicUrl;
     },
-
     /**
      * ==========================================
      * PUBLIC DATA ADAPTERS & LISTINGS
