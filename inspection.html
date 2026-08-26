@@ -16,7 +16,11 @@
                 <i class="fa-solid fa-clipboard-check text-blue-500 text-2xl"></i>
                 <span class="font-bold text-lg tracking-wide">Inspection Workbench</span>
             </div>
-            <div>
+            <div class="flex items-center space-x-4">
+                <div id="autosave-indicator" class="text-xs text-slate-400 font-medium flex items-center space-x-1.5 hidden">
+                    <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                    <span>Saved</span>
+                </div>
                 <a href="admin.html" class="text-sm text-slate-300 hover:text-white flex items-center space-x-2 transition-colors">
                     <i class="fa-solid fa-arrow-left"></i>
                     <span>Back to Admin Portal</span>
@@ -31,7 +35,7 @@
         <!-- Loading State -->
         <div id="loading-state" class="py-24 text-center">
             <i class="fa-solid fa-spinner fa-spin text-3xl text-blue-600 mb-4"></i>
-            <p class="text-slate-600 font-medium">Initializing inspection record...</p>
+            <p class="text-slate-600 font-medium">Loading inspection workbench and master checklist...</p>
         </div>
 
         <!-- Error State -->
@@ -48,28 +52,93 @@
 
         <!-- Workbench Container -->
         <div id="workbench-container" class="hidden space-y-8">
-            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
+            
+            <!-- Vehicle & Inspection Overview Banner -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                <div class="space-y-1">
                     <div class="flex items-center space-x-3 mb-1">
                         <span id="insp-number-badge" class="bg-slate-100 text-slate-700 font-mono text-xs px-2.5 py-1 rounded-md font-semibold">INS: --</span>
                         <span id="insp-status-badge" class="bg-slate-100 text-slate-700 border border-slate-200 text-xs px-3 py-1 rounded-full font-bold uppercase">DRAFT</span>
+                        <span id="score-badge" class="bg-blue-50 text-blue-700 border border-blue-200 text-xs px-3 py-1 rounded-full font-bold hidden">Score: --%</span>
                     </div>
                     <h1 id="vehicle-title-header" class="text-2xl font-extrabold text-slate-900">Loading Vehicle...</h1>
-                    <p id="vehicle-meta-sub" class="text-sm text-slate-500 mt-1">VIN: -- • Mileage: -- km</p>
+                    <p id="vehicle-meta-sub" class="text-sm text-slate-500 mt-0.5">VIN: -- • Mileage: -- km</p>
                 </div>
-                <div class="flex items-center space-x-3">
-                    <button id="complete-insp-btn" onclick="openCompleteModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors shadow-sm inline-flex items-center space-x-2">
+
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                    <!-- Scanner Report Status / Link -->
+                    <div id="scanner-report-container" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs flex items-center justify-between sm:justify-start space-x-3">
+                        <div class="flex items-center space-x-2 text-slate-600">
+                            <i class="fa-solid fa-file-pdf text-red-500 text-base"></i>
+                            <span id="scanner-report-text" class="font-medium">Scanner report not yet uploaded.</span>
+                        </div>
+                        <a id="scanner-report-link" href="#" target="_blank" class="text-blue-600 hover:underline font-bold hidden">View Report</a>
+                        <label class="cursor-pointer bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-lg font-semibold inline-flex items-center space-x-1 transition-colors">
+                            <i class="fa-solid fa-upload"></i>
+                            <span>Upload PDF</span>
+                            <input type="file" accept="application/pdf" class="hidden" onchange="window.handleScannerPdfUpload(this)">
+                        </label>
+                    </div>
+
+                    <button id="complete-insp-btn" onclick="openCompleteModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors shadow-sm inline-flex items-center justify-center space-x-2">
                         <i class="fa-solid fa-check-circle"></i>
                         <span>Complete Inspection</span>
                     </button>
                 </div>
             </div>
 
+            <!-- Progress Dashboard -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                <div class="flex items-center justify-between text-sm">
+                    <span class="font-bold text-slate-700">INSPECTION PROGRESS</span>
+                    <span id="progress-stats" class="font-mono font-bold text-slate-900">0 / 0 assessed (0%)</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                    <div id="progress-bar" class="bg-blue-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <div class="flex items-center justify-between text-xs text-slate-500">
+                    <span id="progress-remaining">0 items remaining</span>
+                    <span>Master Checklist Standard</span>
+                </div>
+            </div>
+
+            <!-- Master Checklist Section Navigation & Items Workbench -->
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+                
+                <!-- Section Sidebar Navigation -->
+                <div class="lg:col-span-1 bg-white rounded-2xl border border-slate-200 p-4 shadow-sm sticky top-20 space-y-2">
+                    <h3 class="font-bold text-xs uppercase tracking-wider text-slate-400 px-3 pb-2">Checklist Sections</h3>
+                    <div id="section-nav-list" class="space-y-1">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Active Section Items Panel -->
+                <div class="lg:col-span-3 bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                        <div>
+                            <h2 id="active-section-title" class="text-xl font-extrabold text-slate-900">Select Section</h2>
+                            <p id="active-section-subtitle" class="text-sm text-slate-500 mt-0.5">Assess all items in this section.</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="window.filterSectionItems('ALL')" id="filter-btn-ALL" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white">All</button>
+                            <button onclick="window.filterSectionItems('PENDING')" id="filter-btn-PENDING" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200">Pending</button>
+                            <button onclick="window.filterSectionItems('ISSUES')" id="filter-btn-ISSUES" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200">Issues</button>
+                        </div>
+                    </div>
+
+                    <div id="checklist-items-container" class="space-y-4">
+                        <div class="text-center py-12 text-slate-400 text-sm">Select a section from the left sidebar to begin inspection.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Supplementary Findings Section -->
             <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-4">
                     <div>
-                        <h2 class="text-xl font-extrabold text-slate-900">Multi-Point Inspection Findings</h2>
-                        <p class="text-sm text-slate-500 mt-0.5">Record mechanical, electrical, structural, and diagnostic observations.</p>
+                        <h2 class="text-xl font-extrabold text-slate-900">Supplementary Findings & Notes</h2>
+                        <p class="text-sm text-slate-500 mt-0.5">Additional observations, notes, and media attachments.</p>
                     </div>
                     <button onclick="openFindingModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-xl text-sm transition-colors shadow-sm inline-flex items-center space-x-2">
                         <i class="fa-solid fa-plus"></i>
@@ -77,7 +146,7 @@
                     </button>
                 </div>
                 <div id="findings-list" class="space-y-4">
-                    <div class="text-center py-12 text-slate-400 text-sm">No findings recorded yet. Click "Add Finding" to begin.</div>
+                    <div class="text-center py-12 text-slate-400 text-sm">No supplementary findings recorded.</div>
                 </div>
             </div>
         </div>
@@ -88,7 +157,7 @@
     <div id="finding-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200 space-y-6">
             <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-                <h3 id="modal-title" class="font-bold text-lg text-slate-900">Add Inspection Finding</h3>
+                <h3 id="modal-title" class="font-bold text-lg text-slate-900">Add Supplementary Finding</h3>
                 <button onclick="closeFindingModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             <form id="finding-form" onsubmit="handleFindingSubmit(event)" class="space-y-4 text-sm">
@@ -160,24 +229,12 @@
                 <h3 class="font-bold text-lg text-slate-900">Complete Inspection Report</h3>
                 <button onclick="closeCompleteModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
-            <form id="complete-form" onsubmit="handleCompleteSubmit(event)" class="space-y-4 text-sm">
-                <div class="space-y-1">
-                    <label class="font-bold text-slate-700">Overall Condition</label>
-                    <input type="text" id="complete-condition" value="Excellent / Certified Clean" class="w-full p-2.5 border border-slate-200 rounded-xl">
-                </div>
-                <div class="space-y-1">
-                    <label class="font-bold text-slate-700">Recommendation</label>
-                    <textarea id="complete-recommendation" rows="2" class="w-full p-2.5 border border-slate-200 rounded-xl">Recommended for purchase with zero major structural issues.</textarea>
-                </div>
-                <div class="space-y-1">
-                    <label class="font-bold text-slate-700">Inspection Summary</label>
-                    <textarea id="complete-summary" rows="3" class="w-full p-2.5 border border-slate-200 rounded-xl">Thorough multi-point inspection completed successfully. All core mechanical systems verified.</textarea>
-                </div>
-                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
-                    <button type="button" onclick="closeCompleteModal()" class="px-4 py-2 border border-slate-200 text-slate-600 font-medium rounded-xl hover:bg-slate-50">Cancel</button>
-                    <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl shadow-sm">Mark Complete</button>
-                </div>
-            </form>
+            <div id="complete-modal-body" class="space-y-4 text-sm">
+                <!-- Populated dynamically with pending check or summary -->
+            </div>
+            <div id="complete-modal-actions" class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                <!-- Populated dynamically -->
+            </div>
         </div>
     </div>
 
@@ -185,9 +242,14 @@
     <script type="module">
         import { inspectionService } from './inspectionService.js';
         import { vehicleService } from './vehicleService.js';
+        import { inspectionScoring } from './inspectionScoring.js';
 
         let currentVehicleId = null;
         let currentInspection = null;
+        let currentVehicle = null;
+        let activeSection = null;
+        let activeFilter = 'ALL';
+        let autosaveTimeout = null;
 
         async function initWorkbench() {
             const params = new URLSearchParams(window.location.search);
@@ -206,15 +268,28 @@
             }
 
             try {
-                const vehicle = await vehicleService.getVehicleById(currentVehicleId);
-                if (!vehicle) throw new Error('Vehicle record not found.');
+                currentVehicle = await vehicleService.getVehicleById(currentVehicleId);
+                if (!currentVehicle) throw new Error('Vehicle record not found.');
 
-                document.getElementById('vehicle-title-header').textContent = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${vehicle.trim || ''}`;
-                document.getElementById('vehicle-meta-sub').textContent = `VIN: ${vehicle.vin || 'N/A'} • Mileage: ${(vehicle.mileage || 0).toLocaleString()} km`;
+                document.getElementById('vehicle-title-header').textContent = `${currentVehicle.year} ${currentVehicle.make} ${currentVehicle.model} ${currentVehicle.trim || ''}`;
+                document.getElementById('vehicle-meta-sub').textContent = `VIN: ${currentVehicle.vin || 'N/A'} • Mileage: ${(currentVehicle.mileage || 0).toLocaleString()} km`;
 
-                currentInspection = await inspectionService.createInspection(currentVehicleId, {
-                    mileage: vehicle.mileage
-                });
+                // READ EXISTING INSPECTION ONLY. NEVER CREATE AN INSPECTION WHILE VIEWING.
+                currentInspection = await inspectionService.getInspectionForVehicle(currentVehicleId);
+                
+                if (!currentInspection) {
+                    loadingState.classList.add('hidden');
+                    document.getElementById('error-title').textContent = 'No Inspection Found';
+                    document.getElementById('error-message').textContent = 'No inspection exists for this vehicle. Start a new inspection explicitly from the Admin Portal.';
+                    errorState.classList.remove('hidden');
+                    return;
+                }
+
+                // Set default active section to the first section present in items or master list
+                const sections = getUniqueSections();
+                if (sections.length > 0 && !activeSection) {
+                    activeSection = sections[0];
+                }
                 
                 renderInspectionWorkbench();
 
@@ -230,27 +305,298 @@
             }
         }
 
+        function getUniqueSections() {
+            if (!currentInspection || !currentInspection.inspection_items) return [];
+            const sections = [];
+            currentInspection.inspection_items.forEach(item => {
+                if (!sections.includes(item.section)) {
+                    sections.push(item.section);
+                }
+            });
+            return sections;
+        }
+
         function renderInspectionWorkbench() {
             if (!currentInspection) return;
 
+            // Header badges & status
             document.getElementById('insp-number-badge').textContent = `INS: ${currentInspection.inspection_number || 'PENDING'}`;
             const statusBadge = document.getElementById('insp-status-badge');
             statusBadge.textContent = currentInspection.inspection_status;
 
+            const completeBtn = document.getElementById('complete-insp-btn');
+
             if (currentInspection.inspection_status === 'COMPLETED') {
                 statusBadge.className = 'bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-3 py-1 rounded-full font-bold uppercase';
-                document.getElementById('complete-insp-btn').textContent = 'Update Completed Report';
+                completeBtn.textContent = 'Inspection Completed';
+                completeBtn.disabled = true;
+                completeBtn.className = 'bg-slate-200 text-slate-500 font-medium px-5 py-2.5 rounded-xl text-sm cursor-not-allowed shadow-none inline-flex items-center justify-center space-x-2';
+                
+                if (currentInspection.overall_score !== undefined && currentInspection.overall_score !== null) {
+                    const scoreBadge = document.getElementById('score-badge');
+                    scoreBadge.textContent = `Score: ${Math.round(currentInspection.overall_score)}%`;
+                    scoreBadge.classList.remove('hidden');
+                }
             } else if (currentInspection.inspection_status === 'IN_PROGRESS') {
                 statusBadge.className = 'bg-blue-50 text-blue-700 border border-blue-200 text-xs px-3 py-1 rounded-full font-bold uppercase';
+                completeBtn.disabled = false;
+                completeBtn.className = 'bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors shadow-sm inline-flex items-center justify-center space-x-2';
+                document.getElementById('score-badge').classList.add('hidden');
             } else {
                 statusBadge.className = 'bg-slate-100 text-slate-700 border border-slate-200 text-xs px-3 py-1 rounded-full font-bold uppercase';
+                completeBtn.disabled = false;
+                completeBtn.className = 'bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors shadow-sm inline-flex items-center justify-center space-x-2';
+                document.getElementById('score-badge').classList.add('hidden');
             }
 
+            // Scanner report status
+            const scannerContainer = document.getElementById('scanner-report-container');
+            const scannerText = document.getElementById('scanner-report-text');
+            const scannerLink = document.getElementById('scanner-report-link');
+            if (currentInspection.scanner_report_path) {
+                scannerText.textContent = 'Scanner Report Attached';
+                scannerLink.href = currentInspection.scanner_report_path;
+                scannerLink.classList.remove('hidden');
+            } else {
+                scannerText.textContent = 'Scanner report not yet uploaded.';
+                scannerLink.classList.add('hidden');
+            }
+
+            // Progress stats calculation
+            const items = currentInspection.inspection_items || [];
+            const totalItems = items.length;
+            const assessedItems = items.filter(i => !i.is_applicable || (i.status && i.status !== 'PENDING')).length;
+            const percentage = totalItems > 0 ? Math.round((assessedItems / totalItems) * 100) : 0;
+            const remaining = totalItems - assessedItems;
+
+            document.getElementById('progress-stats').textContent = `${assessedItems} / ${totalItems} assessed (${percentage}%)`;
+            document.getElementById('progress-bar').style.width = `${percentage}%`;
+            document.getElementById('progress-remaining').textContent = `${remaining} items remaining`;
+
+            // Render Section Navigation
+            renderSectionNav();
+
+            // Render Active Section Items
+            renderChecklistItems();
+
+            // Render Supplementary Findings
+            renderFindings();
+        }
+
+        function renderSectionNav() {
+            const sections = getUniqueSections();
+            const navContainer = document.getElementById('section-nav-list');
+            const items = currentInspection.inspection_items || [];
+
+            navContainer.innerHTML = sections.map(sec => {
+                const secItems = items.filter(i => i.section === sec);
+                const secAssessed = secItems.filter(i => !i.is_applicable || (i.status && i.status !== 'PENDING')).length;
+                const secTotal = secItems.length;
+                const isComplete = secAssessed === secTotal && secTotal > 0;
+                const isActive = sec === activeSection;
+
+                let btnClass = 'w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium flex items-center justify-between transition-colors ';
+                if (isActive) {
+                    btnClass += 'bg-blue-600 text-white shadow-sm';
+                } else {
+                    btnClass += 'text-slate-600 hover:bg-slate-50 hover:text-slate-900';
+                }
+
+                const badgeColor = isActive ? 'bg-blue-700 text-white' : (isComplete ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600');
+
+                return `
+                    <button onclick="window.selectSection('${sec}')" class="${btnClass}">
+                        <span class="truncate pr-2">${sec}</span>
+                        <span class="text-xs px-2 py-0.5 rounded-md font-mono ${badgeColor}">${secAssessed}/${secTotal}</span>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        window.selectSection = function(sec) {
+            activeSection = sec;
+            renderSectionNav();
+            renderChecklistItems();
+        };
+
+        window.filterSectionItems = function(filter) {
+            activeFilter = filter;
+            ['ALL', 'PENDING', 'ISSUES'].forEach(f => {
+                const btn = document.getElementById(`filter-btn-${f}`);
+                if (f === filter) {
+                    btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white';
+                } else {
+                    btn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200';
+                }
+            });
+            renderChecklistItems();
+        };
+
+        function renderChecklistItems() {
+            if (!activeSection) return;
+
+            document.getElementById('active-section-title').textContent = activeSection;
+            document.getElementById('active-section-subtitle').textContent = `Inspecting all items under ${activeSection}`;
+
+            const itemsContainer = document.getElementById('checklist-items-container');
+            const items = (currentInspection.inspection_items || []).filter(i => i.section === activeSection);
+
+            let filteredItems = items;
+            if (activeFilter === 'PENDING') {
+                filteredItems = items.filter(i => i.is_applicable && i.status === 'PENDING');
+            } else if (activeFilter === 'ISSUES') {
+                filteredItems = items.filter(i => i.is_applicable && ['ATTENTION', 'CRITICAL'].includes(i.status));
+            }
+
+            if (filteredItems.length === 0) {
+                itemsContainer.innerHTML = `<div class="text-center py-12 text-slate-400 text-sm">No items found matching the selected filter in ${activeSection}.</div>`;
+                return;
+            }
+
+            itemsContainer.innerHTML = filteredItems.map(item => {
+                const isNA = !item.is_applicable || item.status === 'N/A';
+                const status = item.status || 'PENDING';
+                
+                let statusBadgeColor = 'bg-slate-100 text-slate-700';
+                if (status === 'GOOD') statusBadgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                else if (status === 'FAIR') statusBadgeColor = 'bg-blue-50 text-blue-700 border-blue-200';
+                else if (status === 'ATTENTION') statusBadgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
+                else if (status === 'CRITICAL') statusBadgeColor = 'bg-red-50 text-red-700 border-red-200';
+
+                const safetyBadge = item.is_safety_critical ? `<span class="bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide ml-2">Safety Critical</span>` : '';
+                
+                const measurementInput = item.measurement_unit ? `
+                    <div class="flex items-center space-x-2 bg-white p-2 rounded-xl border border-slate-200">
+                        <span class="text-xs font-bold text-slate-500">Measurement (${item.measurement_unit}):</span>
+                        <input type="text" value="${item.measurement_value || ''}" placeholder="Value" onchange="window.handleItemFieldUpdate('${item.id}', 'measurement_value', this.value)" class="w-24 p-1 text-xs border border-slate-200 rounded-lg">
+                    </div>
+                ` : '';
+
+                return `
+                    <div class="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200 space-y-4 text-sm">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div>
+                                <div class="flex items-center flex-wrap gap-y-1">
+                                    <span class="font-mono text-xs text-slate-400 font-semibold mr-2">${item.item_code}</span>
+                                    <span class="font-bold text-slate-900 text-base">${item.item_name}</span>
+                                    ${safetyBadge}
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <label class="cursor-pointer inline-flex items-center space-x-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border ${isNA ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'}">
+                                    <input type="checkbox" ${isNA ? 'checked' : ''} onchange="window.handleNARtoggle('${item.id}', this.checked)" class="hidden">
+                                    <span>N/A</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Status Selectors -->
+                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                            ${['PENDING', 'GOOD', 'FAIR', 'ATTENTION', 'CRITICAL'].map(st => {
+                                const isSelected = status === st;
+                                let btnStyle = 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100';
+                                if (isSelected) {
+                                    if (st === 'PENDING') btnStyle = 'border-slate-400 bg-slate-200 text-slate-800 font-bold';
+                                    else if (st === 'GOOD') btnStyle = 'border-emerald-500 bg-emerald-600 text-white font-bold shadow-sm';
+                                    else if (st === 'FAIR') btnStyle = 'border-blue-500 bg-blue-600 text-white font-bold shadow-sm';
+                                    else if (st === 'ATTENTION') btnStyle = 'border-amber-500 bg-amber-600 text-white font-bold shadow-sm';
+                                    else if (st === 'CRITICAL') btnStyle = 'border-red-500 bg-red-600 text-white font-bold shadow-sm';
+                                }
+                                if (isNA && st !== 'PENDING') btnStyle += ' opacity-40 cursor-not-allowed';
+
+                                return `
+                                    <button type="button" ${isNA && st !== 'PENDING' ? 'disabled' : ''} onclick="window.handleItemStatusUpdate('${item.id}', '${st}')" class="py-2 px-3 rounded-xl border text-xs font-semibold transition-all text-center ${btnStyle}">
+                                        ${st}
+                                    </button>
+                                `;
+                            }).join('')}
+                        </div>
+
+                        <!-- Detailed Inputs (Observation, Action, Cost, Measurement) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-200/60">
+                            <div class="space-y-1">
+                                <label class="text-xs font-bold text-slate-600">Observation / Notes</label>
+                                <input type="text" value="${item.observation || ''}" placeholder="Enter notes..." onchange="window.handleItemFieldUpdate('${item.id}', 'observation', this.value)" class="w-full p-2 text-xs border border-slate-200 rounded-xl bg-white">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-bold text-slate-600">Recommended Action</label>
+                                <input type="text" value="${item.recommended_action || ''}" placeholder="Enter recommendation..." onchange="window.handleItemFieldUpdate('${item.id}', 'recommended_action', this.value)" class="w-full p-2 text-xs border border-slate-200 rounded-xl bg-white">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-bold text-slate-600">Est. Cost (₦ / $)</label>
+                                <input type="number" value="${item.estimated_cost || ''}" placeholder="0.00" onchange="window.handleItemFieldUpdate('${item.id}', 'estimated_cost', this.value ? Number(this.value) : null)" class="w-full p-2 text-xs border border-slate-200 rounded-xl bg-white">
+                            </div>
+                        </div>
+
+                        ${measurementInput ? `<div class="pt-1">${measurementInput}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Autosave handler for item updates
+        window.handleItemStatusUpdate = async function(itemId, newStatus) {
+            try {
+                const updated = await inspectionService.updateInspectionItem(itemId, { status: newStatus });
+                updateLocalItem(updated);
+                showAutosaveIndicator();
+                renderInspectionWorkbench();
+            } catch (err) {
+                alert('Failed to update item status: ' + err.message);
+            }
+        };
+
+        window.handleNARtoggle = async function(itemId, isChecked) {
+            try {
+                const newStatus = isChecked ? 'N/A' : 'PENDING';
+                const updated = await inspectionService.updateInspectionItem(itemId, {
+                    status: newStatus,
+                    is_applicable: !isChecked
+                });
+                updateLocalItem(updated);
+                showAutosaveIndicator();
+                renderInspectionWorkbench();
+            } catch (err) {
+                alert('Failed to update item applicability: ' + err.message);
+            }
+        };
+
+        window.handleItemFieldUpdate = async function(itemId, fieldName, value) {
+            try {
+                const payload = {};
+                payload[fieldName] = value;
+                const updated = await inspectionService.updateInspectionItem(itemId, payload);
+                updateLocalItem(updated);
+                showAutosaveIndicator();
+            } catch (err) {
+                alert('Failed to update item property: ' + err.message);
+            }
+        };
+
+        function updateLocalItem(updatedItem) {
+            if (!currentInspection || !currentInspection.inspection_items) return;
+            const index = currentInspection.inspection_items.findIndex(i => i.id === updatedItem.id);
+            if (index !== -1) {
+                currentInspection.inspection_items[index] = updatedItem;
+            }
+        }
+
+        function showAutosaveIndicator() {
+            const indicator = document.getElementById('autosave-indicator');
+            indicator.classList.remove('hidden');
+            if (autosaveTimeout) clearTimeout(autosaveTimeout);
+            autosaveTimeout = setTimeout(() => {
+                indicator.classList.add('hidden');
+            }, 2000);
+        }
+
+        // Render Supplementary Findings
+        function renderFindings() {
             const findingsContainer = document.getElementById('findings-list');
             const findings = currentInspection.inspection_findings || [];
 
             if (findings.length === 0) {
-                findingsContainer.innerHTML = `<div class="text-center py-12 text-slate-400 text-sm">No findings recorded yet. Click "Add Finding" to begin.</div>`;
+                findingsContainer.innerHTML = `<div class="text-center py-12 text-slate-400 text-sm">No supplementary findings recorded. Click "Add Finding" to add custom observations.</div>`;
                 return;
             }
 
@@ -296,7 +642,7 @@
         window.openFindingModal = function() {
             document.getElementById('finding-form').reset();
             document.getElementById('finding-id').value = '';
-            document.getElementById('modal-title').textContent = 'Add Inspection Finding';
+            document.getElementById('modal-title').textContent = 'Add Supplementary Finding';
             document.getElementById('finding-modal').classList.remove('hidden');
         };
 
@@ -350,7 +696,73 @@
             }
         };
 
+        window.handleScannerPdfUpload = async function(input) {
+            const file = input.files[0];
+            if (!file) return;
+            try {
+                await inspectionService.uploadScannerPdf(currentVehicleId, file);
+                currentInspection = await inspectionService.getInspectionForVehicle(currentVehicleId);
+                renderInspectionWorkbench();
+                alert('Scanner report uploaded successfully!');
+            } catch (err) {
+                alert('Failed to upload scanner report: ' + err.message);
+            }
+        };
+
+        // Completion Modal & Verification
         window.openCompleteModal = function() {
+            const modalBody = document.getElementById('complete-modal-body');
+            const modalActions = document.getElementById('complete-modal-actions');
+            
+            const items = currentInspection.inspection_items || [];
+            const pendingItems = items.filter(i => i.is_applicable && i.status === 'PENDING');
+
+            if (pendingItems.length > 0) {
+                modalBody.innerHTML = `
+                    <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl text-amber-800 space-y-2">
+                        <div class="font-bold flex items-center space-x-2">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-600 text-lg"></i>
+                            <span>Inspection Incomplete</span>
+                        </div>
+                        <p class="text-xs">There are <strong>${pendingItems.length}</strong> applicable checklist item(s) still remaining in <strong>PENDING</strong> status. All applicable items must be assessed before completing the inspection.</p>
+                    </div>
+                `;
+                modalActions.innerHTML = `
+                    <button type="button" onclick="closeCompleteModal()" class="px-4 py-2 border border-slate-200 text-slate-600 font-medium rounded-xl hover:bg-slate-50">Close</button>
+                    <button type="button" onclick="window.jumpToPending()" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow-sm">Review Pending Items</button>
+                `;
+            } else {
+                // Calculate preliminary score via inspectionScoring for confirmation preview
+                const allSections = [...new Set(items.map(i => i.section))];
+                const sectionResultsMap = {};
+                for (const sec of allSections) {
+                    const secItems = items.filter(i => i.section === sec);
+                    sectionResultsMap[sec] = inspectionScoring.calculateSectionScore(secItems);
+                }
+                const overallResult = inspectionScoring.calculateOverallScore(sectionResultsMap);
+                const overallScore = Math.round(overallResult.overallScore);
+
+                modalBody.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-emerald-800">
+                            <div class="font-bold flex items-center space-x-2">
+                                <i class="fa-solid fa-circle-check text-emerald-600 text-lg"></i>
+                               <span>All Checklist Items Assessed</span>
+                            </div>
+                            <p class="text-xs mt-1">Calculated Overall Score: <strong>${overallScore}%</strong>. Ready to finalize inspection.</p>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="font-bold text-slate-700">Final Confirmation</label>
+                            <p class="text-xs text-slate-500">Clicking 'Confirm Completion' locks the inspection scores and saves the report state.</p>
+                        </div>
+                    </div>
+                `;
+                modalActions.innerHTML = `
+                    <button type="button" onclick="closeCompleteModal()" class="px-4 py-2 border border-slate-200 text-slate-600 font-medium rounded-xl hover:bg-slate-50">Cancel</button>
+                    <button type="button" onclick="window.confirmCompleteInspection()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl shadow-sm">Confirm Completion</button>
+                `;
+            }
+
             document.getElementById('complete-modal').classList.remove('hidden');
         };
 
@@ -358,18 +770,26 @@
             document.getElementById('complete-modal').classList.add('hidden');
         };
 
-        window.handleCompleteSubmit = async function(e) {
-            e.preventDefault();
-            const finalData = {
-                overall_condition: document.getElementById('complete-condition').value.trim(),
-                recommendation: document.getElementById('complete-recommendation').value.trim(),
-                summary: document.getElementById('complete-summary').value.trim()
-            };
+        window.jumpToPending = function() {
+            closeCompleteModal();
+            activeFilter = 'PENDING';
+            ['ALL', 'PENDING', 'ISSUES'].forEach(f => {
+                const btn = document.getElementById(`filter-btn-${f}`);
+                if (f === 'PENDING') {
+                    btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white';
+                } else {
+                    btn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200';
+                }
+            });
+            renderChecklistItems();
+        };
 
+        window.confirmCompleteInspection = async function() {
             try {
-                await inspectionService.completeInspection(currentInspection.id, finalData);
-                alert('Inspection completed successfully! Returning to Admin Portal.');
-                window.location.href = 'admin.html';
+                currentInspection = await inspectionService.completeInspection(currentInspection.id);
+                closeCompleteModal();
+                alert('Inspection completed successfully!');
+                renderInspectionWorkbench();
             } catch (err) {
                 alert('Failed to complete inspection: ' + err.message);
             }
