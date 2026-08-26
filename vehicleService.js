@@ -437,6 +437,10 @@ export const vehicleService = {
      * and updates the vehicle inspection record securely via database RPC.
      */
     async uploadInspectionReportPdf(vehicleId, file, reportType = 'scanner') {
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
+
         if (!file || !(file instanceof File)) {
             throw new Error('A valid PDF file is required.');
         }
@@ -446,33 +450,66 @@ export const vehicleService = {
             throw new Error('Only PDF files are allowed for inspection reports.');
         }
 
-        const fileName = `inspections/${vehicleId}/${reportType}_${Math.random().toString(36).substring(2, 10)}.pdf`;
+        const fileName = `inspections/${vehicleId}/${reportType}_${crypto.randomUUID()}.pdf`;
 
-        // 1. Upload file to Supabase Storage bucket ('vehicle-photos')
+        // 1. Upload to your existing 'vehicle-photos' bucket
         const { error: uploadError } = await supabase.storage
             .from('vehicle-photos')
-            .upload(fileName, file, { upsert: true });
+            .upload(fileName, file, {
+                upsert: false,
+                contentType: 'application/pdf'
+            });
 
-        if (uploadError) throw new Error(uploadError.message);
+        if (uploadError) {
+            throw new Error(`Failed to upload inspection report: ${uploadError.message}`);
+        }
 
-        // 2. Get Public URL
+        // 2. Generate full Public URL for frontend rendering
         const { data: { publicUrl } } = supabase.storage
             .from('vehicle-photos')
             .getPublicUrl(fileName);
 
-        // 3. Execute atomic database update via secure RPC (bypasses RLS blocks)
-        const { error: rpcError } = await supabase.rpc('update_inspection_report', {
-            p_vehicle_id: vehicleId,
-            p_report_url: publicUrl,
-            p_report_type: reportType
-        });
+        // 3. Find the existing inspection (Strictly prevents duplicate rows & new inspection numbers)
+        const { data: inspection, error: inspectionError } = await supabase
+            .from('inspections')
+            .select('id, inspection_status')
+            .eq('vehicle_id', vehicleId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-        if (rpcError) {
-            throw new Error(`Failed to save report link: ${rpcError.message}`);
+        if (inspectionError) {
+            await supabase.storage.from('vehicle-photos').remove([fileName]);
+            throw new Error(`Failed to find inspection: ${inspectionError.message}`);
+        }
+
+        if (!inspection) {
+            await supabase.storage.from('vehicle-photos').remove([fileName]);
+            throw new Error('No inspection exists for this vehicle. Please initialize the inspection record first.');
+        }
+
+        const updateField = reportType === 'scanner' ? 'scanner_report_path' : 'report_path';
+
+        // 4. Update ONLY the report path column. 
+        // This leaves your inspection_status (Draft, In Progress, Completed) completely authoritative and untouched.
+        const { error: updateError } = await supabase
+            .from('inspections')
+            .update({
+                [updateField]: publicUrl
+            })
+            .eq('id', inspection.id);
+
+        if (updateError) {
+            // Rollback storage upload if database save fails
+            await supabase.storage
+                .from('vehicle-photos')
+                .remove([fileName]);
+
+            throw new Error(`Failed to save inspection report link: ${updateError.message}`);
         }
 
         return publicUrl;
-    },
+    }
     /**
      * ==========================================
      * PUBLIC DATA ADAPTERS & LISTINGS
