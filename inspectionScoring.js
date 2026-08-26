@@ -1,111 +1,103 @@
+/**
+ * Dreamland PPI v1.0 - Centralized Scoring Engine
+ */
 export const inspectionScoring = {
-    calculateScores(findings = []) {
-        const scores = {
-            mechanical: 100,
-            electrical: 100,
-            body: 100,
-            interior: 100,
-            suspension: 100,
-            brake: 100,
-            diagnostic: 100,
-            road: 100
-        };
+    WEIGHTS: {
+        'GOOD': 100,
+        'FAIR': 75,
+        'ATTENTION': 40,
+        'CRITICAL': 0
+    },
 
-        let hasCritical = false;
+    /**
+     * Calculate section score from its checklist items
+     * Excludes N/A and PENDING items from scoring and denominator count.
+     */
+    calculateSectionScore(items = []) {
+        const scorableItems = items.filter(item => 
+            item.is_applicable !== false && 
+            item.status !== 'N/A' && 
+            item.status !== 'PENDING'
+        );
 
-        findings.forEach(f => {
-            const area = (f.area || '').trim();
-            const rating = String(f.rating || 'GOOD').toUpperCase();
-            const severity = parseInt(f.severity || 1, 10);
-            const isSafetyCritical = rating === 'CRITICAL' || f.is_safety_critical;
+        if (scorableItems.length === 0) {
+            return { score: 100, applicableCount: 0, completedCount: 0, defects: 0, criticalCount: 0 };
+        }
 
-            if (isSafetyCritical) {
-                hasCritical = true;
+        let totalPoints = 0;
+        let defects = 0;
+        let criticalCount = 0;
+
+        scorableItems.forEach(item => {
+            const weight = this.WEIGHTS[item.status] ?? 100;
+            totalPoints += weight;
+
+            if (item.status === 'ATTENTION' || item.status === 'CRITICAL') {
+                defects++;
             }
-
-            let deduction = 0;
-
-            switch (rating) {
-                case 'GOOD':
-                    deduction = 0;
-                    break;
-                case 'FAIR':
-                    deduction = 3 + severity;
-                    break;
-                case 'ATTENTION':
-                    deduction = 8 + (severity * 4);
-                    break;
-                case 'CRITICAL':
-                    deduction = 25 + (severity * 10);
-                    break;
-                default:
-                    deduction = 0;
-            }
-
-            if (isSafetyCritical) {
-                deduction += 25;
-            }
-
-            if (deduction > 0) {
-                if (area === 'Mechanical') {
-                    scores.mechanical = Math.max(0, scores.mechanical - deduction);
-                } else if (area === 'Computer Diagnostics') {
-                    scores.diagnostic = Math.max(0, scores.diagnostic - deduction);
-                } else if (area === 'Electrical & Electronic') {
-                    scores.electrical = Math.max(0, scores.electrical - deduction);
-                } else if (area === 'Body & Accident') {
-                    scores.body = Math.max(0, scores.body - deduction);
-                } else if (area === 'Chassis / Suspension / Braking') {
-                    scores.suspension = Math.max(0, scores.suspension - deduction);
-                    scores.brake = Math.max(0, scores.brake - deduction);
-                } else if (area === 'Interior / Functional / Road Test') {
-                    scores.interior = Math.max(0, scores.interior - deduction);
-                    scores.road = Math.max(0, scores.road - deduction);
-                }
+            if (item.status === 'CRITICAL' || item.is_safety_critical) {
+                criticalCount++;
             }
         });
 
-        // Calculate weighted overall score
-        const overall = Math.round(
-            (scores.mechanical * 0.20) +
-            (scores.diagnostic * 0.10) +
-            (scores.electrical * 0.15) +
-            (scores.body * 0.15) +
-            (scores.suspension * 0.15) +
-            (scores.brake * 0.15) +
-            (scores.interior * 0.05) +
-            (scores.road * 0.05)
-        );
+        const score = Math.round(totalPoints / scorableItems.length);
+        return {
+            score,
+            applicableCount: scorableItems.length,
+            completedCount: scorableItems.length,
+            defects,
+            criticalCount
+        };
+    },
 
-        let condition = 'Excellent / Certified Clean';
-        let recommendation = 'Recommended for purchase with zero major structural issues.';
-        let summary = 'Thorough multi-point inspection completed successfully. All core systems verified.';
+    /**
+     * Calculate overall score across all section results and apply critical overrides.
+     */
+    calculateOverallScore(sectionResultsMap = {}) {
+        let totalScoreSum = 0;
+        let sectionCount = 0;
+        let totalDefects = 0;
+        let totalCriticals = 0;
+        let totalApplicable = 0;
+        let totalCompleted = 0;
 
-        if (hasCritical || overall < 70) {
-            condition = 'Requires Significant Attention';
-            recommendation = 'Major repairs or critical safety fixes required before purchase.';
-            summary = 'Inspection identified critical structural, safety, or mechanical findings requiring remediation.';
-        } else if (overall < 85) {
-            condition = 'Good with Minor Wear';
-            recommendation = 'Recommended for purchase after minor servicing.';
-            summary = 'Inspection noted standard wear and tear commensurate with vehicle age and mileage.';
+        Object.values(sectionResultsMap).forEach(res => {
+            if (res.applicableCount > 0) {
+                totalScoreSum += res.score;
+                sectionCount++;
+            }
+            totalDefects += res.defects;
+            totalCriticals += res.criticalCount;
+            totalApplicable += res.applicableCount;
+            totalCompleted += res.completedCount;
+        });
+
+        let overallScore = sectionCount > 0 ? Math.round(totalScoreSum / sectionCount) : 100;
+
+        // Critical Override
+        if (totalCriticals > 0) {
+            overallScore = Math.min(overallScore, 49); // Cap score if critical safety/structural issues exist
         }
 
         return {
-            overall_score: overall,
-            mechanical_score: scores.mechanical,
-            electrical_score: scores.electrical,
-            body_score: scores.body,
-            interior_score: scores.interior,
-            suspension_score: scores.suspension,
-            brake_score: scores.brake,
-            diagnostic_score: scores.diagnostic,
-            road_test_score: scores.road,
-            overall_condition: condition,
-            recommendation: recommendation,
-            summary: summary
+            overallScore,
+            totalDefects,
+            totalCriticals,
+            totalApplicable,
+            totalCompleted,
+            recommendation: this.getRecommendation(overallScore, totalCriticals)
         };
+    },
+
+    getRecommendation(overallScore, criticalCount) {
+        if (criticalCount > 0 || overallScore < 50) {
+            return { text: "DO NOT BUY — Severe structural, safety, or mechanical defects identified.", badge: "bg-red-600 text-white" };
+        } else if (overallScore < 70) {
+            return { text: "PASS WITH CONDITIONS — Significant maintenance or repairs required.", badge: "bg-amber-600 text-white" };
+        } else if (overallScore < 85) {
+            return { text: "GOOD CONDITION — Minor cosmetic or normal wear items noted.", badge: "bg-blue-600 text-white" };
+        } else {
+            return { text: "EXCELLENT CONDITION — Well-maintained and verified sound.", badge: "bg-emerald-600 text-white" };
+        }
     }
 };
-
-export const { calculateScores } = inspectionScoring;
