@@ -103,56 +103,66 @@ export const vehicleService = {
         return Array.isArray(data) ? data[0] : data;
     },
 
-    /**
-     * Updates an existing vehicle record securely via database RPC.
-     */
-    async updateVehicle(vehicleId, updateData) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
-        if (!updateData || typeof updateData !== 'object') {
-            throw new Error('Update data is required.');
-        }
+   async updateVehicle(vehicleId, updateData) {
+    if (!vehicleId) {
+        throw new Error('Vehicle ID is required for update.');
+    }
 
-        const { data, error } = await supabase.rpc('update_vehicle', {
+    // 1. Update the vehicle through the existing RPC
+    const { data: updatedVehicle, error: rpcError } = await supabase
+        .rpc('update_vehicle', {
             p_vehicle_id: vehicleId,
             p_data: updateData
         });
 
-        if (error) throw new Error(error.message);
-        return Array.isArray(data) ? data[0] : data;
-    },
+    if (rpcError) {
+        throw new Error(`Failed to update vehicle: ${rpcError.message}`);
+    }
 
-    /**
-     * Permanently deletes a vehicle record using the secure atomic database RPC
-     * and cleans up associated storage objects from the bucket.
-     */
-    async deleteVehicle(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
+    // 2. Synchronize mileage only when mileage was supplied
+    if (updateData.mileage !== undefined && updateData.mileage !== null) {
+        const mileage = Number(updateData.mileage);
 
-        // 1. Fetch associated photo storage paths before database cleanup
-        const { data: photos, error: photoFetchErr } = await supabase
-            .from('vehicle_photos')
-            .select('storage_path')
-            .eq('vehicle_id', vehicleId);
+        if (!Number.isFinite(mileage) || mileage < 0) {
+            throw new Error('Mileage must be a valid non-negative number.');
+        }
 
-        if (!photoFetchErr && photos && photos.length > 0) {
-            const pathsToRemove = photos.map(p => p.storage_path).filter(Boolean);
-            if (pathsToRemove.length > 0) {
-                await supabase.storage.from('vehicle-photos').remove(pathsToRemove);
+        // 3. Find the existing inspection.
+        // NEVER create an inspection here.
+        const { data: inspection, error: inspectionFetchError } = await supabase
+            .from('inspections')
+            .select('id, mileage, inspection_number, inspection_status')
+            .eq('vehicle_id', vehicleId)
+            .maybeSingle();
+
+        if (inspectionFetchError) {
+            throw new Error(
+                `Failed to find existing inspection: ${inspectionFetchError.message}`
+            );
+        }
+
+        // 4. If an inspection exists, update ONLY that inspection.
+        if (inspection) {
+            const { error: inspectionUpdateError } = await supabase
+                .from('inspections')
+                .update({
+                    mileage,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', inspection.id);
+
+            if (inspectionUpdateError) {
+                throw new Error(
+                    `Vehicle updated, but inspection mileage could not be synchronized: ${inspectionUpdateError.message}`
+                );
             }
         }
+    }
 
-        // 2. Execute atomic database cascade deletion via secure RPC
-        const { error: rpcError } = await supabase.rpc('delete_vehicle', {
-            p_vehicle_id: vehicleId
-        });
-
-        if (rpcError) {
-            throw new Error(rpcError.message);
-        }
-
-        return true;
-    },
-
+    return Array.isArray(updatedVehicle)
+        ? updatedVehicle[0]
+        : updatedVehicle;
+},
     /**
      * ==========================================
      * VEHICLE LIFECYCLE ACTIONS
