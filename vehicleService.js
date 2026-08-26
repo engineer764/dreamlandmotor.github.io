@@ -432,7 +432,7 @@ export const vehicleService = {
         return true;
     },
 
-  /**
+    /**
      * Uploads an inspection PDF report (main or scanner health report) to storage 
      * and updates the existing vehicle inspection record cleanly without duplicates.
      */
