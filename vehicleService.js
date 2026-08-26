@@ -709,7 +709,7 @@ export const vehicleService = {
                 )
             `)
             .eq('vehicle_id', vehicleId)
-            .eq('inspection_status', 'COMPLETED')
+            .in('inspection_status', ['COMPLETED', 'DRAFT', 'IN_PROGRESS'])
             .order('completed_at', { ascending: false });
 
         if (!inspError && inspections) {
