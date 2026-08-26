@@ -417,7 +417,7 @@
                             </div>
                         </div>
                         <div class="flex flex-wrap items-center gap-3">
-                            <!-- Scanner Report Render Container (Dynamically switches between download link or professional request notice) -->
+                            <!-- Scanner Report Render Container (Dynamically switches between download link or hidden) -->
                             <div id="scanner-report-container">
                                 <!-- Populated dynamically -->
                             </div>
@@ -658,7 +658,7 @@
 
             renderInspectionFindings(insp.findings);
 
-           // Handle Main Inspection Report PDF
+            // Handle Main Inspection Report PDF
             if (insp.report_path) {
                 const reportLink = document.getElementById('report-download-link');
                 reportLink.href = insp.report_path;
@@ -689,41 +689,8 @@
                 scannerContainer.innerHTML = '';
                 scannerContainer.classList.add('hidden');
             }
-        } // <--- THIS CLOSING BRACKET WAS MISSING OR MISPLACED
-
-        function renderInspectionFindings(findings) {
-            const section = document.getElementById('findings-section');
-            const container = document.getElementById('findings-container');
-
-            if (!findings || findings.length === 0) {
-                section.classList.add('hidden');
-                return;
-            }
-
-            section.classList.remove('hidden');
-            container.innerHTML = findings.map(f => {
-                const severityColor = f.severity === 'MAJOR' || f.severity === 'CRITICAL' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-800 border-amber-200';
-                
-                const photosHtml = (f.photos && f.photos.length > 0) ? `
-                    <div class="flex gap-2 mt-3 overflow-x-auto pb-1">
-                        ${f.photos.map(p => `<a href="${p.public_url}" target="_blank" class="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0 block"><img src="${p.public_url}" class="w-full h-full object-cover"></a>`).join('')}
-                    </div>
-                ` : '';
-
-                return `
-                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                        <div class="space-y-1">
-                            <div class="flex items-center space-x-2">
-                                <span class="font-bold text-slate-800">${f.category || 'General'}</span>
-                                <span class="text-xs px-2 py-0.5 rounded font-semibold uppercase border ${severityColor}">${f.severity || 'NOTE'}</span>
-                            </div>
-                            <p class="text-slate-600">${f.description || f.finding || 'No details provided.'}</p>
-                            ${photosHtml}
-                        </div>
-                    </div>
-                `;
-            }).join('');
         }
+
         function renderInspectionFindings(findings) {
             const section = document.getElementById('findings-section');
             const container = document.getElementById('findings-container');
