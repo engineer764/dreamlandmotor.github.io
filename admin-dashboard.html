@@ -489,6 +489,47 @@
         }
     }
 
+    // =========================================================
+    // EXPOSED GLOBAL EDIT VEHICLE HANDLER (Fixes reference error)
+    // =========================================================
+    window.editVehicle = async function(vehicleId) {
+        const car = loadedVehicles.find(v => v.id === vehicleId);
+        if (!car) {
+            alert('Vehicle not found in local memory.');
+            return;
+        }
+
+        editingVehicleId = car.id;
+
+        document.getElementById('make').value = car.make || '';
+        document.getElementById('model').value = car.model || '';
+        document.getElementById('trim').value = car.trim || '';
+        document.getElementById('year').value = car.year || '';
+        document.getElementById('mileage').value = car.mileage || '';
+        document.getElementById('engine').value = car.engine || '';
+        document.getElementById('vin').value = car.vin || '';
+        document.getElementById('registration_number').value = car.registration_number || '';
+        document.getElementById('body_type').value = car.body_type || 'Sedan';
+        document.getElementById('transmission').value = car.transmission || 'Automatic';
+        document.getElementById('fuel_type').value = car.fuel_type || 'Petrol';
+        document.getElementById('colour').value = car.colour || '';
+        document.getElementById('location').value = car.location || 'Lagos Workshop';
+        document.getElementById('price').value = car.price || '';
+        document.getElementById('description').value = car.description || '';
+
+        document.getElementById('formTitle').querySelector('span').textContent = `Edit Vehicle (${car.vehicle_code || car.id.substring(0,8)})`;
+        document.getElementById('cancelEditBtn').classList.remove('hidden');
+        document.getElementById('photoSectionLabel').textContent = 'Add Another Photo';
+        
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.textContent = 'Save Changes';
+        submitBtn.className = 'btn btn-secondary';
+
+        await renderPhotoManager(editingVehicleId);
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     async function handleFormSubmit(e) {
         e.preventDefault();
         const submitBtn = document.getElementById('submitBtn');
