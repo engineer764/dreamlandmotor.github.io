@@ -436,7 +436,7 @@ export const vehicleService = {
      * Uploads an inspection PDF report (main or scanner health report) to storage 
      * and updates the existing vehicle inspection record cleanly without duplicates.
      */
-    async function uploadInspectionReportPdf(vehicleId, file, reportType = 'scanner') {
+    async uploadInspectionReportPdf(vehicleId, file, reportType = 'scanner') {
         if (!file || !(file instanceof File)) {
             throw new Error('A valid PDF file is required.');
         }
