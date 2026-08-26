@@ -1,4 +1,413 @@
+import { MASTER_CHECKLIST } from './masterChecklist.js';
+import { inspectionScoring } from './inspectionScoring.js';
 import { supabase } from './supabaseClient.js';
+
+/**
+ * Retrieves the existing inspection for a vehicle (Read-only).
+ * Never creates an inspection.
+ * Uses maybeSingle().
+ */
+export async function getInspectionForVehicle(vehicleId) {
+    if (!vehicleId) return null;
+
+    const { data, error } = await supabase
+        .from('inspections')
+        .select(`
+            *,
+            inspection_items (*)
+        `)
+        .eq('vehicle_id', vehicleId)
+        .maybeSingle();
+
+    if (error) {
+        console.error('Error fetching inspection for vehicle:', error);
+        throw error;
+    }
+
+    return data;
+}
+
+/**
+ * Starts a new inspection for a vehicle.
+ * Called ONLY from an explicit START NEW INSPECTION action.
+ * Handles concurrency / unique constraint gracefully.
+ */
+export async function startNewInspection(vehicleId) {
+    if (!vehicleId) {
+        throw new Error('Vehicle ID is required to start an inspection.');
+    }
+
+    // 1. Check if inspection already exists
+    const existing = await getInspectionForVehicle(vehicleId);
+    if (existing) {
+        return existing;
+    }
+
+    // 2. Fetch vehicle data for initial mileage
+    const { data: vehicle, error: vehicleError } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('id', vehicleId)
+        .single();
+
+    if (vehicleError || !vehicle) {
+        throw new Error('Vehicle not found for inspection initialization.');
+    }
+
+    const inspectionNumber = `INS-${Math.floor(100000 + Math.random() * 900000)}`;
+    const now = new Date().toISOString();
+
+    const newInspectionPayload = {
+        vehicle_id: vehicleId,
+        inspection_number: inspectionNumber,
+        inspection_status: 'IN_PROGRESS',
+        mileage: vehicle.mileage || 0,
+        created_at: now,
+        updated_at: now
+    };
+
+    // 3. Insert inspection
+    const { data: insertedInspection, error: insertError } = await supabase
+        .from('inspections')
+        .insert([newInspectionPayload])
+        .select('*')
+        .single();
+
+    // Handle concurrent creation / unique constraint violation gracefully
+    if (insertError) {
+        const existingConcurrent = await getInspectionForVehicle(vehicleId);
+        if (existingConcurrent) {
+            return existingConcurrent;
+        }
+        console.error('Error inserting inspection:', insertError);
+        throw insertError;
+    }
+
+    // 4. Instantiate MASTER_CHECKLIST into inspection_items
+    const inspectionItemsPayload = MASTER_CHECKLIST.map(item => {
+        const isDefaultApplicable = item.default_applicable !== false;
+        return {
+            inspection_id: insertedInspection.id,
+            section: item.section,
+            item_code: item.item_code,
+            item_name: item.item_name,
+            sort_order: item.sort_order,
+            is_safety_critical: item.is_safety_critical || false,
+            is_applicable: isDefaultApplicable,
+            status: isDefaultApplicable ? 'PENDING' : 'N/A'
+        };
+    });
+
+    const { error: itemsError } = await supabase
+        .from('inspection_items')
+        .insert(inspectionItemsPayload);
+
+    if (itemsError) {
+        console.error('Error inserting inspection items. Rolling back inspection record...', itemsError);
+        // Rollback orphan inspection row via delete if items insert fails
+        await supabase
+            .from('inspections')
+            .delete()
+            .eq('id', insertedInspection.id);
+        throw itemsError;
+    }
+
+    // 5. Return complete inspection with items
+    return await getInspectionForVehicle(vehicleId);
+}
+
+/**
+ * Updates a specific inspection item.
+ * Validates allowed status values and manages applicability.
+ * Never creates an inspection.
+ */
+export async function updateInspectionItem(itemId, updates) {
+    if (!itemId) {
+        throw new Error('Item ID is required for update.');
+    }
+
+    const allowedStatuses = ['PENDING', 'GOOD', 'FAIR', 'ATTENTION', 'CRITICAL', 'N/A'];
+    const dbUpdates = {
+        updated_at: new Date().toISOString()
+    };
+
+    if (updates.status !== undefined) {
+        if (!allowedStatuses.includes(updates.status)) {
+            throw new Error(`Invalid status: ${updates.status}`);
+        }
+        dbUpdates.status = updates.status;
+
+        if (updates.status === 'N/A') {
+            dbUpdates.is_applicable = false;
+        } else if (updates.is_applicable === undefined) {
+            dbUpdates.is_applicable = true;
+        }
+    }
+
+    if (updates.is_applicable !== undefined) {
+        dbUpdates.is_applicable = Boolean(updates.is_applicable);
+        if (!dbUpdates.is_applicable && dbUpdates.status !== 'N/A') {
+            dbUpdates.status = 'N/A';
+        }
+    }
+
+    // Map frontend "notes" to database "observation" column (no "notes" column exists)
+    if (updates.notes !== undefined) {
+        dbUpdates.observation = updates.notes;
+    }
+
+    // Map other supported database fields if supplied
+    const supportedFields = [
+        'observation',
+        'recommended_action',
+        'estimated_cost',
+        'measurement_value',
+        'measurement_unit',
+        'is_safety_critical'
+    ];
+
+    for (const field of supportedFields) {
+        if (updates[field] !== undefined) {
+            dbUpdates[field] = updates[field];
+        }
+    }
+
+    const { data, error } = await supabase
+        .from('inspection_items')
+        .update(dbUpdates)
+        .eq('id', itemId)
+        .select('*')
+        .single();
+
+    if (error) {
+        console.error('Error updating inspection item:', error);
+        throw error;
+    }
+
+    return data;
+}
+
+/**
+ * Completes an inspection after validating that no applicable items remain PENDING.
+ * Calculates scores using the centralized inspectionScoring engine.
+ * Updates ONLY the existing inspection ID.
+ */
+export async function completeInspection(inspectionId) {
+    if (!inspectionId) {
+        throw new Error('Inspection ID is required for completion.');
+    }
+
+    // 1. Retrieve existing inspection and items
+    const { data: inspection, error: inspError } = await supabase
+        .from('inspections')
+        .select('*')
+        .eq('id', inspectionId)
+        .single();
+
+    if (inspError || !inspection) {
+        throw new Error('Inspection not found.');
+    }
+
+    const { data: items, error: itemsError } = await supabase
+        .from('inspection_items')
+        .select('*')
+        .eq('inspection_id', inspectionId);
+
+    if (itemsError || !items) {
+        throw new Error('Failed to retrieve inspection items for completion.');
+    }
+
+    // 2. Reject completion if any applicable item remains PENDING
+    const pendingApplicableItems = items.filter(
+        item => item.is_applicable === true && item.status === 'PENDING'
+    );
+
+    if (pendingApplicableItems.length > 0) {
+        throw new Error(`Cannot complete inspection. ${pendingApplicableItems.length} applicable item(s) remain PENDING.`);
+    }
+
+    // 3. Build section results map for centralized scoring engine
+    const allSections = [...new Set(items.map(i => i.section))];
+    const sectionResultsMap = {};
+    for (const sec of allSections) {
+        const secItems = items.filter(i => i.section === sec);
+        sectionResultsMap[sec] = inspectionScoring.calculateSectionScore(secItems);
+    }
+
+    const overallResult = inspectionScoring.calculateOverallScore(sectionResultsMap);
+    const overallScore = overallResult.overallScore;
+
+    const rawRecommendation = overallResult.recommendation;
+    const recommendationText =
+        typeof rawRecommendation === 'string'
+            ? rawRecommendation
+            : rawRecommendation?.text || String(rawRecommendation || '');
+
+    // Derive overall condition from centralized result/recommendation without numeric score thresholds
+    let overallCondition = overallResult.condition || overallResult.overallCondition;
+    if (!overallCondition) {
+        const recStr = String(rawRecommendation?.code || rawRecommendation?.badge || recommendationText).toUpperCase();
+        if (recStr.includes('REJECT') || recStr.includes('POOR') || recStr.includes('FAIL')) {
+            overallCondition = 'POOR';
+        } else if (recStr.includes('ATTENTION') || recStr.includes('FAIR') || recStr.includes('ADVISORY')) {
+            overallCondition = 'FAIR';
+        } else {
+            overallCondition = 'GOOD';
+        }
+    }
+
+    const now = new Date().toISOString();
+
+    const updatePayload = {
+        inspection_status: 'COMPLETED',
+        overall_score: overallScore,
+        overall_condition: overallCondition,
+        recommendation: recommendationText,
+        completed_at: now,
+        updated_at: now
+    };
+
+    // 4. Calculate broad category score columns directly from underlying applicable items (no section score averaging)
+    const getBroadCategoryScore = (sectionNames) => {
+        const groupItems = items.filter(item =>
+            item.is_applicable !== false &&
+            item.status !== 'N/A' &&
+            item.status !== 'PENDING' &&
+            sectionNames.includes(item.section)
+        );
+        if (groupItems.length === 0) return null;
+        const result = inspectionScoring.calculateSectionScore(groupItems);
+        return result.score;
+    };
+
+    const mechanicalScore = getBroadCategoryScore(['Engine', 'Cooling', 'Transmission', 'Steering', 'WheelsTyres']);
+    if (mechanicalScore !== null) updatePayload.mechanical_score = mechanicalScore;
+
+    const electricalScore = getBroadCategoryScore(['Electrical']);
+    if (electricalScore !== null) updatePayload.electrical_score = electricalScore;
+
+    const bodyScore = getBroadCategoryScore(['Body']);
+    if (bodyScore !== null) updatePayload.body_score = bodyScore;
+
+    const interiorScore = getBroadCategoryScore(['Interior', 'HVAC']);
+    if (interiorScore !== null) updatePayload.interior_score = interiorScore;
+
+    const suspensionScore = getBroadCategoryScore(['Suspension']);
+    if (suspensionScore !== null) updatePayload.suspension_score = suspensionScore;
+
+    const brakeScore = getBroadCategoryScore(['Brakes']);
+    if (brakeScore !== null) updatePayload.brake_score = brakeScore;
+
+    const diagnosticScore = getBroadCategoryScore(['Diagnostics']);
+    if (diagnosticScore !== null) updatePayload.diagnostic_score = diagnosticScore;
+
+    const roadTestScore = getBroadCategoryScore(['RoadTest']);
+    if (roadTestScore !== null) updatePayload.road_test_score = roadTestScore;
+
+    // 5. Update ONLY the existing inspection ID
+    const { data: updatedInspection, error: updateError } = await supabase
+        .from('inspections')
+        .update(updatePayload)
+        .eq('id', inspectionId)
+        .select('*')
+        .single();
+
+    if (updateError) {
+        console.error('Error completing inspection:', updateError);
+        throw updateError;
+    }
+
+    return updatedInspection;
+}
+
+/**
+ * Uploads a scanner PDF report for a vehicle's existing inspection.
+ * Never creates an inspection.
+ * Safely replaces existing reports and rolls back on storage/DB failure.
+ */
+export async function uploadScannerPdf(vehicleId, file) {
+    if (!vehicleId) {
+        throw new Error('Vehicle ID is required for scanner PDF upload.');
+    }
+    if (!file) {
+        throw new Error('File is required.');
+    }
+
+    // Validate PDF type
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+        throw new Error('Only PDF files are allowed for scanner reports.');
+    }
+
+    // Find EXISTING inspection
+    const inspection = await getInspectionForVehicle(vehicleId);
+    if (!inspection) {
+        throw new Error('No existing inspection found for this vehicle. Cannot upload scanner report.');
+    }
+
+    const oldScannerPath = inspection.scanner_report_path;
+
+    const fileExt = 'pdf';
+    const fileName = `${crypto.randomUUID()}.${fileExt}`;
+    const filePath = `${vehicleId}/${fileName}`;
+
+    // 1. Upload new PDF to vehicle-photos storage bucket
+    const { error: uploadError } = await supabase.storage
+        .from('vehicle-photos')
+        .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false,
+            contentType: 'application/pdf'
+        });
+
+    if (uploadError) {
+        console.error('Error uploading scanner PDF to storage:', uploadError);
+        throw uploadError;
+    }
+
+    // Get public URL for new file
+    const { data: publicUrlData } = supabase.storage
+        .from('vehicle-photos')
+        .getPublicUrl(filePath);
+
+    const publicUrl = publicUrlData?.publicUrl;
+
+    // 2. Update scanner_report_path on existing inspection
+    const { data: updatedInspection, error: dbError } = await supabase
+        .from('inspections')
+        .update({
+            scanner_report_path: publicUrl,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', inspection.id)
+        .select('*')
+        .single();
+
+    if (dbError) {
+        console.error('Error updating scanner_report_path in database. If blocked by database triggers on completed inspections, the database trigger policy must be updated. Rolling back newly uploaded storage file...', dbError);
+        await supabase.storage
+            .from('vehicle-photos')
+            .remove([filePath]);
+        throw dbError;
+    }
+
+    // 3. ONLY AFTER successful database update, remove the previous scanner PDF if it exists
+    if (oldScannerPath && oldScannerPath.includes('/vehicle-photos/')) {
+        try {
+            const urlObj = new URL(oldScannerPath);
+            const pathParts = urlObj.pathname.split('/vehicle-photos/');
+            if (pathParts.length > 1) {
+                const oldFilePath = pathParts[1];
+                await supabase.storage
+                    .from('vehicle-photos')
+                    .remove([oldFilePath]);
+            }
+        } catch (cleanupErr) {
+            console.warn('Could not clean up old scanner PDF from storage (non-fatal):', cleanupErr);
+        }
+    }
+
+    return updatedInspection;
+}import { supabase } from './supabaseClient.js';
 import { inspectionScoring } from './inspectionScoring.js';
 
 export const inspectionService = {
