@@ -432,7 +432,7 @@ export const vehicleService = {
         return true;
     },
 
-  /**
+    /**
      * Uploads an inspection PDF report (scanner or main report) to storage 
      * and updates the vehicle inspection record securely via database RPC.
      */
@@ -452,7 +452,6 @@ export const vehicleService = {
 
         const fileName = `inspections/${vehicleId}/${reportType}_${crypto.randomUUID()}.pdf`;
 
-        // 1. Upload to your existing 'vehicle-photos' bucket
         const { error: uploadError } = await supabase.storage
             .from('vehicle-photos')
             .upload(fileName, file, {
@@ -464,12 +463,10 @@ export const vehicleService = {
             throw new Error(`Failed to upload inspection report: ${uploadError.message}`);
         }
 
-        // 2. Generate full Public URL for frontend rendering
         const { data: { publicUrl } } = supabase.storage
             .from('vehicle-photos')
             .getPublicUrl(fileName);
 
-        // 3. Find the existing inspection (Strictly prevents duplicate rows & new inspection numbers)
         const { data: inspection, error: inspectionError } = await supabase
             .from('inspections')
             .select('id, inspection_status')
@@ -490,8 +487,6 @@ export const vehicleService = {
 
         const updateField = reportType === 'scanner' ? 'scanner_report_path' : 'report_path';
 
-        // 4. Update ONLY the report path column. 
-        // This leaves your inspection_status (Draft, In Progress, Completed) completely authoritative and untouched.
         const { error: updateError } = await supabase
             .from('inspections')
             .update({
@@ -500,7 +495,6 @@ export const vehicleService = {
             .eq('id', inspection.id);
 
         if (updateError) {
-            // Rollback storage upload if database save fails
             await supabase.storage
                 .from('vehicle-photos')
                 .remove([fileName]);
@@ -510,6 +504,7 @@ export const vehicleService = {
 
         return publicUrl;
     },
+
     /**
      * ==========================================
      * PUBLIC DATA ADAPTERS & LISTINGS
