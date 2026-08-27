@@ -3,797 +3,734 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vehicle Inspection Workbench — Dreamland Verified Cars</title>
+    <title>Vehicle Inspection Workbench — Dreamland Admin</title>
+    <!-- Tailwind CSS for modern styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-slate-50 font-sans text-slate-900 antialiased min-h-screen flex flex-col">
 
-    <!-- Header -->
+    <!-- Admin Header -->
     <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <i class="fa-solid fa-clipboard-check text-blue-500 text-2xl"></i>
-                <span class="font-bold text-lg tracking-wide">Inspection Workbench</span>
+                <i class="fa-solid fa-wrench text-blue-500 text-xl"></i>
+                <span class="font-bold text-lg tracking-wide">Dreamland Engineering Workbench</span>
             </div>
             <div class="flex items-center space-x-4">
-                <div id="autosave-indicator" class="text-xs text-slate-400 font-medium flex items-center space-x-1.5 hidden">
-                    <i class="fa-solid fa-circle-check text-emerald-400"></i>
-                    <span>Saved</span>
-                </div>
-                <a href="admin.html" class="text-sm text-slate-300 hover:text-white flex items-center space-x-2 transition-colors">
+                <a href="inventory.html" class="text-sm text-slate-300 hover:text-white flex items-center space-x-2 transition-colors">
                     <i class="fa-solid fa-arrow-left"></i>
-                    <span>Back to Admin Portal</span>
+                    <span>Back to Inventory</span>
                 </a>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
         <!-- Loading State -->
         <div id="loading-state" class="py-24 text-center">
             <i class="fa-solid fa-spinner fa-spin text-3xl text-blue-600 mb-4"></i>
-            <p class="text-slate-600 font-medium">Loading inspection workbench and master checklist...</p>
+            <p class="text-slate-600 font-medium">Loading vehicle inspection record...</p>
         </div>
 
-        <!-- Error State -->
-        <div id="error-state" class="py-24 text-center hidden">
-            <div class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-                <i class="fa-solid fa-circle-exclamation text-red-500 text-4xl mb-3"></i>
-                <h2 id="error-title" class="text-xl font-bold text-slate-900 mb-2">Unable to load inspection.</h2>
-                <p id="error-message" class="text-sm text-slate-600 mb-6">Please check the vehicle ID or try again.</p>
-                <a href="admin.html" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors">
-                    Return to Admin Portal
-                </a>
+        <!-- No Inspection Found State (Explicit Start Action) -->
+        <div id="no-inspection-state" class="py-24 text-center hidden">
+            <div class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                <div class="w-16 h-16 bg-amber-50 rounded-2xl border border-amber-200 flex items-center justify-center mx-auto text-amber-600 text-2xl">
+                    <i class="fa-solid fa-file-circle-exclamation"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-900">No Inspection Found</h2>
+                <div class="text-sm text-slate-600 space-y-1">
+                    <p>No inspection exists for this vehicle.</p>
+                    <p class="text-xs text-slate-500">Start a new inspection to load the Dreamland Master Checklist.</p>
+                </div>
+                <div id="start-error-msg" class="text-xs text-red-600 font-medium hidden"></div>
+                <div class="pt-2 flex flex-col gap-3">
+                    <button type="button" id="btn-start-inspection" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl text-sm transition-colors shadow-sm flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-plus-circle"></i>
+                        <span>START NEW INSPECTION</span>
+                    </button>
+                    <a href="inventory.html" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 px-4 rounded-xl text-xs transition-colors">
+                        Return to Admin Portal
+                    </a>
+                </div>
             </div>
         </div>
 
-        <!-- Workbench Container -->
+        <!-- Workbench Container (Hidden initially) -->
         <div id="workbench-container" class="hidden space-y-8">
             
-            <!-- Vehicle & Inspection Overview Banner -->
+            <!-- Inspection Header & Overview -->
             <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                <div class="space-y-1">
+                <div>
                     <div class="flex items-center space-x-3 mb-1">
-                        <span id="insp-number-badge" class="bg-slate-100 text-slate-700 font-mono text-xs px-2.5 py-1 rounded-md font-semibold">INS: --</span>
-                        <span id="insp-status-badge" class="bg-slate-100 text-slate-700 border border-slate-200 text-xs px-3 py-1 rounded-full font-bold uppercase">DRAFT</span>
-                        <span id="score-badge" class="bg-blue-50 text-blue-700 border border-blue-200 text-xs px-3 py-1 rounded-full font-bold hidden">Score: --%</span>
+                        <span id="insp-number-badge" class="bg-slate-100 text-slate-700 font-mono text-xs px-2.5 py-1 rounded-md font-semibold">INS- --</span>
+                        <span id="insp-status-badge" class="bg-blue-50 text-blue-700 border border-blue-200 text-xs px-3 py-1 rounded-full font-bold uppercase">DRAFT</span>
                     </div>
-                    <h1 id="vehicle-title-header" class="text-2xl font-extrabold text-slate-900">Loading Vehicle...</h1>
-                    <p id="vehicle-meta-sub" class="text-sm text-slate-500 mt-0.5">VIN: -- • Mileage: -- km</p>
+                    <h1 id="insp-main-title" class="text-2xl sm:text-3xl font-extrabold text-slate-900">Vehicle Inspection Workbench</h1>
+                    <p id="insp-date-text" class="text-xs text-slate-500 mt-1 flex items-center space-x-2">
+                        <i class="fa-solid fa-calendar-days text-slate-400"></i>
+                        <span>Inspection Date: --</span>
+                    </p>
                 </div>
-
-                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                    <!-- Scanner Report Status / Link -->
-                    <div id="scanner-report-container" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs flex items-center justify-between sm:justify-start space-x-3">
-                        <div class="flex items-center space-x-2 text-slate-600">
-                            <i class="fa-solid fa-file-pdf text-red-500 text-base"></i>
-                            <span id="scanner-report-text" class="font-medium">Scanner report not yet uploaded.</span>
-                        </div>
-                        <a id="scanner-report-link" href="#" target="_blank" class="text-blue-600 hover:underline font-bold hidden">View Report</a>
-                        <label class="cursor-pointer bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-lg font-semibold inline-flex items-center space-x-1 transition-colors">
-                            <i class="fa-solid fa-upload"></i>
-                            <span>Upload PDF</span>
-                            <input type="file" accept="application/pdf" class="hidden" onchange="window.handleScannerPdfUpload(this)">
-                        </label>
-                    </div>
-
-                    <button id="complete-insp-btn" onclick="openCompleteModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors shadow-sm inline-flex items-center justify-center space-x-2">
-                        <i class="fa-solid fa-check-circle"></i>
+                <div class="flex flex-wrap items-center gap-3">
+                    <button type="button" id="btn-open-complete-modal" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm flex items-center space-x-2">
+                        <i class="fa-solid fa-circle-check"></i>
                         <span>Complete Inspection</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Progress Dashboard -->
-            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                <div class="flex items-center justify-between text-sm">
-                    <span class="font-bold text-slate-700">INSPECTION PROGRESS</span>
-                    <span id="progress-stats" class="font-mono font-bold text-slate-900">0 / 0 assessed (0%)</span>
+            <!-- Progress Dashboard Bar -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base">Inspection Progress</h3>
+                        <p class="text-xs text-slate-500">Track assessed items against the Dreamland Master Checklist.</p>
+                    </div>
+                    <div class="text-right">
+                        <span id="progress-stats-text" class="text-sm font-bold text-blue-600 font-mono">0 / 0 assessed (0%)</span>
+                    </div>
                 </div>
                 <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                    <div id="progress-bar" class="bg-blue-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
-                </div>
-                <div class="flex items-center justify-between text-xs text-slate-500">
-                    <span id="progress-remaining">0 items remaining</span>
-                    <span>Master Checklist Standard</span>
+                    <div id="progress-bar-fill" class="bg-blue-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
                 </div>
             </div>
 
-            <!-- Master Checklist Section Navigation & Items Workbench -->
+            <!-- Scanner Report & PDF Section -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="space-y-1">
+                    <div class="text-xs font-bold uppercase tracking-wider text-blue-600">OBD-II Scanner Diagnostics</div>
+                    <h3 class="font-bold text-slate-900 text-lg">Scanner Health Report (PDF)</h3>
+                    <p id="scanner-status-text" class="text-xs text-slate-500">Upload manufacturer diagnostic scan results for buyer transparency.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div id="scanner-link-container" class="hidden">
+                        <a id="scanner-report-view-btn" href="#" target="_blank" rel="noopener noreferrer" class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium px-4 py-2.5 rounded-xl text-sm transition-colors inline-flex items-center space-x-2">
+                            <i class="fa-solid fa-file-waveform text-emerald-600"></i>
+                            <span>View Scanner PDF</span>
+                        </a>
+                    </div>
+                    <label class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-4 py-2.5 rounded-xl text-sm transition-colors cursor-pointer inline-flex items-center space-x-2 shadow-sm">
+                        <i class="fa-solid fa-upload"></i>
+                        <span id="scanner-upload-label">Upload Scanner PDF</span>
+                        <input type="file" id="scanner-pdf-input" accept="application/pdf" class="hidden">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Main Workbench Grid: Sidebar Navigation + Checklist Panel -->
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
                 
-                <!-- Section Sidebar Navigation -->
-                <div class="lg:col-span-1 bg-white rounded-2xl border border-slate-200 p-4 shadow-sm sticky top-20 space-y-2">
-                    <h3 class="font-bold text-xs uppercase tracking-wider text-slate-400 px-3 pb-2">Checklist Sections</h3>
-                    <div id="section-nav-list" class="space-y-1">
+                <!-- Sidebar Section Navigation -->
+                <div class="lg:col-span-1 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm sticky top-24 space-y-2">
+                    <div class="text-xs font-bold uppercase tracking-wider text-slate-400 px-3 py-1">Inspection Sections</div>
+                    <nav id="section-nav-container" class="space-y-1">
+                        <!-- Populated dynamically -->
+                    </nav>
+                </div>
+
+                <!-- Checklist & Findings Main Column -->
+                <div class="lg:col-span-3 space-y-6">
+                    
+                    <!-- Filter Toolbar -->
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex items-center space-x-2" id="status-filter-buttons">
+                            <button type="button" data-filter="ALL" class="filter-btn px-3.5 py-1.5 rounded-xl text-xs font-bold bg-blue-600 text-white transition-colors">All Items</button>
+                            <button type="button" data-filter="PENDING" class="filter-btn px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">Pending</button>
+                            <button type="button" data-filter="ISSUES" class="filter-btn px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">Issues Found</button>
+                        </div>
+                        <div class="text-xs font-semibold text-slate-500 font-mono" id="section-item-count-text">Showing items</div>
+                    </div>
+
+                    <!-- Dynamic Section Content & Checklist Items -->
+                    <div id="checklist-sections-container" class="space-y-6">
                         <!-- Populated dynamically -->
                     </div>
-                </div>
 
-                <!-- Active Section Items Panel -->
-                <div class="lg:col-span-3 bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-                        <div>
-                            <h2 id="active-section-title" class="text-xl font-extrabold text-slate-900">Select Section</h2>
-                            <p id="active-section-subtitle" class="text-sm text-slate-500 mt-0.5">Assess all items in this section.</p>
+                    <!-- Supplementary Findings Section -->
+                    <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
+                        <div class="border-b border-slate-100 pb-4">
+                            <div class="text-xs font-bold uppercase tracking-wider text-blue-600 mb-1">EVALUATED EVIDENCE & NOTES</div>
+                            <h3 class="text-xl font-extrabold text-slate-900">Supplementary Inspection Findings</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Record specific component defects, notes, or photo evidence discovered during evaluation.</p>
                         </div>
-                        <div class="flex items-center space-x-2">
-                            <button onclick="window.filterSectionItems('ALL')" id="filter-btn-ALL" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white">All</button>
-                            <button onclick="window.filterSectionItems('PENDING')" id="filter-btn-PENDING" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200">Pending</button>
-                            <button onclick="window.filterSectionItems('ISSUES')" id="filter-btn-ISSUES" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200">Issues</button>
+
+                        <!-- Findings Container -->
+                        <div id="findings-list-container" class="space-y-4">
+                            <!-- Populated dynamically -->
                         </div>
+
+                        <!-- Add Finding Form -->
+                        <form id="add-finding-form" class="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
+                            <h4 class="font-bold text-slate-900 text-sm flex items-center space-x-2">
+                                <i class="fa-solid fa-plus-circle text-blue-600"></i>
+                                <span>Add New Inspection Finding</span>
+                            </h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Component / Area</label>
+                                    <input type="text" id="finding-component" placeholder="e.g., Front Bumper / Suspension Bushing" required class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Severity Rating</label>
+                                    <select id="finding-severity" class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+                                        <option value="NOTE">Note / Observation</option>
+                                        <option value="MINOR">Minor Defect</option>
+                                        <option value="MODERATE">Moderate Wear</option>
+                                        <option value="MAJOR">Major Defect</option>
+                                        <option value="CRITICAL">Critical Safety Issue</option>
+                                    </select>
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Detailed Description</label>
+                                    <textarea id="finding-description" rows="3" placeholder="Describe the condition, wear pattern, or mechanical fault observed..." required class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"></textarea>
+                                </div>
+                            </div>
+                            <div class="flex justify-end pt-2">
+                                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-colors shadow-sm">
+                                    Save Finding
+                                </button>
+                            </div>
+                        </form>
                     </div>
 
-                    <div id="checklist-items-container" class="space-y-4">
-                        <div class="text-center py-12 text-slate-400 text-sm">Select a section from the left sidebar to begin inspection.</div>
-                    </div>
                 </div>
+
             </div>
 
-            <!-- Supplementary Findings Section -->
-            <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
-                <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-                    <div>
-                        <h2 class="text-xl font-extrabold text-slate-900">Supplementary Findings & Notes</h2>
-                        <p class="text-sm text-slate-500 mt-0.5">Additional observations, notes, and media attachments.</p>
-                    </div>
-                    <button onclick="openFindingModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-xl text-sm transition-colors shadow-sm inline-flex items-center space-x-2">
-                        <i class="fa-solid fa-plus"></i>
-                        <span>Add Finding</span>
-                    </button>
-                </div>
-                <div id="findings-list" class="space-y-4">
-                    <div class="text-center py-12 text-slate-400 text-sm">No supplementary findings recorded.</div>
-                </div>
-            </div>
         </div>
 
     </main>
 
-    <!-- Finding Modal -->
-    <div id="finding-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200 space-y-6">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-                <h3 id="modal-title" class="font-bold text-lg text-slate-900">Add Supplementary Finding</h3>
-                <button onclick="closeFindingModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
-            </div>
-            <form id="finding-form" onsubmit="handleFindingSubmit(event)" class="space-y-4 text-sm">
-                <input type="hidden" id="finding-id">
-                
-                <div class="space-y-1">
-                    <label class="font-bold text-slate-700">Area *</label>
-                    <select id="finding-area" required class="w-full p-2.5 border border-slate-200 rounded-xl bg-white">
-                        <option value="Mechanical">Mechanical</option>
-                        <option value="Computer Diagnostics">Computer Diagnostics</option>
-                        <option value="Electrical & Electronic">Electrical & Electronic</option>
-                        <option value="Body & Accident">Body & Accident</option>
-                        <option value="Chassis / Suspension / Braking">Chassis / Suspension / Braking</option>
-                        <option value="Interior / Functional / Road Test">Interior / Functional / Road Test</option>
-                    </select>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="font-bold text-slate-700">Rating *</label>
-                        <select id="findingRating" required class="w-full p-2.5 border border-slate-200 rounded-xl bg-white">
-                            <option value="GOOD">GOOD — No significant concern</option>
-                            <option value="FAIR">FAIR — Minor wear / condition concern</option>
-                            <option value="ATTENTION">ATTENTION — Requires attention</option>
-                            <option value="CRITICAL">CRITICAL — Serious defect</option>
-                        </select>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="font-bold text-slate-700">Severity *</label>
-                        <select id="findingSeverity" required class="w-full p-2.5 border border-slate-200 rounded-xl bg-white">
-                            <option value="1">1 — Minor</option>
-                            <option value="2">2 — Low</option>
-                            <option value="3">3 — Moderate</option>
-                            <option value="4">4 — Major</option>
-                            <option value="5">5 — Critical</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="flex items-center space-x-2 pt-1 pb-1">
-                    <input type="checkbox" id="findingSafety" class="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer">
-                    <label for="findingSafety" class="font-bold text-slate-700 cursor-pointer">Flag as Safety Critical</label>
-                </div>
-
-                <div class="space-y-1">
-                    <label class="font-bold text-slate-700">Component</label>
-                    <input type="text" id="finding-component" placeholder="e.g. Front Brake Pads" class="w-full p-2.5 border border-slate-200 rounded-xl">
-                </div>
-                <div class="space-y-1">
-                    <label class="font-bold text-slate-700">Finding Description *</label>
-                    <textarea id="finding-desc" rows="3" required placeholder="Describe condition or defect observed..." class="w-full p-2.5 border border-slate-200 rounded-xl"></textarea>
-                </div>
-                <div class="space-y-1">
-                    <label class="font-bold text-slate-700">Recommended Action</label>
-                    <input type="text" id="finding-action" placeholder="e.g. Replace brake pads immediately" class="w-full p-2.5 border border-slate-200 rounded-xl">
-                </div>
-                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
-                    <button type="button" onclick="closeFindingModal()" class="px-4 py-2 border border-slate-200 text-slate-600 font-medium rounded-xl hover:bg-slate-50">Cancel</button>
-                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow-sm">Save Finding</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <!-- Complete Inspection Modal -->
-    <div id="complete-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200 space-y-6">
+    <div id="complete-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-slate-200">
             <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-                <h3 class="font-bold text-lg text-slate-900">Complete Inspection Report</h3>
-                <button onclick="closeCompleteModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-clipboard-check"></i>
+                    </div>
+                    <h3 class="font-extrabold text-slate-900 text-lg">Complete & Finalize Inspection</h3>
+                </div>
+                <button type="button" id="btn-close-modal" class="text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
             </div>
-            <div id="complete-modal-body" class="space-y-4 text-sm">
-                <!-- Populated dynamically with pending check or summary -->
+            <div class="space-y-3 text-sm text-slate-600">
+                <p>Completing this inspection will calculate final scores across all evaluated sections, generate the official recommendation, and lock the inspection record for public verification.</p>
+                <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl text-xs text-amber-800 flex items-start space-x-2.5">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5"></i>
+                    <span>All applicable checklist items must be fully assessed (no PENDING items allowed) before completion.</span>
+                </div>
             </div>
-            <div id="complete-modal-actions" class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
-                <!-- Populated dynamically -->
+            <div id="modal-error-box" class="text-xs text-red-600 font-semibold hidden bg-red-50 p-3 rounded-xl border border-red-200"></div>
+            <div class="flex items-center justify-end space-x-3 pt-2 border-t border-slate-100">
+                <button type="button" id="btn-cancel-modal" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors">
+                    Cancel
+                </button>
+                <button type="button" id="btn-confirm-complete" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-colors shadow-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Confirm & Finalize</span>
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Workbench Controller Script -->
+    <!-- Full Page Controller Script -->
     <script type="module">
         import { inspectionService } from './inspectionService.js';
-        import { vehicleService } from './vehicleService.js';
-        import { inspectionScoring } from './inspectionScoring.js';
 
         let currentVehicleId = null;
         let currentInspection = null;
-        let currentVehicle = null;
         let activeSection = null;
         let activeFilter = 'ALL';
-        let autosaveTimeout = null;
+
+        const loadingState = document.getElementById('loading-state');
+        const noInspectionState = document.getElementById('no-inspection-state');
+        const workbenchContainer = document.getElementById('workbench-container');
+        const btnStartInspection = document.getElementById('btn-start-inspection');
+        const startErrorMsg = document.getElementById('start-error-msg');
+        
+        const completeModal = document.getElementById('complete-modal');
+        const btnOpenCompleteModal = document.getElementById('btn-open-complete-modal');
+        const btnCloseModal = document.getElementById('btn-close-modal');
+        const btnCancelModal = document.getElementById('btn-cancel-modal');
+        const btnConfirmComplete = document.getElementById('btn-confirm-complete');
+        const modalErrorBox = document.getElementById('modal-error-box');
+
+        const scannerPdfInput = document.getElementById('scanner-pdf-input');
+        const addFindingForm = document.getElementById('add-finding-form');
 
         async function initWorkbench() {
             const params = new URLSearchParams(window.location.search);
             currentVehicleId = params.get('vehicleId');
 
-            const loadingState = document.getElementById('loading-state');
-            const errorState = document.getElementById('error-state');
-            const workbenchContainer = document.getElementById('workbench-container');
-
             if (!currentVehicleId) {
                 loadingState.classList.add('hidden');
-                document.getElementById('error-title').textContent = 'Vehicle ID missing.';
-                document.getElementById('error-message').textContent = 'Please open inspection from the Admin portal.';
-                errorState.classList.remove('hidden');
+                noInspectionState.classList.remove('hidden');
+                noInspectionState.querySelector('h2').textContent = 'Vehicle ID Missing';
+                noInspectionState.querySelector('p').textContent = 'Please provide a valid vehicle ID in the URL query parameters.';
+                btnStartInspection.classList.add('hidden');
                 return;
             }
 
             try {
-                currentVehicle = await vehicleService.getVehicleById(currentVehicleId);
-                if (!currentVehicle) throw new Error('Vehicle record not found.');
-
-                document.getElementById('vehicle-title-header').textContent = `${currentVehicle.year} ${currentVehicle.make} ${currentVehicle.model} ${currentVehicle.trim || ''}`;
-                document.getElementById('vehicle-meta-sub').textContent = `VIN: ${currentVehicle.vin || 'N/A'} • Mileage: ${(currentVehicle.mileage || 0).toLocaleString()} km`;
-
-                // READ EXISTING INSPECTION ONLY. NEVER CREATE AN INSPECTION WHILE VIEWING.
+                // VIEW IS READ-ONLY: Never creates an inspection automatically
                 currentInspection = await inspectionService.getInspectionForVehicle(currentVehicleId);
-                
+
                 if (!currentInspection) {
                     loadingState.classList.add('hidden');
-                    document.getElementById('error-title').textContent = 'No Inspection Found';
-                    document.getElementById('error-message').textContent = 'No inspection exists for this vehicle. Start a new inspection explicitly from the Admin Portal.';
-                    errorState.classList.remove('hidden');
+                    noInspectionState.classList.remove('hidden');
                     return;
                 }
 
-                // Set default active section to the first section present in items or master list
-                const sections = getUniqueSections();
-                if (sections.length > 0 && !activeSection) {
-                    activeSection = sections[0];
-                }
-                
                 renderInspectionWorkbench();
-
-                loadingState.classList.add('hidden');
-                workbenchContainer.classList.remove('hidden');
-
             } catch (err) {
-                console.error('Failed to initialize workbench:', err);
+                console.error('Failed to load inspection:', err);
                 loadingState.classList.add('hidden');
-                document.getElementById('error-title').textContent = 'Initialization Failed';
-                document.getElementById('error-message').textContent = err.message;
-                errorState.classList.remove('hidden');
+                noInspectionState.classList.remove('hidden');
+                noInspectionState.querySelector('p').textContent = err.message;
             }
         }
 
-        function getUniqueSections() {
-            if (!currentInspection || !currentInspection.inspection_items) return [];
-            const sections = [];
-            currentInspection.inspection_items.forEach(item => {
-                if (!sections.includes(item.section)) {
-                    sections.push(item.section);
-                }
-            });
-            return sections;
-        }
+        // EXPLICIT START NEW INSPECTION ACTION
+        btnStartInspection.addEventListener('click', async () => {
+            if (!currentVehicleId) return;
+
+            try {
+                btnStartInspection.disabled = true;
+                btnStartInspection.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Starting Inspection...';
+                startErrorMsg.classList.add('hidden');
+                startErrorMsg.textContent = '';
+
+                // Explicit creation
+                currentInspection = await inspectionService.startNewInspection(currentVehicleId);
+
+                noInspectionState.classList.add('hidden');
+                renderInspectionWorkbench();
+            } catch (err) {
+                console.error('Failed to start inspection:', err);
+                startErrorMsg.textContent = err.message;
+                startErrorMsg.classList.remove('hidden');
+                btnStartInspection.disabled = false;
+                btnStartInspection.innerHTML = '<i class="fa-solid fa-plus-circle"></i><span>START NEW INSPECTION</span>';
+            }
+        });
 
         function renderInspectionWorkbench() {
+            loadingState.classList.add('hidden');
+            noInspectionState.classList.add('hidden');
+            workbenchContainer.classList.remove('hidden');
+
             if (!currentInspection) return;
 
-            // Header badges & status
-            document.getElementById('insp-number-badge').textContent = `INS: ${currentInspection.inspection_number || 'PENDING'}`;
-            const statusBadge = document.getElementById('insp-status-badge');
-            statusBadge.textContent = currentInspection.inspection_status;
+            document.getElementById('insp-number-badge').textContent = currentInspection.inspection_number || 'INS- --';
+            document.getElementById('insp-status-badge').textContent = currentInspection.inspection_status || 'DRAFT';
+            document.getElementById('insp-date-text').innerHTML = `<i class="fa-solid fa-calendar-days text-slate-400"></i><span>Inspection Date: ${currentInspection.inspection_date || 'N/A'}</span>`;
 
-            const completeBtn = document.getElementById('complete-insp-btn');
-
-            if (currentInspection.inspection_status === 'COMPLETED') {
-                statusBadge.className = 'bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-3 py-1 rounded-full font-bold uppercase';
-                completeBtn.textContent = 'Inspection Completed';
-                completeBtn.disabled = true;
-                completeBtn.className = 'bg-slate-200 text-slate-500 font-medium px-5 py-2.5 rounded-xl text-sm cursor-not-allowed shadow-none inline-flex items-center justify-center space-x-2';
-                
-                if (currentInspection.overall_score !== undefined && currentInspection.overall_score !== null) {
-                    const scoreBadge = document.getElementById('score-badge');
-                    scoreBadge.textContent = `Score: ${Math.round(currentInspection.overall_score)}%`;
-                    scoreBadge.classList.remove('hidden');
-                }
-            } else if (currentInspection.inspection_status === 'IN_PROGRESS') {
-                statusBadge.className = 'bg-blue-50 text-blue-700 border border-blue-200 text-xs px-3 py-1 rounded-full font-bold uppercase';
-                completeBtn.disabled = false;
-                completeBtn.className = 'bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors shadow-sm inline-flex items-center justify-center space-x-2';
-                document.getElementById('score-badge').classList.add('hidden');
-            } else {
-                statusBadge.className = 'bg-slate-100 text-slate-700 border border-slate-200 text-xs px-3 py-1 rounded-full font-bold uppercase';
-                completeBtn.disabled = false;
-                completeBtn.className = 'bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors shadow-sm inline-flex items-center justify-center space-x-2';
-                document.getElementById('score-badge').classList.add('hidden');
-            }
-
-            // Scanner report status
-            const scannerContainer = document.getElementById('scanner-report-container');
-            const scannerText = document.getElementById('scanner-report-text');
-            const scannerLink = document.getElementById('scanner-report-link');
+            // Scanner Report status
             if (currentInspection.scanner_report_path) {
-                scannerText.textContent = 'Scanner Report Attached';
-                scannerLink.href = currentInspection.scanner_report_path;
-                scannerLink.classList.remove('hidden');
+                document.getElementById('scanner-link-container').classList.remove('hidden');
+                document.getElementById('scanner-report-view-btn').href = currentInspection.scanner_report_path;
+                document.getElementById('scanner-upload-label').textContent = 'Replace Scanner PDF';
             } else {
-                scannerText.textContent = 'Scanner report not yet uploaded.';
-                scannerLink.classList.add('hidden');
+                document.getElementById('scanner-link-container').classList.add('hidden');
+                document.getElementById('scanner-upload-label').textContent = 'Upload Scanner PDF';
             }
 
-            // Progress stats calculation
-            const items = currentInspection.inspection_items || [];
-            const totalItems = items.length;
-            const assessedItems = items.filter(i => !i.is_applicable || (i.status && i.status !== 'PENDING')).length;
-            const percentage = totalItems > 0 ? Math.round((assessedItems / totalItems) * 100) : 0;
-            const remaining = totalItems - assessedItems;
-
-            document.getElementById('progress-stats').textContent = `${assessedItems} / ${totalItems} assessed (${percentage}%)`;
-            document.getElementById('progress-bar').style.width = `${percentage}%`;
-            document.getElementById('progress-remaining').textContent = `${remaining} items remaining`;
-
-            // Render Section Navigation
+            renderProgressDashboard();
             renderSectionNav();
-
-            // Render Active Section Items
             renderChecklistItems();
-
-            // Render Supplementary Findings
             renderFindings();
         }
 
-        function renderSectionNav() {
-            const sections = getUniqueSections();
-            const navContainer = document.getElementById('section-nav-list');
+        function renderProgressDashboard() {
             const items = currentInspection.inspection_items || [];
+            const applicableItems = items.filter(i => i.is_applicable !== false);
+            const assessedCount = applicableItems.filter(i => i.status !== 'PENDING').length;
+            const totalCount = applicableItems.length;
+            const pct = totalCount > 0 ? Math.round((assessedCount / totalCount) * 100) : 0;
 
-            navContainer.innerHTML = sections.map(sec => {
-                const secItems = items.filter(i => i.section === sec);
-                const secAssessed = secItems.filter(i => !i.is_applicable || (i.status && i.status !== 'PENDING')).length;
-                const secTotal = secItems.length;
-                const isComplete = secAssessed === secTotal && secTotal > 0;
-                const isActive = sec === activeSection;
-
-                let btnClass = 'w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium flex items-center justify-between transition-colors ';
-                if (isActive) {
-                    btnClass += 'bg-blue-600 text-white shadow-sm';
-                } else {
-                    btnClass += 'text-slate-600 hover:bg-slate-50 hover:text-slate-900';
-                }
-
-                const badgeColor = isActive ? 'bg-blue-700 text-white' : (isComplete ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600');
-
-                return `
-                    <button onclick="window.selectSection('${sec}')" class="${btnClass}">
-                        <span class="truncate pr-2">${sec}</span>
-                        <span class="text-xs px-2 py-0.5 rounded-md font-mono ${badgeColor}">${secAssessed}/${secTotal}</span>
-                    </button>
-                `;
-            }).join('');
+            document.getElementById('progress-stats-text').textContent = `${assessedCount} / ${totalCount} assessed (${pct}%)`;
+            document.getElementById('progress-bar-fill').style.width = `${pct}%`;
         }
 
-        window.selectSection = function(sec) {
-            activeSection = sec;
-            renderSectionNav();
-            renderChecklistItems();
-        };
+        function renderSectionNav() {
+            const navContainer = document.getElementById('section-nav-container');
+            navContainer.innerHTML = '';
 
-        window.filterSectionItems = function(filter) {
-            activeFilter = filter;
-            ['ALL', 'PENDING', 'ISSUES'].forEach(f => {
-                const btn = document.getElementById(`filter-btn-${f}`);
-                if (f === filter) {
-                    btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white';
-                } else {
-                    btn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200';
-                }
+            const items = currentInspection.inspection_items || [];
+            const sections = [];
+            items.forEach(item => {
+                const sec = item.section || 'General';
+                if (!sections.includes(sec)) sections.push(sec);
             });
-            renderChecklistItems();
-        };
+
+            if (sections.length > 0 && !activeSection) {
+                activeSection = sections[0];
+            }
+
+            sections.forEach(sec => {
+                const secItems = items.filter(i => (i.section || 'General') === sec);
+                const assessed = secItems.filter(i => i.is_applicable !== false && i.status !== 'PENDING').length;
+                const total = secItems.filter(i => i.is_applicable !== false).length;
+                const isComplete = total > 0 && assessed === total;
+                const isActive = (activeSection === sec);
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center justify-between ${isActive ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100'}`;
+                btn.innerHTML = `
+                    <span class="truncate pr-2">${sec}</span>
+                    <span class="font-mono text-[10px] px-2 py-0.5 rounded-md ${isActive ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'}">${assessed}/${total}</span>
+                `;
+                btn.addEventListener('click', () => {
+                    activeSection = sec;
+                    renderSectionNav();
+                    renderChecklistItems();
+                });
+                navContainer.appendChild(btn);
+            });
+        }
 
         function renderChecklistItems() {
-            if (!activeSection) return;
+            const container = document.getElementById('checklist-sections-container');
+            container.innerHTML = '';
 
-            document.getElementById('active-section-title').textContent = activeSection;
-            document.getElementById('active-section-subtitle').textContent = `Inspecting all items under ${activeSection}`;
+            const items = currentInspection.inspection_items || [];
+            const sectionItems = items.filter(i => (i.section || 'General') === activeSection);
 
-            const itemsContainer = document.getElementById('checklist-items-container');
-            const items = (currentInspection.inspection_items || []).filter(i => i.section === activeSection);
-
-            let filteredItems = items;
+            let filteredItems = sectionItems;
             if (activeFilter === 'PENDING') {
-                filteredItems = items.filter(i => i.is_applicable && i.status === 'PENDING');
+                filteredItems = sectionItems.filter(i => i.is_applicable !== false && i.status === 'PENDING');
             } else if (activeFilter === 'ISSUES') {
-                filteredItems = items.filter(i => i.is_applicable && ['ATTENTION', 'CRITICAL'].includes(i.status));
+                filteredItems = sectionItems.filter(i => ['ATTENTION', 'CRITICAL', 'FAIR'].includes(i.status));
             }
+
+            document.getElementById('section-item-count-text').textContent = `Showing ${filteredItems.length} of ${sectionItems.length} items in ${activeSection}`;
 
             if (filteredItems.length === 0) {
-                itemsContainer.innerHTML = `<div class="text-center py-12 text-slate-400 text-sm">No items found matching the selected filter in ${activeSection}.</div>`;
+                container.innerHTML = `<div class="bg-white p-8 rounded-2xl border border-slate-200 text-center text-sm text-slate-500 italic">No checklist items match the current filter in this section.</div>`;
                 return;
             }
 
-            itemsContainer.innerHTML = filteredItems.map(item => {
-                const isNA = !item.is_applicable || item.status === 'N/A';
-                const status = item.status || 'PENDING';
-                
-                let statusBadgeColor = 'bg-slate-100 text-slate-700';
-                if (status === 'GOOD') statusBadgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                else if (status === 'FAIR') statusBadgeColor = 'bg-blue-50 text-blue-700 border-blue-200';
-                else if (status === 'ATTENTION') statusBadgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
-                else if (status === 'CRITICAL') statusBadgeColor = 'bg-red-50 text-red-700 border-red-200';
+            filteredItems.forEach(item => {
+                const card = document.createElement('div');
+                card.className = `bg-white rounded-2xl border p-5 space-y-4 shadow-sm transition-all ${item.status === 'CRITICAL' ? 'border-red-300 bg-red-50/20' : item.status === 'ATTENTION' ? 'border-amber-300 bg-amber-50/20' : 'border-slate-200'}`;
 
-                const safetyBadge = item.is_safety_critical ? `<span class="bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide ml-2">Safety Critical</span>` : '';
-                
-                const measurementInput = item.measurement_unit ? `
-                    <div class="flex items-center space-x-2 bg-white p-2 rounded-xl border border-slate-200">
-                        <span class="text-xs font-bold text-slate-500">Measurement (${item.measurement_unit}):</span>
-                        <input type="text" value="${item.measurement_value || ''}" placeholder="Value" onchange="window.handleItemFieldUpdate('${item.id}', 'measurement_value', this.value)" class="w-24 p-1 text-xs border border-slate-200 rounded-lg">
-                    </div>
-                ` : '';
+                const topRow = document.createElement('div');
+                topRow.className = 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3';
 
-                return `
-                    <div class="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200 space-y-4 text-sm">
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                            <div>
-                                <div class="flex items-center flex-wrap gap-y-1">
-                                    <span class="font-mono text-xs text-slate-400 font-semibold mr-2">${item.item_code}</span>
-                                    <span class="font-bold text-slate-900 text-base">${item.item_name}</span>
-                                    ${safetyBadge}
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <label class="cursor-pointer inline-flex items-center space-x-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border ${isNA ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'}">
-                                    <input type="checkbox" ${isNA ? 'checked' : ''} onchange="window.handleNARtoggle('${item.id}', this.checked)" class="hidden">
-                                    <span>N/A</span>
-                                </label>
-                            </div>
-                        </div>
+                const titleGroup = document.createElement('div');
+                titleGroup.className = 'flex items-center flex-wrap gap-2';
 
-                        <!-- Status Selectors -->
-                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                            ${['PENDING', 'GOOD', 'FAIR', 'ATTENTION', 'CRITICAL'].map(st => {
-                                const isSelected = status === st;
-                                let btnStyle = 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100';
-                                if (isSelected) {
-                                    if (st === 'PENDING') btnStyle = 'border-slate-400 bg-slate-200 text-slate-800 font-bold';
-                                    else if (st === 'GOOD') btnStyle = 'border-emerald-500 bg-emerald-600 text-white font-bold shadow-sm';
-                                    else if (st === 'FAIR') btnStyle = 'border-blue-500 bg-blue-600 text-white font-bold shadow-sm';
-                                    else if (st === 'ATTENTION') btnStyle = 'border-amber-500 bg-amber-600 text-white font-bold shadow-sm';
-                                    else if (st === 'CRITICAL') btnStyle = 'border-red-500 bg-red-600 text-white font-bold shadow-sm';
-                                }
-                                if (isNA && st !== 'PENDING') btnStyle += ' opacity-40 cursor-not-allowed';
+                if (item.item_code) {
+                    const codeSpan = document.createElement('span');
+                    codeSpan.className = 'font-mono text-xs text-slate-400 font-semibold';
+                    codeSpan.textContent = `[${item.item_code}]`;
+                    titleGroup.appendChild(codeSpan);
+                }
 
-                                return `
-                                    <button type="button" ${isNA && st !== 'PENDING' ? 'disabled' : ''} onclick="window.handleItemStatusUpdate('${item.id}', '${st}')" class="py-2 px-3 rounded-xl border text-xs font-semibold transition-all text-center ${btnStyle}">
-                                        ${st}
-                                    </button>
-                                `;
-                            }).join('')}
-                        </div>
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'font-bold text-slate-900 text-base';
+                nameSpan.textContent = item.item_name;
+                titleGroup.appendChild(nameSpan);
 
-                        <!-- Detailed Inputs (Observation, Action, Cost, Measurement) -->
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-200/60">
-                            <div class="space-y-1">
-                                <label class="text-xs font-bold text-slate-600">Observation / Notes</label>
-                                <input type="text" value="${item.observation || ''}" placeholder="Enter notes..." onchange="window.handleItemFieldUpdate('${item.id}', 'observation', this.value)" class="w-full p-2 text-xs border border-slate-200 rounded-xl bg-white">
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-xs font-bold text-slate-600">Recommended Action</label>
-                                <input type="text" value="${item.recommended_action || ''}" placeholder="Enter recommendation..." onchange="window.handleItemFieldUpdate('${item.id}', 'recommended_action', this.value)" class="w-full p-2 text-xs border border-slate-200 rounded-xl bg-white">
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-xs font-bold text-slate-600">Est. Cost (₦ / $)</label>
-                                <input type="number" value="${item.estimated_cost || ''}" placeholder="0.00" onchange="window.handleItemFieldUpdate('${item.id}', 'estimated_cost', this.value ? Number(this.value) : null)" class="w-full p-2 text-xs border border-slate-200 rounded-xl bg-white">
-                            </div>
-                        </div>
+                if (item.is_safety_critical) {
+                    const critSpan = document.createElement('span');
+                    critSpan.className = 'bg-red-600 text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider';
+                    critSpan.textContent = 'Safety Critical';
+                    titleGroup.appendChild(critSpan);
+                }
 
-                        ${measurementInput ? `<div class="pt-1">${measurementInput}</div>` : ''}
-                    </div>
+                topRow.appendChild(titleGroup);
+
+                // Status Buttons
+                const statuses = ['GOOD', 'FAIR', 'ATTENTION', 'CRITICAL'];
+                const statusBtnsDiv = document.createElement('div');
+                statusBtnsDiv.className = 'flex flex-wrap items-center gap-1.5';
+
+                statuses.forEach(st => {
+                    const isSelected = (item.status === st && item.is_applicable !== false);
+                    let activeColor = 'bg-slate-100 text-slate-600 hover:bg-slate-200';
+                    if (isSelected) {
+                        if (st === 'GOOD') activeColor = 'bg-emerald-600 text-white shadow-sm';
+                        else if (st === 'FAIR') activeColor = 'bg-blue-600 text-white shadow-sm';
+                        else if (st === 'ATTENTION') activeColor = 'bg-amber-500 text-white shadow-sm';
+                        else if (st === 'CRITICAL') activeColor = 'bg-red-600 text-white shadow-sm';
+                    }
+
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = `px-3 py-1.5 rounded-xl text-xs font-bold uppercase transition-colors ${activeColor}`;
+                    btn.textContent = st;
+                    btn.addEventListener('click', () => handleItemStatusUpdate(item.id, st, true));
+                    statusBtnsDiv.appendChild(btn);
+                });
+
+                // N/A Toggle Button
+                const isNa = (item.is_applicable === false);
+                const naBtn = document.createElement('button');
+                naBtn.type = 'button';
+                naBtn.className = `px-3 py-1.5 rounded-xl text-xs font-bold uppercase transition-colors ${isNa ? 'bg-slate-800 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`;
+                naBtn.textContent = 'N/A';
+                naBtn.addEventListener('click', () => handleNARtoggle(item.id, !isNa));
+                statusBtnsDiv.appendChild(naBtn);
+
+                topRow.appendChild(statusBtnsDiv);
+                card.appendChild(topRow);
+
+                // Expandable Inputs / Fields (Observation, Recommended Action, Est. Cost, Measurement)
+                const fieldsGrid = document.createElement('div');
+                fieldsGrid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-slate-100';
+
+                // Observation
+                const obsDiv = document.createElement('div');
+                obsDiv.className = 'sm:col-span-2';
+                obsDiv.innerHTML = `
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Observation / Notes</label>
+                    <input type="text" data-field="observation" data-id="${item.id}" value="${item.observation || ''}" placeholder="Add observation..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600">
                 `;
-            }).join('');
+                fieldsGrid.appendChild(obsDiv);
+
+                // Recommended Action
+                const actDiv = document.createElement('div');
+                actDiv.innerHTML = `
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Recommended Action</label>
+                    <input type="text" data-field="recommended_action" data-id="${item.id}" value="${item.recommended_action || ''}" placeholder="Action required..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600">
+                `;
+                fieldsGrid.appendChild(actDiv);
+
+                // Estimated Cost
+                const costDiv = document.createElement('div');
+                costDiv.innerHTML = `
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Estimated Cost (₦)</label>
+                    <input type="number" data-field="estimated_cost" data-id="${item.id}" value="${item.estimated_cost !== null && item.estimated_cost !== undefined ? item.estimated_cost : ''}" placeholder="0" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600">
+                `;
+                fieldsGrid.appendChild(costDiv);
+
+                card.appendChild(fieldsGrid);
+                container.appendChild(card);
+            });
+
+            // Bind blur/change listeners for autosave inputs
+            container.querySelectorAll('input[data-field]').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const itemId = e.target.dataset.id;
+                    const field = e.target.dataset.field;
+                    let val = e.target.value;
+                    if (field === 'estimated_cost') val = val !== '' ? Number(val) : null;
+                    handleItemFieldUpdate(itemId, { [field]: val });
+                });
+            });
         }
 
-        // Autosave handler for item updates
-        window.handleItemStatusUpdate = async function(itemId, newStatus) {
+        async function handleItemStatusUpdate(itemId, newStatus, isApplicable) {
             try {
-                const updated = await inspectionService.updateInspectionItem(itemId, { status: newStatus });
-                updateLocalItem(updated);
-                showAutosaveIndicator();
-                renderInspectionWorkbench();
-            } catch (err) {
-                alert('Failed to update item status: ' + err.message);
-            }
-        };
-
-        window.handleNARtoggle = async function(itemId, isChecked) {
-            try {
-                const newStatus = isChecked ? 'N/A' : 'PENDING';
                 const updated = await inspectionService.updateInspectionItem(itemId, {
                     status: newStatus,
-                    is_applicable: !isChecked
+                    is_applicable: isApplicable
                 });
-                updateLocalItem(updated);
-                showAutosaveIndicator();
-                renderInspectionWorkbench();
-            } catch (err) {
-                alert('Failed to update item applicability: ' + err.message);
-            }
-        };
 
-        window.handleItemFieldUpdate = async function(itemId, fieldName, value) {
+                // Update local state
+                const items = currentInspection.inspection_items || [];
+                const idx = items.findIndex(i => i.id === itemId);
+                if (idx !== -1) {
+                    items[idx] = { ...items[idx], ...updated };
+                }
+
+                renderProgressDashboard();
+                renderSectionNav();
+                renderChecklistItems();
+            } catch (err) {
+                alert(`Failed to update item: ${err.message}`);
+            }
+        }
+
+        async function handleNARtoggle(itemId, makeNa) {
             try {
-                const payload = {};
-                payload[fieldName] = value;
-                const updated = await inspectionService.updateInspectionItem(itemId, payload);
-                updateLocalItem(updated);
-                showAutosaveIndicator();
+                const newStatus = makeNa ? 'N/A' : 'PENDING';
+                const isApplicable = !makeNa;
+
+                const updated = await inspectionService.updateInspectionItem(itemId, {
+                    status: newStatus,
+                    is_applicable: isApplicable
+                });
+
+                const items = currentInspection.inspection_items || [];
+                const idx = items.findIndex(i => i.id === itemId);
+                if (idx !== -1) {
+                    items[idx] = { ...items[idx], ...updated };
+                }
+
+                renderProgressDashboard();
+                renderSectionNav();
+                renderChecklistItems();
             } catch (err) {
-                alert('Failed to update item property: ' + err.message);
-            }
-        };
-
-        function updateLocalItem(updatedItem) {
-            if (!currentInspection || !currentInspection.inspection_items) return;
-            const index = currentInspection.inspection_items.findIndex(i => i.id === updatedItem.id);
-            if (index !== -1) {
-                currentInspection.inspection_items[index] = updatedItem;
+                alert(`Failed to update item applicability: ${err.message}`);
             }
         }
 
-        function showAutosaveIndicator() {
-            const indicator = document.getElementById('autosave-indicator');
-            indicator.classList.remove('hidden');
-            if (autosaveTimeout) clearTimeout(autosaveTimeout);
-            autosaveTimeout = setTimeout(() => {
-                indicator.classList.add('hidden');
-            }, 2000);
+        async function handleItemFieldUpdate(itemId, updatePayload) {
+            try {
+                const updated = await inspectionService.updateInspectionItem(itemId, updatePayload);
+                const items = currentInspection.inspection_items || [];
+                const idx = items.findIndex(i => i.id === itemId);
+                if (idx !== -1) {
+                    items[idx] = { ...items[idx], ...updated };
+                }
+            } catch (err) {
+                console.error('Failed to autosave field:', err);
+            }
         }
 
-        // Render Supplementary Findings
         function renderFindings() {
-            const findingsContainer = document.getElementById('findings-list');
-            const findings = currentInspection.inspection_findings || [];
+            const container = document.getElementById('findings-list-container');
+            container.innerHTML = '';
 
+            const findings = currentInspection.findings || [];
             if (findings.length === 0) {
-                findingsContainer.innerHTML = `<div class="text-center py-12 text-slate-400 text-sm">No supplementary findings recorded. Click "Add Finding" to add custom observations.</div>`;
+                container.innerHTML = '<p class="text-xs text-slate-400 italic">No supplementary findings recorded yet.</p>';
                 return;
             }
 
-            findingsContainer.innerHTML = findings.map(f => {
-                let ratingColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                if (f.rating === 'CRITICAL') ratingColor = 'bg-red-50 text-red-700 border-red-200';
-                else if (f.rating === 'ATTENTION') ratingColor = 'bg-amber-50 text-amber-700 border-amber-200';
-                else if (f.rating === 'FAIR') ratingColor = 'bg-blue-50 text-blue-700 border-blue-200';
+            findings.forEach(f => {
+                const div = document.createElement('div');
+                div.className = 'bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 text-sm';
                 
-                const photosHtml = (f.finding_photos && f.finding_photos.length > 0) ? `
-                    <div class="flex gap-2 mt-3 overflow-x-auto pb-1">
-                        ${f.finding_photos.map(p => `<a href="${p.public_url}" target="_blank" class="w-14 h-14 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0 block"><img src="${p.public_url}" class="w-full h-full object-cover"></a>`).join('')}
-                    </div>
-                ` : '';
+                let sevBadgeColor = 'bg-slate-100 text-slate-700';
+                if (f.severity === 'CRITICAL') sevBadgeColor = 'bg-red-100 text-red-700';
+                else if (f.severity === 'MAJOR') sevBadgeColor = 'bg-amber-100 text-amber-800';
+                else if (f.severity === 'MODERATE') sevBadgeColor = 'bg-blue-100 text-blue-700';
 
-                const criticalFlagHtml = f.is_safety_critical ? `<span class="bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ml-2 tracking-wide">Safety Critical</span>` : '';
-
-                return `
-                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                        <div class="space-y-1 flex-grow">
-                            <div class="flex items-center space-x-2 flex-wrap gap-y-2">
-                                <span class="font-bold text-slate-800">${f.area} ${f.component ? '— ' + f.component : ''}</span>
-                                <span class="text-xs px-2 py-0.5 rounded font-semibold uppercase border ${ratingColor}">${f.rating} (Severity: ${f.severity})</span>
-                                ${criticalFlagHtml}
-                            </div>
-                            <p class="text-slate-600">${f.finding || 'No details provided.'}</p>
-                            ${f.recommended_action ? `<p class="text-xs text-blue-700 font-medium mt-1">Recommended: ${f.recommended_action}</p>` : ''}
-                            ${photosHtml}
+                div.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="flex items-center space-x-2">
+                            <span class="font-bold text-slate-900">${f.category || f.component || 'General Finding'}</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded font-bold uppercase ${sevBadgeColor}">${f.severity || 'NOTE'}</span>
                         </div>
-                        <div class="flex items-center space-x-2 flex-shrink-0">
-                            <label class="cursor-pointer bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center space-x-1.5">
-                                <i class="fa-solid fa-camera"></i>
-                                <span>Add Photo</span>
-                                <input type="file" accept="image/*" class="hidden" onchange="window.handlePhotoUpload('${f.id}', this)">
-                            </label>
-                            <button onclick="window.deleteFinding('${f.id}')" class="text-slate-400 hover:text-red-600 p-1.5"><i class="fa-solid fa-trash text-sm"></i></button>
-                        </div>
+                        <p class="text-xs text-slate-600">${f.description || f.finding || ''}</p>
                     </div>
+                    <button type="button" data-finding-id="${f.id}" class="delete-finding-btn text-slate-400 hover:text-red-600 text-xs font-bold transition-colors">
+                        <i class="fa-solid fa-trash"></i> Delete
+                    </button>
                 `;
-            }).join('');
+                container.appendChild(div);
+            });
+
+            container.querySelectorAll('.delete-finding-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const findingId = e.currentTarget.dataset.findingId;
+                    if (!confirm('Are you sure you want to delete this finding?')) return;
+                    await deleteFinding(findingId);
+                });
+            });
         }
 
-        window.openFindingModal = function() {
-            document.getElementById('finding-form').reset();
-            document.getElementById('finding-id').value = '';
-            document.getElementById('modal-title').textContent = 'Add Supplementary Finding';
-            document.getElementById('finding-modal').classList.remove('hidden');
-        };
+        async function deleteFinding(findingId) {
+            try {
+                // If inspectionService supports deleteFinding, or direct Supabase delete:
+                const { error } = await inspectionService.supabase ? inspectionService.supabase.from('inspection_findings').delete().eq('id', findingId) : { error: new Error('Method not supported') };
+                // Alternatively refresh inspection details
+                currentInspection = await inspectionService.getInspectionForVehicle(currentVehicleId);
+                renderFindings();
+            } catch (err) {
+                alert(`Failed to delete finding: ${err.message}`);
+            }
+        }
 
-        window.closeFindingModal = function() {
-            document.getElementById('finding-modal').classList.add('hidden');
-        };
-
-        window.handleFindingSubmit = async function(e) {
+        addFindingForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const findingData = {
-                id: document.getElementById('finding-id').value || null,
-                area: document.getElementById('finding-area').value,
-                rating: document.getElementById('findingRating').value,
-                severity: Number(document.getElementById('findingSeverity').value),
-                is_safety_critical: document.getElementById('findingSafety').checked,
-                component: document.getElementById('finding-component').value.trim(),
-                finding: document.getElementById('finding-desc').value.trim(),
-                recommended_action: document.getElementById('finding-action').value.trim()
-            };
+            const component = document.getElementById('finding-component').value.trim();
+            const severity = document.getElementById('finding-severity').value;
+            const description = document.getElementById('finding-description').value.trim();
+
+            if (!component || !description) return;
 
             try {
-                await inspectionService.addInspectionFinding(currentInspection.id, findingData);
-                currentInspection = await inspectionService.getInspectionById(currentInspection.id);
-                renderInspectionWorkbench();
-                closeFindingModal();
-            } catch (err) {
-                alert('Failed to save finding: ' + err.message);
-            }
-        };
+                // Insert finding via inspectionService or direct supabase table
+                const { error } = await inspectionService.supabase ? inspectionService.supabase.from('inspection_findings').insert([{
+                    inspection_id: currentInspection.id,
+                    area: component,
+                    component: component,
+                    rating: severity,
+                    severity: severity,
+                    finding: description,
+                    is_safety_critical: (severity === 'CRITICAL')
+                }]) : { error: new Error('Service not available') };
 
-        window.deleteFinding = async function(findingId) {
-            if (!confirm('Delete this finding?')) return;
-            try {
-                await inspectionService.deleteInspectionFinding(findingId);
-                currentInspection = await inspectionService.getInspectionById(currentInspection.id);
-                renderInspectionWorkbench();
+                currentInspection = await inspectionService.getInspectionForVehicle(currentVehicleId);
+                addFindingForm.reset();
+                renderFindings();
             } catch (err) {
-                alert('Failed to delete finding: ' + err.message);
+                alert(`Failed to add finding: ${err.message}`);
             }
-        };
+        });
 
-        window.handlePhotoUpload = async function(findingId, input) {
-            const file = input.files[0];
+        scannerPdfInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
             if (!file) return;
-            try {
-                await inspectionService.uploadFindingPhoto(findingId, file);
-                currentInspection = await inspectionService.getInspectionById(currentInspection.id);
-                renderInspectionWorkbench();
-            } catch (err) {
-                alert('Failed to upload evidence photo: ' + err.message);
-            }
-        };
 
-        window.handleScannerPdfUpload = async function(input) {
-            const file = input.files[0];
-            if (!file) return;
             try {
+                scannerPdfInput.disabled = true;
+                document.getElementById('scanner-upload-label').textContent = 'Uploading PDF...';
+
                 await inspectionService.uploadScannerPdf(currentVehicleId, file);
                 currentInspection = await inspectionService.getInspectionForVehicle(currentVehicleId);
                 renderInspectionWorkbench();
-                alert('Scanner report uploaded successfully!');
+                alert('Scanner PDF uploaded successfully!');
             } catch (err) {
-                alert('Failed to upload scanner report: ' + err.message);
+                alert(`Failed to upload scanner PDF: ${err.message}`);
+            } finally {
+                scannerPdfInput.disabled = false;
+                scannerPdfInput.value = '';
+                document.getElementById('scanner-upload-label').textContent = currentInspection.scanner_report_path ? 'Replace Scanner PDF' : 'Upload Scanner PDF';
             }
-        };
+        });
 
-        // Completion Modal & Verification
-        window.openCompleteModal = function() {
-            const modalBody = document.getElementById('complete-modal-body');
-            const modalActions = document.getElementById('complete-modal-actions');
-            
-            const items = currentInspection.inspection_items || [];
-            const pendingItems = items.filter(i => i.is_applicable && i.status === 'PENDING');
-
-            if (pendingItems.length > 0) {
-                modalBody.innerHTML = `
-                    <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl text-amber-800 space-y-2">
-                        <div class="font-bold flex items-center space-x-2">
-                            <i class="fa-solid fa-triangle-exclamation text-amber-600 text-lg"></i>
-                            <span>Inspection Incomplete</span>
-                        </div>
-                        <p class="text-xs">There are <strong>${pendingItems.length}</strong> applicable checklist item(s) still remaining in <strong>PENDING</strong> status. All applicable items must be assessed before completing the inspection.</p>
-                    </div>
-                `;
-                modalActions.innerHTML = `
-                    <button type="button" onclick="closeCompleteModal()" class="px-4 py-2 border border-slate-200 text-slate-600 font-medium rounded-xl hover:bg-slate-50">Close</button>
-                    <button type="button" onclick="window.jumpToPending()" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow-sm">Review Pending Items</button>
-                `;
-            } else {
-                // Calculate preliminary score via inspectionScoring for confirmation preview
-                const allSections = [...new Set(items.map(i => i.section))];
-                const sectionResultsMap = {};
-                for (const sec of allSections) {
-                    const secItems = items.filter(i => i.section === sec);
-                    sectionResultsMap[sec] = inspectionScoring.calculateSectionScore(secItems);
-                }
-                const overallResult = inspectionScoring.calculateOverallScore(sectionResultsMap);
-                const overallScore = Math.round(overallResult.overallScore);
-
-                modalBody.innerHTML = `
-                    <div class="space-y-4">
-                        <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-emerald-800">
-                            <div class="font-bold flex items-center space-x-2">
-                                <i class="fa-solid fa-circle-check text-emerald-600 text-lg"></i>
-                               <span>All Checklist Items Assessed</span>
-                            </div>
-                            <p class="text-xs mt-1">Calculated Overall Score: <strong>${overallScore}%</strong>. Ready to finalize inspection.</p>
-                        </div>
-                        <div class="space-y-1">
-                            <label class="font-bold text-slate-700">Final Confirmation</label>
-                            <p class="text-xs text-slate-500">Clicking 'Confirm Completion' locks the inspection scores and saves the report state.</p>
-                        </div>
-                    </div>
-                `;
-                modalActions.innerHTML = `
-                    <button type="button" onclick="closeCompleteModal()" class="px-4 py-2 border border-slate-200 text-slate-600 font-medium rounded-xl hover:bg-slate-50">Cancel</button>
-                    <button type="button" onclick="window.confirmCompleteInspection()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl shadow-sm">Confirm Completion</button>
-                `;
-            }
-
-            document.getElementById('complete-modal').classList.remove('hidden');
-        };
-
-        window.closeCompleteModal = function() {
-            document.getElementById('complete-modal').classList.add('hidden');
-        };
-
-        window.jumpToPending = function() {
-            closeCompleteModal();
-            activeFilter = 'PENDING';
-            ['ALL', 'PENDING', 'ISSUES'].forEach(f => {
-                const btn = document.getElementById(`filter-btn-${f}`);
-                if (f === 'PENDING') {
-                    btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white';
-                } else {
-                    btn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200';
-                }
+        // Filter buttons event listeners
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.className = 'filter-btn px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors');
+                e.target.className = 'filter-btn px-3.5 py-1.5 rounded-xl text-xs font-bold bg-blue-600 text-white transition-colors';
+                activeFilter = e.target.dataset.filter;
+                renderChecklistItems();
             });
-            renderChecklistItems();
-        };
+        });
 
-        window.confirmCompleteInspection = async function() {
+        // Complete Inspection Modal handlers
+        btnOpenCompleteModal.addEventListener('click', () => {
+            modalErrorBox.classList.add('hidden');
+            completeModal.classList.remove('hidden');
+        });
+
+        const closeModalFunc = () => completeModal.classList.add('hidden');
+        btnCloseModal.addEventListener('click', closeModalFunc);
+        btnCancelModal.addEventListener('click', closeModalFunc);
+
+        btnConfirmComplete.addEventListener('click', async () => {
+            if (!currentInspection || !currentInspection.id) return;
+
             try {
+                btnConfirmComplete.disabled = true;
+                btnConfirmComplete.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Finalizing...';
+                modalErrorBox.classList.add('hidden');
+
                 currentInspection = await inspectionService.completeInspection(currentInspection.id);
-                closeCompleteModal();
-                alert('Inspection completed successfully!');
+                closeModalFunc();
                 renderInspectionWorkbench();
+                alert('Inspection completed successfully!');
             } catch (err) {
-                alert('Failed to complete inspection: ' + err.message);
+                modalErrorBox.textContent = err.message;
+                modalErrorBox.classList.remove('hidden');
+            } finally {
+                btnConfirmComplete.disabled = false;
+                btnConfirmComplete.innerHTML = '<i class="fa-solid fa-check"></i><span>Confirm & Finalize</span>';
             }
-        };
+        });
 
         initWorkbench();
     </script>
