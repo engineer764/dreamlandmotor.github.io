@@ -1,325 +1,739 @@
-import { supabase } from './supabaseClient.js';
-import { MASTER_CHECKLIST } from './masterChecklist.js';
-import { inspectionScoring } from './inspectionScoring.js';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Inspection Workbench — Dreamland Admin</title>
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 font-sans text-slate-900 antialiased min-h-screen flex flex-col">
 
-export const inspectionService = {
-    /**
-     * Retrieves an inspection record for a given vehicle using the authoritative 
-     * verification_inspection_id relationship when available.
-     */
-    async getInspectionForVehicle(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
+    <!-- Admin Header -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-wrench text-blue-500 text-xl"></i>
+                <span class="font-bold text-lg tracking-wide">Dreamland Engineering Workbench</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="inventory.html" class="text-sm text-slate-300 hover:text-white flex items-center space-x-2 transition-colors">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Back to Inventory</span>
+                </a>
+            </div>
+        </div>
+    </header>
 
-        // 1. Retrieve verification_inspection_id from the vehicle record
-        const { data: vehicle, error: vehicleErr } = await supabase
-            .from('vehicles')
-            .select('verification_inspection_id')
-            .eq('id', vehicleId)
-            .single();
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-        if (vehicleErr) {
-            throw new Error(`Failed to fetch vehicle inspection reference: ${vehicleErr.message}`);
-        }
+        <!-- Loading State -->
+        <div id="loading-state" class="py-24 text-center">
+            <i class="fa-solid fa-spinner fa-spin text-3xl text-blue-600 mb-4"></i>
+            <p class="text-slate-600 font-medium">Loading vehicle inspection record...</p>
+        </div>
 
-        const inspectionId = vehicle?.verification_inspection_id;
+        <!-- No Inspection Found State (Explicit Start Action) -->
+        <div id="no-inspection-state" class="py-24 text-center hidden">
+            <div class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                <div class="w-16 h-16 bg-amber-50 rounded-2xl border border-amber-200 flex items-center justify-center mx-auto text-amber-600 text-2xl">
+                    <i class="fa-solid fa-file-circle-exclamation"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-900">No Inspection Found</h2>
+                <div class="text-sm text-slate-600 space-y-1">
+                    <p>No inspection exists for this vehicle.</p>
+                    <p class="text-xs text-slate-500">Start a new inspection to load the Dreamland Master Checklist.</p>
+                </div>
+                <div id="start-error-msg" class="text-xs text-red-600 font-medium hidden"></div>
+                <div class="pt-2 flex flex-col gap-3">
+                    <button type="button" id="btn-start-inspection" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl text-sm transition-colors shadow-sm flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-plus-circle"></i>
+                        <span>START NEW INSPECTION</span>
+                    </button>
+                    <a href="inventory.html" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 px-4 rounded-xl text-xs transition-colors">
+                        Return to Admin Portal
+                    </a>
+                </div>
+            </div>
+        </div>
 
-        if (inspectionId) {
-            // Retrieve that exact inspection by its ID
-            const { data, error } = await supabase
-                .from('inspections')
-                .select(`
-                    *,
-                    inspection_items(*),
-                    findings:inspection_findings(
-                        *,
-                        photos:finding_photos(*)
-                    )
-                `)
-                .eq('id', inspectionId)
-                .single();
+        <!-- Workbench Container (Hidden initially) -->
+        <div id="workbench-container" class="hidden space-y-8">
+            
+            <!-- Inspection Header & Overview -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                <div>
+                    <div class="flex items-center space-x-3 mb-1">
+                        <span id="insp-number-badge" class="bg-slate-100 text-slate-700 font-mono text-xs px-2.5 py-1 rounded-md font-semibold">INS- --</span>
+                        <span id="insp-status-badge" class="bg-blue-50 text-blue-700 border border-blue-200 text-xs px-3 py-1 rounded-full font-bold uppercase">DRAFT</span>
+                    </div>
+                    <h1 id="insp-main-title" class="text-2xl sm:text-3xl font-extrabold text-slate-900">Vehicle Inspection Workbench</h1>
+                    <p id="insp-date-text" class="text-xs text-slate-500 mt-1 flex items-center space-x-2">
+                        <i class="fa-solid fa-calendar-days text-slate-400"></i>
+                        <span>Inspection Date: --</span>
+                    </p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <button type="button" id="btn-open-complete-modal" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm flex items-center space-x-2">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>Complete Inspection</span>
+                    </button>
+                </div>
+            </div>
 
-            if (error) throw new Error(error.message);
-            return data;
-        }
+            <!-- Progress Dashboard Bar -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base">Inspection Progress</h3>
+                        <p class="text-xs text-slate-500">Track assessed items against the Dreamland Master Checklist.</p>
+                    </div>
+                    <div class="text-right">
+                        <span id="progress-stats-text" class="text-sm font-bold text-blue-600 font-mono">0 / 0 assessed (0%)</span>
+                    </div>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                    <div id="progress-bar-fill" class="bg-blue-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
 
-        // If verification_inspection_id is NULL: fallback compatibility check
-        const { data: inspections, error: inspErr } = await supabase
-            .from('inspections')
-            .select(`
-                *,
-                inspection_items(*),
-                findings:inspection_findings(
-                    *,
-                    photos:finding_photos(*)
-                )
-            `)
-            .eq('vehicle_id', vehicleId);
+            <!-- Scanner Report & PDF Section -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="space-y-1">
+                    <div class="text-xs font-bold uppercase tracking-wider text-blue-600">OBD-II Scanner Diagnostics</div>
+                    <h3 class="font-bold text-slate-900 text-lg">Scanner Health Report (PDF)</h3>
+                    <p id="scanner-status-text" class="text-xs text-slate-500">Upload manufacturer diagnostic scan results for buyer transparency.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div id="scanner-link-container" class="hidden">
+                        <a id="scanner-report-view-btn" href="#" target="_blank" rel="noopener noreferrer" class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium px-4 py-2.5 rounded-xl text-sm transition-colors inline-flex items-center space-x-2">
+                            <i class="fa-solid fa-file-waveform text-emerald-600"></i>
+                            <span>View Scanner PDF</span>
+                        </a>
+                    </div>
+                    <label class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-4 py-2.5 rounded-xl text-sm transition-colors cursor-pointer inline-flex items-center space-x-2 shadow-sm">
+                        <i class="fa-solid fa-upload"></i>
+                        <span id="scanner-upload-label">Upload Scanner PDF</span>
+                        <input type="file" id="scanner-pdf-input" accept="application/pdf" class="hidden">
+                    </label>
+                </div>
+            </div>
 
-        if (inspErr) throw new Error(inspErr.message);
+            <!-- Main Workbench Grid: Sidebar Navigation + Checklist Panel -->
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+                
+                <!-- Sidebar Section Navigation -->
+                <div class="lg:col-span-1 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm sticky top-24 space-y-2">
+                    <div class="text-xs font-bold uppercase tracking-wider text-slate-400 px-3 py-1">Inspection Sections</div>
+                    <nav id="section-nav-container" class="space-y-1">
+                        <!-- Populated dynamically -->
+                    </nav>
+                </div>
 
-        if (!inspections || inspections.length === 0) {
-            return null;
-        }
+                <!-- Checklist & Findings Main Column -->
+                <div class="lg:col-span-3 space-y-6">
+                    
+                    <!-- Filter Toolbar -->
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex items-center space-x-2" id="status-filter-buttons">
+                            <button type="button" data-filter="ALL" class="filter-btn px-3.5 py-1.5 rounded-xl text-xs font-bold bg-blue-600 text-white transition-colors">All Items</button>
+                            <button type="button" data-filter="PENDING" class="filter-btn px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">Pending</button>
+                            <button type="button" data-filter="ISSUES" class="filter-btn px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">Issues Found</button>
+                        </div>
+                        <div class="text-xs font-semibold text-slate-500 font-mono" id="section-item-count-text">Showing items</div>
+                    </div>
 
-        if (inspections.length === 1) {
-            return inspections[0];
-        }
+                    <!-- Dynamic Section Content & Checklist Items -->
+                    <div id="checklist-sections-container" class="space-y-6">
+                        <!-- Populated dynamically -->
+                    </div>
 
-        // Multiple inspections exist without an authoritative pointer; do not guess.
-        throw new Error('Multiple inspection records exist for this vehicle, but no authoritative verification_inspection_id is assigned.');
-    },
+                    <!-- Supplementary Findings Section -->
+                    <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
+                        <div class="border-b border-slate-100 pb-4">
+                            <div class="text-xs font-bold uppercase tracking-wider text-blue-600 mb-1">EVALUATED EVIDENCE & NOTES</div>
+                            <h3 class="text-xl font-extrabold text-slate-900">Supplementary Inspection Findings</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Record specific component defects, notes, or photo evidence discovered during evaluation.</p>
+                        </div>
 
-    /**
-     * Starts a new inspection for a vehicle explicitly.
-     * Never creates a second inspection when an authoritative or existing inspection already exists.
-     */
-    async startNewInspection(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
+                        <!-- Findings Container -->
+                        <div id="findings-list-container" class="space-y-4">
+                            <!-- Populated dynamically -->
+                        </div>
 
-        const existing = await this.getInspectionForVehicle(vehicleId).catch(() => null);
-        if (existing) {
-            return existing;
-        }
+                        <!-- Add Finding Form -->
+                        <form id="add-finding-form" class="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
+                            <h4 class="font-bold text-slate-900 text-sm flex items-center space-x-2">
+                                <i class="fa-solid fa-plus-circle text-blue-600"></i>
+                                <span>Add New Inspection Finding</span>
+                            </h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Component / Area</label>
+                                    <input type="text" id="finding-component" placeholder="e.g., Front Bumper / Suspension Bushing" required class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Severity Rating</label>
+                                    <select id="finding-severity" class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+                                        <option value="NOTE">Note / Observation</option>
+                                        <option value="MINOR">Minor Defect</option>
+                                        <option value="MODERATE">Moderate Wear</option>
+                                        <option value="MAJOR">Major Defect</option>
+                                        <option value="CRITICAL">Critical Safety Issue</option>
+                                    </select>
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Detailed Description</label>
+                                    <textarea id="finding-description" rows="3" placeholder="Describe the condition, wear pattern, or mechanical fault observed..." required class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"></textarea>
+                                </div>
+                            </div>
+                            <div class="flex justify-end pt-2">
+                                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-colors shadow-sm">
+                                    Save Finding
+                                </button>
+                            </div>
+                        </form>
+                    </div>
 
-        // Double check any existing inspections by vehicle_id to prevent duplicate creation
-        const { data: rawInspections, error: rawErr } = await supabase
-            .from('inspections')
-            .select('id')
-            .eq('vehicle_id', vehicleId);
+                </div>
 
-        if (!rawErr && rawInspections && rawInspections.length > 0) {
-            throw new Error('An inspection record already exists for this vehicle. Cannot start a new one automatically.');
-        }
+            </div>
 
-        const inspectionNumber = `INS-${Math.floor(100000 + Math.random() * 900000)}`;
+        </div>
 
-        const { data: inspection, error: inspError } = await supabase
-            .from('inspections')
-            .insert([{
-                vehicle_id: vehicleId,
-                inspection_number: inspectionNumber,
-                inspection_status: 'DRAFT',
-                inspection_date: new Date().toISOString().split('T')[0]
-            }])
-            .select()
-            .single();
+    </main>
 
-        if (inspError) throw new Error(inspError.message);
+    <!-- Complete Inspection Modal -->
+    <div id="complete-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-slate-200">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-clipboard-check"></i>
+                    </div>
+                    <h3 class="font-extrabold text-slate-900 text-lg">Complete & Finalize Inspection</h3>
+                </div>
+                <button type="button" id="btn-close-modal" class="text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="space-y-3 text-sm text-slate-600">
+                <p>Completing this inspection will calculate final scores across all evaluated sections, generate the official recommendation, and lock the inspection record for public verification.</p>
+                <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl text-xs text-amber-800 flex items-start space-x-2.5">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5"></i>
+                    <span>All applicable checklist items must be fully assessed (no PENDING items allowed) before completion.</span>
+                </div>
+            </div>
+            <div id="modal-error-box" class="text-xs text-red-600 font-semibold hidden bg-red-50 p-3 rounded-xl border border-red-200"></div>
+            <div class="flex items-center justify-end space-x-3 pt-2 border-t border-slate-100">
+                <button type="button" id="btn-cancel-modal" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors">
+                    Cancel
+                </button>
+                <button type="button" id="btn-confirm-complete" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-colors shadow-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Confirm & Finalize</span>
+                </button>
+            </div>
+        </div>
+    </div>
 
-        if (MASTER_CHECKLIST && MASTER_CHECKLIST.length > 0) {
-            const itemsToInsert = MASTER_CHECKLIST.map(item => ({
-                inspection_id: inspection.id,
-                section: item.section || 'General',
-                item_code: item.item_code || '',
-                item_name: item.item_name || '',
-                status: 'PENDING',
-                is_safety_critical: item.is_safety_critical || false,
-                sort_order: item.sort_order || 0
-            }));
+    <!-- Full Page Controller Script -->
+    <script type="module">
+        import { inspectionService } from './inspectionService.js';
 
-            const { error: itemsError } = await supabase
-                .from('inspection_items')
-                .insert(itemsToInsert);
+        let currentVehicleId = null;
+        let currentInspection = null;
+        let activeSection = null;
+        let activeFilter = 'ALL';
 
-            if (itemsError) throw new Error(itemsError.message);
-        }
+        const loadingState = document.getElementById('loading-state');
+        const noInspectionState = document.getElementById('no-inspection-state');
+        const workbenchContainer = document.getElementById('workbench-container');
+        const btnStartInspection = document.getElementById('btn-start-inspection');
+        const startErrorMsg = document.getElementById('start-error-msg');
+        
+        const completeModal = document.getElementById('complete-modal');
+        const btnOpenCompleteModal = document.getElementById('btn-open-complete-modal');
+        const btnCloseModal = document.getElementById('btn-close-modal');
+        const btnCancelModal = document.getElementById('btn-cancel-modal');
+        const btnConfirmComplete = document.getElementById('btn-confirm-complete');
+        const modalErrorBox = document.getElementById('modal-error-box');
 
-        return this.getInspectionForVehicle(vehicleId);
-    },
+        const scannerPdfInput = document.getElementById('scanner-pdf-input');
+        const addFindingForm = document.getElementById('add-finding-form');
 
-    /**
-     * Updates an individual checklist item.
-     */
-    async updateInspectionItem(itemId, updateData) {
-        if (!itemId) throw new Error('Item ID is required.');
+        async function initWorkbench() {
+            const params = new URLSearchParams(window.location.search);
+            currentVehicleId = params.get('vehicleId');
 
-        const { data, error } = await supabase
-            .from('inspection_items')
-            .update(updateData)
-            .eq('id', itemId)
-            .select()
-            .single();
-
-        if (error) throw new Error(error.message);
-        return data;
-    },
-
-    /**
-     * Completes an inspection using calculateSectionScore, calculateOverallScore, and getRecommendation from inspectionScoring.
-     */
-    async completeInspection(inspectionId) {
-        if (!inspectionId) throw new Error('Inspection ID is required.');
-
-        const { data: inspection, error: fetchError } = await supabase
-            .from('inspections')
-            .select(`
-                *,
-                inspection_items(*)
-            `)
-            .eq('id', inspectionId)
-            .single();
-
-        if (fetchError || !inspection) throw new Error('Inspection not found.');
-
-        const items = inspection.inspection_items || [];
-
-        // Completion Validation: Applicable + PENDING = blocks completion. Non-applicable + PENDING = does not block.
-        const pendingItems = items.filter(
-            item => item.is_applicable !== false && item.status === 'PENDING'
-        );
-        if (pendingItems.length > 0) {
-            throw new Error('Cannot complete inspection: all applicable items must be assessed (no PENDING items allowed).');
-        }
-
-        // Group inspection_items by section
-        const sectionsMap = {};
-        items.forEach(item => {
-            const sec = item.section || 'General';
-            if (!sectionsMap[sec]) {
-                sectionsMap[sec] = [];
+            if (!currentVehicleId) {
+                loadingState.classList.add('hidden');
+                noInspectionState.classList.remove('hidden');
+                noInspectionState.querySelector('h2').textContent = 'Vehicle ID Missing';
+                noInspectionState.querySelector('p').textContent = 'Please provide a valid vehicle ID in the URL query parameters.';
+                btnStartInspection.classList.add('hidden');
+                return;
             }
-            sectionsMap[sec].push(item);
+
+            try {
+                // VIEW IS READ-ONLY: Never creates an inspection automatically
+                currentInspection = await inspectionService.getInspectionForVehicle(currentVehicleId);
+
+                if (!currentInspection) {
+                    loadingState.classList.add('hidden');
+                    noInspectionState.classList.remove('hidden');
+                    return;
+                }
+
+                renderInspectionWorkbench();
+            } catch (err) {
+                console.error('Failed to load inspection:', err);
+                loadingState.classList.add('hidden');
+                noInspectionState.classList.remove('hidden');
+                noInspectionState.querySelector('p').textContent = err.message;
+            }
+        }
+
+        // EXPLICIT START NEW INSPECTION ACTION
+        btnStartInspection.addEventListener('click', async () => {
+            if (!currentVehicleId) return;
+
+            try {
+                btnStartInspection.disabled = true;
+                btnStartInspection.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Starting Inspection...';
+                startErrorMsg.classList.add('hidden');
+                startErrorMsg.textContent = '';
+
+                // Explicit creation
+                currentInspection = await inspectionService.startNewInspection(currentVehicleId);
+
+                noInspectionState.classList.add('hidden');
+                renderInspectionWorkbench();
+            } catch (err) {
+                console.error('Failed to start inspection:', err);
+                startErrorMsg.textContent = err.message;
+                startErrorMsg.classList.remove('hidden');
+                btnStartInspection.disabled = false;
+                btnStartInspection.innerHTML = '<i class="fa-solid fa-plus-circle"></i><span>START NEW INSPECTION</span>';
+            }
         });
 
-        const sectionResultsMap = {};
-        let totalCriticalCount = 0;
+        function renderInspectionWorkbench() {
+            loadingState.classList.add('hidden');
+            noInspectionState.classList.add('hidden');
+            workbenchContainer.classList.remove('hidden');
 
-        for (const [sectionName, sectionItems] of Object.entries(sectionsMap)) {
-            const sectionResult = inspectionScoring.calculateSectionScore(sectionItems);
-            sectionResultsMap[sectionName] = sectionResult;
-            if (sectionResult.criticalCount) {
-                totalCriticalCount += sectionResult.criticalCount;
+            if (!currentInspection) return;
+
+            document.getElementById('insp-number-badge').textContent = currentInspection.inspection_number || 'INS- --';
+            document.getElementById('insp-status-badge').textContent = currentInspection.inspection_status || 'DRAFT';
+            document.getElementById('insp-date-text').innerHTML = `<i class="fa-solid fa-calendar-days text-slate-400"></i><span>Inspection Date: ${currentInspection.inspection_date || 'N/A'}</span>`;
+
+            // Scanner Report status
+            if (currentInspection.scanner_report_path) {
+                document.getElementById('scanner-link-container').classList.remove('hidden');
+                document.getElementById('scanner-report-view-btn').href = currentInspection.scanner_report_path;
+                document.getElementById('scanner-upload-label').textContent = 'Replace Scanner PDF';
+            } else {
+                document.getElementById('scanner-link-container').classList.add('hidden');
+                document.getElementById('scanner-upload-label').textContent = 'Upload Scanner PDF';
+            }
+
+            renderProgressDashboard();
+            renderSectionNav();
+            renderChecklistItems();
+            renderFindings();
+        }
+
+        function renderProgressDashboard() {
+            const items = currentInspection.inspection_items || [];
+            const applicableItems = items.filter(i => i.is_applicable !== false);
+            const assessedCount = applicableItems.filter(i => i.status !== 'PENDING').length;
+            const totalCount = applicableItems.length;
+            const pct = totalCount > 0 ? Math.round((assessedCount / totalCount) * 100) : 0;
+
+            document.getElementById('progress-stats-text').textContent = `${assessedCount} / ${totalCount} assessed (${pct}%)`;
+            document.getElementById('progress-bar-fill').style.width = `${pct}%`;
+        }
+
+        function renderSectionNav() {
+            const navContainer = document.getElementById('section-nav-container');
+            navContainer.innerHTML = '';
+
+            const items = currentInspection.inspection_items || [];
+            const sections = [];
+            items.forEach(item => {
+                const sec = item.section || 'General';
+                if (!sections.includes(sec)) sections.push(sec);
+            });
+
+            if (sections.length > 0 && !activeSection) {
+                activeSection = sections[0];
+            }
+
+            sections.forEach(sec => {
+                const secItems = items.filter(i => (i.section || 'General') === sec);
+                const assessed = secItems.filter(i => i.is_applicable !== false && i.status !== 'PENDING').length;
+                const total = secItems.filter(i => i.is_applicable !== false).length;
+                const isComplete = total > 0 && assessed === total;
+                const isActive = (activeSection === sec);
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center justify-between ${isActive ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100'}`;
+                btn.innerHTML = `
+                    <span class="truncate pr-2">${sec}</span>
+                    <span class="font-mono text-[10px] px-2 py-0.5 rounded-md ${isActive ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'}">${assessed}/${total}</span>
+                `;
+                btn.addEventListener('click', () => {
+                    activeSection = sec;
+                    renderSectionNav();
+                    renderChecklistItems();
+                });
+                navContainer.appendChild(btn);
+            });
+        }
+
+        function renderChecklistItems() {
+            const container = document.getElementById('checklist-sections-container');
+            container.innerHTML = '';
+
+            const items = currentInspection.inspection_items || [];
+            const sectionItems = items.filter(i => (i.section || 'General') === activeSection);
+
+            let filteredItems = sectionItems;
+            if (activeFilter === 'PENDING') {
+                filteredItems = sectionItems.filter(i => i.is_applicable !== false && i.status === 'PENDING');
+            } else if (activeFilter === 'ISSUES') {
+                filteredItems = sectionItems.filter(i => ['ATTENTION', 'CRITICAL', 'FAIR'].includes(i.status));
+            }
+
+            document.getElementById('section-item-count-text').textContent = `Showing ${filteredItems.length} of ${sectionItems.length} items in ${activeSection}`;
+
+            if (filteredItems.length === 0) {
+                container.innerHTML = `<div class="bg-white p-8 rounded-2xl border border-slate-200 text-center text-sm text-slate-500 italic">No checklist items match the current filter in this section.</div>`;
+                return;
+            }
+
+            filteredItems.forEach(item => {
+                const card = document.createElement('div');
+                card.className = `bg-white rounded-2xl border p-5 space-y-4 shadow-sm transition-all ${item.status === 'CRITICAL' ? 'border-red-300 bg-red-50/20' : item.status === 'ATTENTION' ? 'border-amber-300 bg-amber-50/20' : 'border-slate-200'}`;
+
+                const topRow = document.createElement('div');
+                topRow.className = 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3';
+
+                const titleGroup = document.createElement('div');
+                titleGroup.className = 'flex items-center flex-wrap gap-2';
+
+                if (item.item_code) {
+                    const codeSpan = document.createElement('span');
+                    codeSpan.className = 'font-mono text-xs text-slate-400 font-semibold';
+                    codeSpan.textContent = `[${item.item_code}]`;
+                    titleGroup.appendChild(codeSpan);
+                }
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'font-bold text-slate-900 text-base';
+                nameSpan.textContent = item.item_name;
+                titleGroup.appendChild(nameSpan);
+
+                if (item.is_safety_critical) {
+                    const critSpan = document.createElement('span');
+                    critSpan.className = 'bg-red-600 text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider';
+                    critSpan.textContent = 'Safety Critical';
+                    titleGroup.appendChild(critSpan);
+                }
+
+                topRow.appendChild(titleGroup);
+
+                // Status Buttons
+                const statuses = ['GOOD', 'FAIR', 'ATTENTION', 'CRITICAL'];
+                const statusBtnsDiv = document.createElement('div');
+                statusBtnsDiv.className = 'flex flex-wrap items-center gap-1.5';
+
+                statuses.forEach(st => {
+                    const isSelected = (item.status === st && item.is_applicable !== false);
+                    let activeColor = 'bg-slate-100 text-slate-600 hover:bg-slate-200';
+                    if (isSelected) {
+                        if (st === 'GOOD') activeColor = 'bg-emerald-600 text-white shadow-sm';
+                        else if (st === 'FAIR') activeColor = 'bg-blue-600 text-white shadow-sm';
+                        else if (st === 'ATTENTION') activeColor = 'bg-amber-500 text-white shadow-sm';
+                        else if (st === 'CRITICAL') activeColor = 'bg-red-600 text-white shadow-sm';
+                    }
+
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = `px-3 py-1.5 rounded-xl text-xs font-bold uppercase transition-colors ${activeColor}`;
+                    btn.textContent = st;
+                    btn.addEventListener('click', () => handleItemStatusUpdate(item.id, st, true));
+                    statusBtnsDiv.appendChild(btn);
+                });
+
+                // N/A Toggle Button
+                const isNa = (item.is_applicable === false);
+                const naBtn = document.createElement('button');
+                naBtn.type = 'button';
+                naBtn.className = `px-3 py-1.5 rounded-xl text-xs font-bold uppercase transition-colors ${isNa ? 'bg-slate-800 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`;
+                naBtn.textContent = 'N/A';
+                naBtn.addEventListener('click', () => handleNARtoggle(item.id, !isNa));
+                statusBtnsDiv.appendChild(naBtn);
+
+                topRow.appendChild(statusBtnsDiv);
+                card.appendChild(topRow);
+
+                // Expandable Inputs / Fields (Observation, Recommended Action, Est. Cost, Measurement)
+                const fieldsGrid = document.createElement('div');
+                fieldsGrid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-slate-100';
+
+                // Observation
+                const obsDiv = document.createElement('div');
+                obsDiv.className = 'sm:col-span-2';
+                obsDiv.innerHTML = `
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Observation / Notes</label>
+                    <input type="text" data-field="observation" data-id="${item.id}" value="${item.observation || ''}" placeholder="Add observation..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600">
+                `;
+                fieldsGrid.appendChild(obsDiv);
+
+                // Recommended Action
+                const actDiv = document.createElement('div');
+                actDiv.innerHTML = `
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Recommended Action</label>
+                    <input type="text" data-field="recommended_action" data-id="${item.id}" value="${item.recommended_action || ''}" placeholder="Action required..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600">
+                `;
+                fieldsGrid.appendChild(actDiv);
+
+                // Estimated Cost
+                const costDiv = document.createElement('div');
+                costDiv.innerHTML = `
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Estimated Cost (₦)</label>
+                    <input type="number" data-field="estimated_cost" data-id="${item.id}" value="${item.estimated_cost !== null && item.estimated_cost !== undefined ? item.estimated_cost : ''}" placeholder="0" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600">
+                `;
+                fieldsGrid.appendChild(costDiv);
+
+                // Measurement
+                const measDiv = document.createElement('div');
+                measDiv.innerHTML = `
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Measurement</label>
+                    <input type="text" data-field="measurement" data-id="${item.id}" value="${item.measurement || ''}" placeholder="e.g. 3.2mm, 80 psi" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600">
+                `;
+                fieldsGrid.appendChild(measDiv);
+
+                card.appendChild(fieldsGrid);
+                container.appendChild(card);
+            });
+
+            // Bind blur/change listeners for autosave inputs
+            container.querySelectorAll('input[data-field]').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const itemId = e.target.dataset.id;
+                    const field = e.target.dataset.field;
+                    let val = e.target.value;
+                    if (field === 'estimated_cost') val = val !== '' ? Number(val) : null;
+                    handleItemFieldUpdate(itemId, { [field]: val });
+                });
+            });
+        }
+
+        async function handleItemStatusUpdate(itemId, newStatus, isApplicable) {
+            try {
+                const updated = await inspectionService.updateInspectionItem(itemId, {
+                    status: newStatus,
+                    is_applicable: isApplicable
+                });
+
+                // Update local state
+                const items = currentInspection.inspection_items || [];
+                const idx = items.findIndex(i => i.id === itemId);
+                if (idx !== -1) {
+                    items[idx] = { ...items[idx], ...updated };
+                }
+
+                renderProgressDashboard();
+                renderSectionNav();
+                renderChecklistItems();
+            } catch (err) {
+                alert(`Failed to update item: ${err.message}`);
             }
         }
 
-        const overallResult = inspectionScoring.calculateOverallScore(sectionResultsMap);
-        const overallScore = overallResult.overallScore !== undefined ? overallResult.overallScore : overallResult;
+        async function handleNARtoggle(itemId, makeNa) {
+            try {
+                const newStatus = makeNa ? 'N/A' : 'PENDING';
+                const isApplicable = !makeNa;
 
-        // Recommendation extraction: ensure a string is stored
-        const rawRecommendation = inspectionScoring.getRecommendation 
-            ? inspectionScoring.getRecommendation(overallScore, totalCriticalCount) 
-            : { text: 'Approved for sale.', badge: 'Approved' };
+                const updated = await inspectionService.updateInspectionItem(itemId, {
+                    status: newStatus,
+                    is_applicable: isApplicable
+                });
 
-        const recommendationText = typeof rawRecommendation === 'object' && rawRecommendation !== null 
-            ? (rawRecommendation.text || String(rawRecommendation)) 
-            : String(rawRecommendation);
+                const items = currentInspection.inspection_items || [];
+                const idx = items.findIndex(i => i.id === itemId);
+                if (idx !== -1) {
+                    items[idx] = { ...items[idx], ...updated };
+                }
 
-        // Derive overall condition based on score thresholds and critical override rules
-        let overallCondition = 'GOOD';
-        if (overallScore >= 85) {
-            overallCondition = 'EXCELLENT';
-        } else if (overallScore >= 70) {
-            overallCondition = 'GOOD';
-        } else if (overallScore >= 50) {
-            overallCondition = 'FAIR';
-        } else {
-            overallCondition = 'POOR';
-        }
-        if (totalCriticalCount > 0 && overallScore < 50) {
-            overallCondition = 'POOR';
+                renderProgressDashboard();
+                renderSectionNav();
+                renderChecklistItems();
+            } catch (err) {
+                alert(`Failed to update item applicability: ${err.message}`);
+            }
         }
 
-        const getSecScore = (...names) => {
-            const match = Object.keys(sectionResultsMap).find(sectionName =>
-                names.some(name =>
-                    sectionName.toLowerCase().includes(name.toLowerCase())
-                )
-            );
+        async function handleItemFieldUpdate(itemId, updatePayload) {
+            try {
+                const updated = await inspectionService.updateInspectionItem(itemId, updatePayload);
+                const items = currentInspection.inspection_items || [];
+                const idx = items.findIndex(i => i.id === itemId);
+                if (idx !== -1) {
+                    items[idx] = { ...items[idx], ...updated };
+                }
+            } catch (err) {
+                console.error('Failed to autosave field:', err);
+            }
+        }
 
-            return match ? sectionResultsMap[match].score : null;
-        };
+        function renderFindings() {
+            const container = document.getElementById('findings-list-container');
+            container.innerHTML = '';
 
-        const mechanical_score = getSecScore('mechanical', 'engine', 'transmission') ?? 100;
-        const electrical_score = getSecScore('electrical') ?? 100;
-        const body_score = getSecScore('body', 'frame', 'exterior') ?? 100;
-        const interior_score = getSecScore('interior') ?? 100;
-        const suspension_score = getSecScore('suspension') ?? 100;
-        const brake_score = getSecScore('brake') ?? 100;
-        const diagnostic_score = getSecScore('diagnostic', 'obd') ?? 100;
-        const road_test_score = getSecScore('road test', 'road') ?? 100;
+            const findings = currentInspection.findings || [];
+            if (findings.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-400 italic">No supplementary findings recorded yet.</p>';
+                return;
+            }
 
-        const { data, error } = await supabase
-            .from('inspections')
-            .update({
-                inspection_status: 'COMPLETED',
-                completed_at: new Date().toISOString(),
-                overall_score: overallScore,
-                overall_condition: overallCondition,
-                recommendation: recommendationText,
-                mechanical_score,
-                electrical_score,
-                body_score,
-                interior_score,
-                suspension_score,
-                brake_score,
-                diagnostic_score,
-                road_test_score
-            })
-            .eq('id', inspectionId)
-            .select()
-            .single();
+            findings.forEach(f => {
+                const div = document.createElement('div');
+                div.className = 'bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 text-sm';
+                
+                let sevBadgeColor = 'bg-slate-100 text-slate-700';
+                if (f.severity === 'CRITICAL') sevBadgeColor = 'bg-red-100 text-red-700';
+                else if (f.severity === 'MAJOR') sevBadgeColor = 'bg-amber-100 text-amber-800';
+                else if (f.severity === 'MODERATE') sevBadgeColor = 'bg-blue-100 text-blue-700';
 
-        if (error) throw new Error(error.message);
-        return data;
-    },
-
-    /**
-     * Uploads a scanner PDF report and attaches it using the authoritative verification_inspection_id relationship.
-     */
-    async uploadScannerPdf(vehicleId, file) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
-        if (!file || !(file instanceof File)) throw new Error('A valid PDF file is required.');
-
-        const fileExt = file.name.split('.').pop().toLowerCase();
-        if (fileExt !== 'pdf') throw new Error('Only PDF files are allowed.');
-
-        const fileName = `inspections/${vehicleId}/scanner_${crypto.randomUUID()}.pdf`;
-
-        const { error: uploadError } = await supabase.storage
-            .from('vehicle-photos')
-            .upload(fileName, file, {
-                upsert: false,
-                contentType: 'application/pdf'
+                div.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="flex items-center space-x-2">
+                            <span class="font-bold text-slate-900">${f.category || f.component || 'General Finding'}</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded font-bold uppercase ${sevBadgeColor}">${f.severity || 'NOTE'}</span>
+                        </div>
+                        <p class="text-xs text-slate-600">${f.description || f.finding || ''}</p>
+                    </div>
+                    <button type="button" data-finding-id="${f.id}" class="delete-finding-btn text-slate-400 hover:text-red-600 text-xs font-bold transition-colors">
+                        <i class="fa-solid fa-trash"></i> Delete
+                    </button>
+                `;
+                container.appendChild(div);
             });
 
-        if (uploadError) throw new Error(`Failed to upload scanner report: ${uploadError.message}`);
-
-        const { data: { publicUrl } } = supabase.storage
-            .from('vehicle-photos')
-            .getPublicUrl(fileName);
-
-        // Locate inspection using authoritative verification_inspection_id
-        const { data: vehicleRecord, error: vehicleErr } = await supabase
-            .from('vehicles')
-            .select('verification_inspection_id')
-            .eq('id', vehicleId)
-            .single();
-
-        if (vehicleErr || !vehicleRecord || !vehicleRecord.verification_inspection_id) {
-            await supabase.storage.from('vehicle-photos').remove([fileName]);
-            throw new Error('No authoritative verification inspection relationship exists for this vehicle.');
+            container.querySelectorAll('.delete-finding-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const findingId = e.currentTarget.dataset.findingId;
+                    if (!confirm('Are you sure you want to delete this finding?')) return;
+                    await deleteFinding(findingId);
+                });
+            });
         }
 
-        const inspectionId = vehicleRecord.verification_inspection_id;
-
-        const { error: updateError } = await supabase
-            .from('inspections')
-            .update({ scanner_report_path: publicUrl })
-            .eq('id', inspectionId);
-
-        if (updateError) {
-            await supabase.storage.from('vehicle-photos').remove([fileName]);
-            throw new Error(`Failed to save scanner report link: ${updateError.message}`);
+        async function deleteFinding(findingId) {
+            try {
+                await inspectionService.deleteInspectionFinding(findingId);
+                currentInspection = await inspectionService.getInspectionForVehicle(currentVehicleId);
+                renderFindings();
+            } catch (err) {
+                alert(`Failed to delete finding: ${err.message}`);
+            }
         }
 
-        return publicUrl;
-    }
-};
+        addFindingForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const component = document.getElementById('finding-component').value.trim();
+            const severity = document.getElementById('finding-severity').value;
+            const description = document.getElementById('finding-description').value.trim();
 
-export const {
-    getInspectionForVehicle,
-    startNewInspection,
-    updateInspectionItem,
-    completeInspection,
-    uploadScannerPdf
-} = inspectionService;
+            if (!component || !description) return;
+
+            try {
+                await inspectionService.addInspectionFinding(currentInspection.id, {
+                    component,
+                    severity,
+                    finding: description
+                });
+
+                currentInspection = await inspectionService.getInspectionForVehicle(currentVehicleId);
+                addFindingForm.reset();
+                renderFindings();
+            } catch (err) {
+                alert(`Failed to add finding: ${err.message}`);
+            }
+        });
+
+        scannerPdfInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                scannerPdfInput.disabled = true;
+                document.getElementById('scanner-upload-label').textContent = 'Uploading PDF...';
+
+                await inspectionService.uploadScannerPdf(currentVehicleId, file);
+                currentInspection = await inspectionService.getInspectionForVehicle(currentVehicleId);
+                renderInspectionWorkbench();
+                alert('Scanner PDF uploaded successfully!');
+            } catch (err) {
+                alert(`Failed to upload scanner PDF: ${err.message}`);
+            } finally {
+                scannerPdfInput.disabled = false;
+                scannerPdfInput.value = '';
+                document.getElementById('scanner-upload-label').textContent = currentInspection.scanner_report_path ? 'Replace Scanner PDF' : 'Upload Scanner PDF';
+            }
+        });
+
+        // Filter buttons event listeners
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.className = 'filter-btn px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors');
+                e.target.className = 'filter-btn px-3.5 py-1.5 rounded-xl text-xs font-bold bg-blue-600 text-white transition-colors';
+                activeFilter = e.target.dataset.filter;
+                renderChecklistItems();
+            });
+        });
+
+        // Complete Inspection Modal handlers
+        btnOpenCompleteModal.addEventListener('click', () => {
+            modalErrorBox.classList.add('hidden');
+            completeModal.classList.remove('hidden');
+        });
+
+        const closeModalFunc = () => completeModal.classList.add('hidden');
+        btnCloseModal.addEventListener('click', closeModalFunc);
+        btnCancelModal.addEventListener('click', closeModalFunc);
+
+        btnConfirmComplete.addEventListener('click', async () => {
+            if (!currentInspection || !currentInspection.id) return;
+
+            try {
+                btnConfirmComplete.disabled = true;
+                btnConfirmComplete.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Finalizing...';
+                modalErrorBox.classList.add('hidden');
+
+                currentInspection = await inspectionService.completeInspection(currentInspection.id);
+                closeModalFunc();
+                renderInspectionWorkbench();
+                alert('Inspection completed successfully!');
+            } catch (err) {
+                modalErrorBox.textContent = err.message;
+                modalErrorBox.classList.remove('hidden');
+            } finally {
+                btnConfirmComplete.disabled = false;
+                btnConfirmComplete.innerHTML = '<i class="fa-solid fa-check"></i><span>Confirm & Finalize</span>';
+            }
+        });
+
+        initWorkbench();
+    </script>
+</body>
+</html>
