@@ -76,15 +76,21 @@ export const inspectionService = {
     async startNewInspection(vehicleId) {
         if (!vehicleId) throw new Error('Vehicle ID is required.');
 
-        // 1. Check vehicles.verification_inspection_id
+        // 1. Check vehicles.verification_inspection_id and mileage
         const { data: vehicle, error: vehicleErr } = await supabase
             .from('vehicles')
-            .select('verification_inspection_id')
+            .select('verification_inspection_id, mileage')
             .eq('id', vehicleId)
             .single();
 
         if (!vehicleErr && vehicle?.verification_inspection_id) {
             return await this.getInspectionForVehicle(vehicleId);
+        }
+
+        const rawMileage = vehicle?.mileage;
+        const mileage = Number(rawMileage);
+        if (rawMileage === null || rawMileage === undefined || !Number.isFinite(mileage) || mileage < 0) {
+            throw new Error('Cannot start inspection: vehicle mileage is missing or invalid.');
         }
 
         // 2. Check existing inspections by vehicle_id to prevent duplicate creation
@@ -113,7 +119,8 @@ export const inspectionService = {
             vehicle_id: vehicleId,
             inspection_number: inspectionNumber,
             inspection_status: 'DRAFT',
-            inspection_date: today
+            inspection_date: today,
+            mileage: mileage
         };
 
         const { data: inspection, error: inspError } = await supabase
