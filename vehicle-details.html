@@ -376,6 +376,27 @@
                         </div>
                     </div>
 
+                    <!-- Inspection Documents -->
+                    <div class="bg-blue-50/60 border border-blue-100 rounded-2xl p-5 sm:p-6">
+                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                            <div>
+                                <div class="text-xs font-bold uppercase tracking-wider text-blue-700">Inspection Documents</div>
+                                <h3 class="font-extrabold text-slate-900 text-lg mt-0.5">Review the complete evidence</h3>
+                                <p class="text-xs text-slate-600 mt-1">The full point-to-point inspection and live scanner diagnostic report are available here.</p>
+                            </div>
+                            <div class="flex flex-wrap gap-3">
+                                <div id="report-btn-container" class="hidden">
+                                    <a id="report-download-link" href="#" target="_blank" rel="noopener noreferrer"
+                                       class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-sm transition-colors shadow-sm">
+                                        <i class="fa-solid fa-file-pdf"></i>
+                                        <span>View Full Inspection PDF</span>
+                                    </a>
+                                </div>
+                                <div id="scanner-report-container"></div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Detailed Inspection Checklist Section -->
                     <div class="space-y-6 pt-6 border-t border-slate-100">
                         <div class="border-b border-slate-100 pb-3">
@@ -387,6 +408,14 @@
                         </div>
                         <div id="detailed-checklist-container" class="space-y-6">
                             <!-- Populated dynamically -->
+                        </div>
+                        <div id="checklist-toggle-container" class="hidden pt-2 text-center">
+                            <button type="button" id="checklist-toggle-btn" aria-expanded="false" aria-controls="detailed-checklist-container"
+                                    class="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm">
+                                <i id="checklist-toggle-icon" class="fa-solid fa-list-check"></i>
+                                <span id="checklist-toggle-text">View Complete Inspection</span>
+                            </button>
+                            <p id="checklist-toggle-meta" class="text-xs text-slate-500 mt-2"></p>
                         </div>
                     </div>
 
@@ -430,20 +459,10 @@
                                 <span id="cert-date-wrapper"><strong>Verified Date:</strong> <span id="cert-date">--</span></span>
                             </div>
                         </div>
-                        <div class="flex flex-wrap items-center gap-3">
-                            <!-- Scanner Report Render Container (Dynamically switches between download link or hidden) -->
-                            <div id="scanner-report-container">
-                                <!-- Populated dynamically -->
-                            </div>
-
-                            <!-- Main Inspection Report Download Button -->
-                            <div id="report-btn-container" class="hidden">
-                                <a id="report-download-link" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2.5 rounded-xl text-sm transition-colors shadow-sm">
-                                    <i class="fa-solid fa-file-pdf"></i>
-                                    <span>View Inspection Report</span>
-                                </a>
-                            </div>
-                        </div>
+                        <div class="text-xs text-blue-700">
+                            <i class="fa-solid fa-circle-check mr-1"></i>
+                            Verification information for this published vehicle.
+                        </div>                        </div>
                     </div>
 
                 </div>
@@ -652,72 +671,228 @@
         function renderScannerSection(insp) {
             const container = document.getElementById('scanner-report-container');
             if (!container) return;
+            container.innerHTML = '';
 
-            if (insp && insp.scanner_report_path) {
-                const scannerUrl = validateUrl(insp.scanner_report_path);
-
-                container.innerHTML = '';
+            const scannerUrl = validateUrl(insp?.scanner_report_path);
+            if (scannerUrl) {
                 const a = document.createElement('a');
                 a.href = scannerUrl;
                 a.target = '_blank';
                 a.rel = 'noopener noreferrer';
-                a.className = 'inline-flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 text-white font-medium px-4 py-2.5 rounded-xl text-sm transition-colors shadow-sm';
-                
-                const icon = document.createElement('i');
-                icon.className = 'fa-solid fa-file-waveform text-emerald-400';
-                a.appendChild(icon);
-
-                const span = document.createElement('span');
-                span.textContent = 'Scanner Report Available — View PDF';
-                a.appendChild(span);
-
+                a.className = 'inline-flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 text-white font-bold px-4 py-2.5 rounded-xl text-sm transition-colors shadow-sm';
+                a.innerHTML = '<i class="fa-solid fa-file-waveform text-emerald-400"></i><span>View Scanner Diagnostic PDF</span>';
                 container.appendChild(a);
-                container.classList.remove('hidden');
             } else {
-                container.innerHTML = `
-                    <p class="text-xs text-slate-500 italic">
-                        Scanner report not yet available.
-                    </p>
-                `;
-                container.classList.remove('hidden');
+                const notice = document.createElement('span');
+                notice.className = 'inline-flex items-center space-x-2 bg-white text-slate-500 border border-slate-200 font-medium px-4 py-2.5 rounded-xl text-sm';
+                notice.innerHTML = '<i class="fa-solid fa-file-waveform"></i><span>Scanner report not yet available</span>';
+                container.appendChild(notice);
             }
+        }
+
+        function normalizeCondition(condition, score) {
+            const raw = String(condition || '').trim().toUpperCase();
+            if (raw.includes('EXCELLENT')) return 'EXCELLENT';
+            if (raw === 'GOOD' || raw.includes('GOOD')) return 'GOOD';
+            if (raw.includes('FAIR')) return 'FAIR';
+            if (raw.includes('CRITICAL')) return 'CRITICAL';
+            if (raw.includes('POOR')) return 'POOR';
+            if (raw.includes('UNSATISFACTORY')) return 'UNSATISFACTORY';
+            if (raw.includes('ATTENTION')) return 'NEEDS ATTENTION';
+
+            const n = Number(score);
+            if (Number.isFinite(n)) {
+                if (n >= 90) return 'EXCELLENT';
+                if (n >= 80) return 'GOOD';
+                if (n >= 70) return 'FAIR';
+                if (n >= 60) return 'NEEDS ATTENTION';
+                return 'POOR';
+            }
+            return 'NOT RATED';
+        }
+
+        function checklistFacts(insp) {
+            const items = Array.isArray(insp?.inspection_items) ? insp.inspection_items : [];
+            const applicable = items.filter(x => x?.is_applicable !== false);
+            const assessed = applicable.filter(x => String(x?.status || '').toUpperCase() !== 'PENDING');
+            const criticalItems = items.filter(x =>
+                x?.is_safety_critical === true &&
+                ['CRITICAL', 'ATTENTION'].includes(String(x?.status || '').toUpperCase())
+            );
+            return { items, applicable, assessed, criticalItems };
+        }
+
+        function findingFacts(insp) {
+            const findings = Array.isArray(insp?.findings) ? insp.findings : [];
+            const critical = findings.filter(f => {
+                const s = String(f?.severity ?? '').toUpperCase();
+                const n = Number(f?.severity);
+                return s === 'CRITICAL' || n >= 4;
+            });
+            const major = findings.filter(f => {
+                const s = String(f?.severity ?? '').toUpperCase();
+                const n = Number(f?.severity);
+                return s === 'MAJOR' || n === 3;
+            });
+            return { findings, critical, major };
+        }
+
+        function deriveInspectionRecommendation(insp) {
+            const facts = checklistFacts(insp);
+            const findings = findingFacts(insp);
+            const condition = normalizeCondition(insp?.overall_condition, insp?.overall_score);
+
+            if (findings.critical.length || facts.criticalItems.length) {
+                return 'Do not treat this vehicle as ready for unrestricted use or purchase without resolving the identified safety-critical findings and completing a follow-up inspection.';
+            }
+            if (condition === 'EXCELLENT') {
+                return 'Suitable for purchase based on the completed inspection, subject to normal maintenance appropriate to the vehicle’s age, mileage and service history.';
+            }
+            if (condition === 'GOOD') {
+                return 'A generally sound vehicle with limited items requiring attention. Review the noted recommendations and confirm routine maintenance before purchase.';
+            }
+            if (condition === 'FAIR') {
+                return 'The vehicle is serviceable but several areas require attention. Review the identified items, obtain cost estimates where necessary, and consider the findings before purchase.';
+            }
+            if (condition === 'NEEDS ATTENTION') {
+                return 'Multiple areas require corrective attention. The identified repairs should be assessed and addressed before the vehicle is considered ready for normal use or purchase.';
+            }
+            if (condition === 'POOR' || condition === 'UNSATISFACTORY') {
+                return 'The inspection identified substantial concerns. A detailed repair assessment is recommended before considering this vehicle for purchase or normal operation.';
+            }
+            return insp?.recommendation || 'Review the complete inspection findings before making a purchase decision.';
+        }
+
+        function deriveInspectionSummary(insp) {
+            const facts = checklistFacts(insp);
+            const findings = findingFacts(insp);
+            const score = Number(insp?.overall_score);
+            const condition = normalizeCondition(insp?.overall_condition, score);
+            const assessedText = facts.applicable.length
+                ? `${facts.assessed.length.toLocaleString()} of ${facts.applicable.length.toLocaleString()} applicable inspection points were assessed`
+                : 'the available inspection results were reviewed';
+            const scoreText = Number.isFinite(score) ? `, producing an overall score of ${score}/100` : '';
+
+            if (findings.critical.length || facts.criticalItems.length) {
+                return `The completed Dreamland point-to-point inspection found ${assessedText}${scoreText}. Although the overall result is ${condition.toLowerCase()}, safety-critical concerns were identified and take priority over the headline score. These findings should be resolved and verified before the vehicle is considered ready for normal use or purchase.`;
+            }
+            if (condition === 'EXCELLENT') {
+                return `The vehicle demonstrated an excellent overall condition during the Dreamland multi-point inspection. ${assessedText}${scoreText}. The inspection results indicate a strong and well-presented vehicle with no significant safety-critical concerns identified. It presents as a strong candidate for purchase, subject to normal maintenance appropriate to its age and mileage.`;
+            }
+            if (condition === 'GOOD') {
+                return `The vehicle returned a good overall result from the Dreamland multi-point inspection. ${assessedText}${scoreText}. Most inspected components were found to be in satisfactory condition, with only limited areas requiring attention. The vehicle presents as a generally sound candidate for purchase, subject to the recommendations recorded in this report.`;
+            }
+            if (condition === 'FAIR') {
+                return `The vehicle returned a fair overall result from the Dreamland multi-point inspection. ${assessedText}${scoreText}. The vehicle remains serviceable, but the inspection identified areas that should receive attention. The findings and recommended actions should be reviewed carefully before purchase.`;
+            }
+            if (condition === 'NEEDS ATTENTION') {
+                return `The Dreamland multi-point inspection identified several areas requiring attention. ${assessedText}${scoreText}. The vehicle should not be evaluated on the headline score alone; the detailed findings and recommended corrective actions should be reviewed and costed before purchase or normal use.`;
+            }
+            if (condition === 'POOR' || condition === 'UNSATISFACTORY') {
+                return `The Dreamland multi-point inspection identified significant areas of concern. ${assessedText}${scoreText}. The detailed findings indicate that corrective work may be required before the vehicle can be considered a sound purchase or suitable for normal operation. A repair assessment and follow-up inspection are recommended.`;
+            }
+            return `The Dreamland inspection results have been reviewed. ${assessedText}${scoreText}. Please review the complete checklist, findings and professional recommendation before making a purchase decision.`;
+        }
+
+        let checklistExpanded = false;
+
+        function updateChecklistToggle(sectionCount, total, assessed) {
+            const box = document.getElementById('checklist-toggle-container');
+            const btn = document.getElementById('checklist-toggle-btn');
+            const text = document.getElementById('checklist-toggle-text');
+            const icon = document.getElementById('checklist-toggle-icon');
+            const meta = document.getElementById('checklist-toggle-meta');
+            if (!box || !btn) return;
+
+            if (sectionCount <= 2) {
+                box.classList.add('hidden');
+                return;
+            }
+            box.classList.remove('hidden');
+
+            btn.setAttribute('aria-expanded', checklistExpanded ? 'true' : 'false');
+            btn.setAttribute('aria-controls', 'detailed-checklist-container');
+
+            if (checklistExpanded) {
+                text.textContent = 'Collapse Inspection';
+                icon.className = 'fa-solid fa-chevron-up';
+                meta.textContent = `Showing all ${total.toLocaleString()} applicable inspection points (${assessed.toLocaleString()} assessed).`;
+            } else {
+                text.textContent = 'View Complete Inspection';
+                icon.className = 'fa-solid fa-list-check';
+                meta.textContent = `Showing the first 2 sections. ${total.toLocaleString()} applicable points are available in the complete inspection.`;
+            }
+        }
+
+        function setChecklistVisibility() {
+            const container = document.getElementById('detailed-checklist-container');
+            if (!container) return;
+            Array.from(container.querySelectorAll('[data-inspection-section]')).forEach((section, index) => {
+                section.classList.toggle('hidden', !checklistExpanded && index >= 2);
+            });
+        }
+
+        function bindChecklistToggle() {
+            const btn = document.getElementById('checklist-toggle-btn');
+            if (!btn || btn.dataset.bound === 'true') return;
+            btn.dataset.bound = 'true';
+            btn.addEventListener('click', () => {
+                checklistExpanded = !checklistExpanded;
+                setChecklistVisibility();
+
+                const sections = document.querySelectorAll('#detailed-checklist-container [data-inspection-section]').length;
+                const insp = activeVehicleData?.inspections?.find(i => i.inspection_status === 'COMPLETED');
+                const facts = checklistFacts(insp || {});
+                updateChecklistToggle(sections, facts.applicable.length, facts.assessed.length);
+
+                if (checklistExpanded) {
+                    document.getElementById('detailed-checklist-container')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
         }
 
         function renderInspectionSection(v) {
             const noInspNotice = document.getElementById('no-inspection-notice');
             const inspDataContainer = document.getElementById('inspection-data-container');
+            const rawInspections = Array.isArray(v.inspections) ? v.inspections : [];
 
-            const rawInspections = v.inspections;
-            if (!rawInspections || rawInspections.length === 0) {
+            if (!rawInspections.length) {
                 noInspNotice.classList.remove('hidden');
                 inspDataContainer.classList.add('hidden');
                 return;
             }
 
-            // Filter for COMPLETED inspections only (never display DRAFT, IN_PROGRESS, or CANCELLED)
-            const completedInspections = rawInspections.filter(i => i.inspection_status === 'COMPLETED');
-            if (completedInspections.length === 0) {
+            const completed = rawInspections.filter(i => String(i?.inspection_status || '').toUpperCase() === 'COMPLETED');
+            if (!completed.length) {
                 noInspNotice.classList.remove('hidden');
                 inspDataContainer.classList.add('hidden');
                 return;
             }
 
-            // Sort completed inspections by completion / creation date descending
-            completedInspections.sort((a, b) => {
-                const dateA = new Date(a.completed_at || a.inspection_date || a.created_at || 0);
-                const dateB = new Date(b.completed_at || b.inspection_date || b.created_at || 0);
-                return dateB - dateA;
-            });
+            let insp = v.verification_inspection_id
+                ? completed.find(i => i.id === v.verification_inspection_id)
+                : null;
 
-            const insp = completedInspections[0];
+            if (!insp) {
+                completed.sort((a, b) =>
+                    new Date(b.completed_at || b.inspection_date || b.created_at || 0) -
+                    new Date(a.completed_at || a.inspection_date || a.created_at || 0)
+                );
+                insp = completed[0];
+            }
 
             noInspNotice.classList.add('hidden');
             inspDataContainer.classList.remove('hidden');
 
             document.getElementById('insp-number').textContent = insp.inspection_number || 'Not assigned';
-            document.getElementById('insp-date').textContent = insp.inspection_date ? new Date(insp.inspection_date).toLocaleDateString() : (insp.completed_at ? new Date(insp.completed_at).toLocaleDateString() : 'N/A');
+            document.getElementById('insp-date').textContent =
+                insp.inspection_date ? new Date(insp.inspection_date).toLocaleDateString() :
+                (insp.completed_at ? new Date(insp.completed_at).toLocaleDateString() : 'N/A');
             document.getElementById('insp-status').textContent = insp.inspection_status || 'COMPLETED';
-            document.getElementById('insp-mileage').textContent = insp.mileage !== null && insp.mileage !== undefined ? `${Number(insp.mileage).toLocaleString()} km` : (v.mileage ? `${Number(v.mileage).toLocaleString()} km` : 'N/A');
+            document.getElementById('insp-mileage').textContent =
+                insp.mileage !== null && insp.mileage !== undefined
+                    ? `${Number(insp.mileage).toLocaleString()} km`
+                    : (v.mileage ? `${Number(v.mileage).toLocaleString()} km` : 'N/A');
 
             if (insp.overall_score !== null && insp.overall_score !== undefined) {
                 document.getElementById('insp-overall-score-num').textContent = insp.overall_score;
@@ -727,11 +902,15 @@
                 document.getElementById('insp-overall-score-text').textContent = 'Score not available';
             }
 
-            document.getElementById('insp-condition').textContent = insp.overall_condition || 'Not provided';
-            document.getElementById('insp-recommendation-short').textContent = insp.recommendation || 'No recommendation provided.';
+            const condition = normalizeCondition(insp.overall_condition, insp.overall_score);
+            const recommendation = deriveInspectionRecommendation(insp);
+            const summary = deriveInspectionSummary(insp);
+
+            document.getElementById('insp-condition').textContent = condition;
+            document.getElementById('insp-recommendation-short').textContent = recommendation;
 
             const setScore = (id, val) => {
-                document.getElementById(id).textContent = (val !== null && val !== undefined) ? val : 'N/A';
+                document.getElementById(id).textContent = val !== null && val !== undefined ? val : 'N/A';
             };
             setScore('score-mechanical', insp.mechanical_score);
             setScore('score-electrical', insp.electrical_score);
@@ -742,162 +921,157 @@
             setScore('score-diagnostic', insp.diagnostic_score);
             setScore('score-road', insp.road_test_score);
 
-            document.getElementById('insp-recommendation').textContent = insp.recommendation || 'No recommendation provided.';
-            document.getElementById('insp-summary').textContent = insp.summary || 'No inspection summary available.';
+            document.getElementById('insp-recommendation').textContent = recommendation;
+            document.getElementById('insp-summary').textContent = summary;
 
-            // Render Detailed Inspection Checklist items from inspection_items (preserving PENDING and N/A)
+            checklistExpanded = false;
             renderDetailedChecklist(insp.inspection_items);
-
             renderInspectionFindings(insp.findings);
 
-            // Handle Main Inspection Report PDF
-            if (insp.report_path) {
-                const reportLink = document.getElementById('report-download-link');
-                reportLink.href = validateUrl(insp.report_path);
+            const reportUrl = validateUrl(insp.report_path);
+            if (reportUrl) {
+                document.getElementById('report-download-link').href = reportUrl;
                 document.getElementById('report-btn-container').classList.remove('hidden');
             } else {
                 document.getElementById('report-btn-container').classList.add('hidden');
             }
 
-            // Handle Scanner Diagnostic Report using renderScannerSection
             renderScannerSection(insp);
+            bindChecklistToggle();
         }
 
         function renderDetailedChecklist(items) {
             const container = document.getElementById('detailed-checklist-container');
             if (!container) return;
-
             container.innerHTML = '';
 
-            if (!items || items.length === 0) {
-                const p = document.createElement('p');
-                p.className = 'text-xs text-slate-500 italic';
-                p.textContent = 'No detailed checklist items recorded.';
-                container.appendChild(p);
+            if (!Array.isArray(items) || items.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'bg-slate-50 border border-dashed border-slate-200 rounded-xl p-5 text-sm text-slate-500';
+                empty.innerHTML = '<div class="font-semibold text-slate-700 mb-1">Detailed checklist unavailable</div><div>The inspection summary is available, but the individual point-to-point items were not returned by the public data service.</div>';
+                container.appendChild(empty);
+                document.getElementById('checklist-toggle-container')?.classList.add('hidden');
                 return;
             }
 
-            // Group by section
-            const sectionsMap = {};
+            const sections = new Map();
             items.forEach(item => {
-                const sec = item.section || 'General';
-                if (!sectionsMap[sec]) sectionsMap[sec] = [];
-                sectionsMap[sec].push(item);
+                const section = item?.section || 'General';
+                if (!sections.has(section)) sections.set(section, []);
+                sections.get(section).push(item);
             });
 
-            Object.keys(sectionsMap).forEach(sectionName => {
-                const secItems = sectionsMap[sectionName];
-
+            sections.forEach((secItems, sectionName) => {
                 const sectionDiv = document.createElement('div');
+                sectionDiv.dataset.inspectionSection = 'true';
                 sectionDiv.className = 'bg-slate-50 rounded-2xl border border-slate-200 p-5 space-y-4';
 
                 const h4 = document.createElement('h4');
                 h4.className = 'font-extrabold text-slate-900 text-base uppercase tracking-wider border-b border-slate-200 pb-2 flex items-center justify-between';
-                
-                const secSpan = document.createElement('span');
-                secSpan.textContent = sectionName;
-                h4.appendChild(secSpan);
 
-                const countSpan = document.createElement('span');
-                countSpan.className = 'text-xs font-mono font-semibold text-slate-500';
-                countSpan.textContent = `${secItems.length} items`;
-                h4.appendChild(countSpan);
+                const title = document.createElement('span');
+                title.textContent = sectionName;
+                h4.appendChild(title);
 
+                const count = document.createElement('span');
+                count.className = 'text-xs font-mono font-semibold text-slate-500';
+                const assessed = secItems.filter(x => x?.is_applicable !== false && String(x?.status || '').toUpperCase() !== 'PENDING').length;
+                count.textContent = `${secItems.length} items · ${assessed} assessed`;
+                h4.appendChild(count);
                 sectionDiv.appendChild(h4);
 
-                const itemsWrapper = document.createElement('div');
-                itemsWrapper.className = 'space-y-3';
+                const wrapper = document.createElement('div');
+                wrapper.className = 'space-y-3';
 
                 secItems.forEach(item => {
-                    const status = item.status || 'PENDING';
-                    let badgeColor = 'bg-slate-100 text-slate-500 border-slate-200';
-                    if (status === 'GOOD') badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                    else if (status === 'FAIR') badgeColor = 'bg-blue-50 text-blue-700 border-blue-200';
-                    else if (status === 'ATTENTION') badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
-                    else if (status === 'CRITICAL') badgeColor = 'bg-red-50 text-red-700 border-red-200';
-                    else if (status === 'N/A') badgeColor = 'bg-slate-100 text-slate-500 border-slate-200';
-                    else if (status === 'PENDING') badgeColor = 'bg-slate-100 text-slate-500 border-slate-200';
+                    const status = String(item?.status || 'PENDING').toUpperCase();
+                    const badge =
+                        status === 'GOOD' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                        status === 'FAIR' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                        status === 'ATTENTION' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                        status === 'CRITICAL' ? 'bg-red-50 text-red-700 border-red-200' :
+                        'bg-slate-100 text-slate-500 border-slate-200';
 
-                    const statusDisplay = status === 'PENDING' ? 'NOT ASSESSED' : status;
+                    const card = document.createElement('div');
+                    card.className = 'bg-white p-4 rounded-xl border border-slate-200 space-y-2 text-sm shadow-sm';
 
-                    const cardDiv = document.createElement('div');
-                    cardDiv.className = 'bg-white p-4 rounded-xl border border-slate-200 space-y-2 text-sm shadow-sm';
-
-                    const topRow = document.createElement('div');
-                    topRow.className = 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2';
+                    const top = document.createElement('div');
+                    top.className = 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2';
 
                     const titleGroup = document.createElement('div');
                     titleGroup.className = 'flex items-center flex-wrap gap-y-1';
 
-                    if (item.item_code) {
-                        const codeSpan = document.createElement('span');
-                        codeSpan.className = 'font-mono text-xs text-slate-400 font-semibold mr-2';
-                        codeSpan.textContent = item.item_code;
-                        titleGroup.appendChild(codeSpan);
+                    if (item?.item_code) {
+                        const code = document.createElement('span');
+                        code.className = 'font-mono text-xs text-slate-400 font-semibold mr-2';
+                        code.textContent = item.item_code;
+                        titleGroup.appendChild(code);
                     }
 
-                    const nameSpan = document.createElement('span');
-                    nameSpan.className = 'font-bold text-slate-900';
-                    nameSpan.textContent = item.item_name || '';
-                    titleGroup.appendChild(nameSpan);
+                    const name = document.createElement('span');
+                    name.className = 'font-bold text-slate-900';
+                    name.textContent = item?.item_name || '';
+                    titleGroup.appendChild(name);
 
-                    if (item.is_safety_critical) {
-                        const safetySpan = document.createElement('span');
-                        safetySpan.className = 'bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide ml-2';
-                        safetySpan.textContent = 'Safety Critical';
-                        titleGroup.appendChild(safetySpan);
+                    if (item?.is_safety_critical) {
+                        const safety = document.createElement('span');
+                        safety.className = 'bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide ml-2';
+                        safety.textContent = 'Safety Critical';
+                        titleGroup.appendChild(safety);
                     }
 
-                    topRow.appendChild(titleGroup);
+                    top.appendChild(titleGroup);
 
                     const statusBadge = document.createElement('span');
-                    statusBadge.className = `text-xs px-2.5 py-1 rounded-lg font-bold uppercase border ${badgeColor} self-start sm:self-auto`;
-                    statusBadge.textContent = statusDisplay;
-                    topRow.appendChild(statusBadge);
+                    statusBadge.className = `text-xs px-2.5 py-1 rounded-lg font-bold uppercase border ${badge}`;
+                    statusBadge.textContent = status === 'PENDING' ? 'NOT ASSESSED' : status;
+                    top.appendChild(statusBadge);
+                    card.appendChild(top);
 
-                    cardDiv.appendChild(topRow);
-
-                    if (item.measurement_value !== null && item.measurement_value !== undefined && String(item.measurement_value).trim() !== '') {
-                        const measDiv = document.createElement('div');
-                        measDiv.className = 'text-xs text-slate-600 mt-1';
-                        measDiv.innerHTML = `<strong>Measurement:</strong> ${escapeHtml(item.measurement_value)} ${escapeHtml(item.measurement_unit || '')}`;
-                        cardDiv.appendChild(measDiv);
+                    if (item?.measurement_value !== null && item?.measurement_value !== undefined && String(item.measurement_value).trim() !== '') {
+                        const d = document.createElement('div');
+                        d.className = 'text-xs text-slate-600 mt-1';
+                        d.innerHTML = `<strong>Measurement:</strong> ${escapeHtml(item.measurement_value)} ${escapeHtml(item.measurement_unit || '')}`;
+                        card.appendChild(d);
+                    }
+                    if (item?.observation) {
+                        const d = document.createElement('div');
+                        d.className = 'text-xs text-slate-600 mt-1';
+                        d.innerHTML = `<strong>Observation:</strong> ${escapeHtml(item.observation)}`;
+                        card.appendChild(d);
+                    }
+                    if (item?.recommended_action) {
+                        const d = document.createElement('div');
+                        d.className = 'text-xs text-blue-700 font-medium mt-1';
+                        d.innerHTML = `<strong>Recommended Action:</strong> ${escapeHtml(item.recommended_action)}`;
+                        card.appendChild(d);
+                    }
+                    if (item?.estimated_cost !== null && item?.estimated_cost !== undefined && Number(item.estimated_cost) > 0) {
+                        const d = document.createElement('div');
+                        d.className = 'text-xs text-emerald-700 font-medium mt-1';
+                        d.innerHTML = `<strong>Est. Cost:</strong> ₦${Number(item.estimated_cost).toLocaleString()}`;
+                        card.appendChild(d);
                     }
 
-                    if (item.observation) {
-                        const obsDiv = document.createElement('div');
-                        obsDiv.className = 'text-xs text-slate-600 mt-1';
-                        obsDiv.innerHTML = `<strong>Observation:</strong> ${escapeHtml(item.observation)}`;
-                        cardDiv.appendChild(obsDiv);
-                    }
-
-                    if (item.recommended_action) {
-                        const actDiv = document.createElement('div');
-                        actDiv.className = 'text-xs text-blue-700 font-medium mt-1';
-                        actDiv.innerHTML = `<strong>Recommended Action:</strong> ${escapeHtml(item.recommended_action)}`;
-                        cardDiv.appendChild(actDiv);
-                    }
-
-                    if (item.estimated_cost !== null && item.estimated_cost !== undefined && Number(item.estimated_cost) > 0) {
-                        const costDiv = document.createElement('div');
-                        costDiv.className = 'text-xs text-emerald-700 font-medium mt-1';
-                        costDiv.innerHTML = `<strong>Est. Cost:</strong> ₦${Number(item.estimated_cost).toLocaleString()}`;
-                        cardDiv.appendChild(costDiv);
-                    }
-
-                    itemsWrapper.appendChild(cardDiv);
+                    wrapper.appendChild(card);
                 });
 
-                sectionDiv.appendChild(itemsWrapper);
+                sectionDiv.appendChild(wrapper);
                 container.appendChild(sectionDiv);
             });
+
+            setChecklistVisibility();
+
+            const facts = checklistFacts({ inspection_items: items });
+            const sectionCount = container.querySelectorAll('[data-inspection-section]').length;
+            updateChecklistToggle(sectionCount, facts.applicable.length, facts.assessed.length);
         }
 
         function renderInspectionFindings(findings) {
             const section = document.getElementById('findings-section');
             const container = document.getElementById('findings-container');
 
-            if (!findings || findings.length === 0) {
+            if (!Array.isArray(findings) || findings.length === 0) {
                 section.classList.add('hidden');
                 return;
             }
@@ -906,60 +1080,97 @@
             container.innerHTML = '';
 
             findings.forEach(f => {
-                const severity = f.severity || 'NOTE';
-                const severityColor = severity === 'MAJOR' || severity === 'CRITICAL' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-800 border-amber-200';
+                const n = Number(f?.severity);
+                const raw = String(f?.severity ?? 'NOTE').toUpperCase();
+                const severity = Number.isFinite(n)
+                    ? (n >= 4 ? 'CRITICAL' : n === 3 ? 'MAJOR' : n === 2 ? 'MODERATE' : 'NOTE')
+                    : raw;
+
+                const severityColor =
+                    severity === 'CRITICAL' || severity === 'MAJOR'
+                        ? 'bg-red-50 text-red-700 border-red-200'
+                        : severity === 'MODERATE'
+                            ? 'bg-amber-50 text-amber-800 border-amber-200'
+                            : 'bg-slate-50 text-slate-700 border-slate-200';
 
                 const findingDiv = document.createElement('div');
                 findingDiv.className = 'bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3';
 
-                const innerSpace = document.createElement('div');
-                innerSpace.className = 'space-y-1';
+                const inner = document.createElement('div');
+                inner.className = 'space-y-1 w-full';
 
-                const topFlex = document.createElement('div');
-                topFlex.className = 'flex items-center space-x-2';
+                const top = document.createElement('div');
+                top.className = 'flex items-center flex-wrap gap-2';
 
-                const catSpan = document.createElement('span');
-                catSpan.className = 'font-bold text-slate-800';
-                catSpan.textContent = f.category || 'General';
-                topFlex.appendChild(catSpan);
+                const category = document.createElement('span');
+                category.className = 'font-bold text-slate-800';
+                category.textContent = f?.area || f?.category || f?.component || 'General';
+                top.appendChild(category);
 
-                const sevBadge = document.createElement('span');
-                sevBadge.className = `text-xs px-2 py-0.5 rounded font-semibold uppercase border ${severityColor}`;
-                sevBadge.textContent = severity;
-                topFlex.appendChild(sevBadge);
+                const sev = document.createElement('span');
+                sev.className = `text-xs px-2 py-0.5 rounded font-semibold uppercase border ${severityColor}`;
+                sev.textContent = severity;
+                top.appendChild(sev);
+                inner.appendChild(top);
 
-                innerSpace.appendChild(topFlex);
+                if (f?.component) {
+                    const component = document.createElement('div');
+                    component.className = 'text-xs font-semibold text-slate-500';
+                    component.textContent = f.component;
+                    inner.appendChild(component);
+                }
 
-                const descP = document.createElement('p');
-                descP.className = 'text-slate-600';
-                descP.textContent = f.description || f.finding || 'No details provided.';
-                innerSpace.appendChild(descP);
+                const desc = document.createElement('p');
+                desc.className = 'text-slate-600';
+                desc.textContent = f?.finding || f?.description || 'No details provided.';
+                inner.appendChild(desc);
 
-                if (f.photos && f.photos.length > 0) {
-                    const photosScroll = document.createElement('div');
-                    photosScroll.className = 'flex gap-2 mt-3 overflow-x-auto pb-1';
+                if (f?.significance) {
+                    const p = document.createElement('p');
+                    p.className = 'text-xs text-slate-500';
+                    p.innerHTML = `<strong>Significance:</strong> ${escapeHtml(f.significance)}`;
+                    inner.appendChild(p);
+                }
+
+                if (f?.recommended_action) {
+                    const p = document.createElement('p');
+                    p.className = 'text-xs text-blue-700 font-medium';
+                    p.innerHTML = `<strong>Recommended Action:</strong> ${escapeHtml(f.recommended_action)}`;
+                    inner.appendChild(p);
+                }
+
+                if (f?.estimated_cost !== null && f?.estimated_cost !== undefined && Number(f.estimated_cost) > 0) {
+                    const p = document.createElement('p');
+                    p.className = 'text-xs text-emerald-700 font-medium';
+                    p.innerHTML = `<strong>Est. Cost:</strong> ₦${Number(f.estimated_cost).toLocaleString()}`;
+                    inner.appendChild(p);
+                }
+
+                if (Array.isArray(f?.photos) && f.photos.length) {
+                    const photos = document.createElement('div');
+                    photos.className = 'flex gap-2 mt-3 overflow-x-auto pb-1';
 
                     f.photos.forEach(p => {
-                        const pUrl = validateUrl(p.public_url);
-                        if (!pUrl) return;
-
+                        const url = validateUrl(p?.public_url);
+                        if (!url) return;
                         const a = document.createElement('a');
-                        a.href = pUrl;
+                        a.href = url;
                         a.target = '_blank';
                         a.rel = 'noopener noreferrer';
                         a.className = 'w-16 h-16 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0 block';
 
                         const img = document.createElement('img');
-                        img.src = pUrl;
+                        img.src = url;
+                        img.alt = 'Inspection finding evidence';
                         img.className = 'w-full h-full object-cover';
                         a.appendChild(img);
-
-                        photosScroll.appendChild(a);
+                        photos.appendChild(a);
                     });
-                    innerSpace.appendChild(photosScroll);
+
+                    if (photos.children.length) inner.appendChild(photos);
                 }
 
-                findingDiv.appendChild(innerSpace);
+                findingDiv.appendChild(inner);
                 container.appendChild(findingDiv);
             });
         }
