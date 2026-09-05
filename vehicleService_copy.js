@@ -103,55 +103,67 @@ export const vehicleService = {
         return Array.isArray(data) ? data[0] : data;
     },
 
-    /**
-     * Updates an existing vehicle record securely via database RPC.
-     */
     async updateVehicle(vehicleId, updateData) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
-        if (!updateData || typeof updateData !== 'object') {
-            throw new Error('Update data is required.');
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required for update.');
         }
 
-        const { data, error } = await supabase.rpc('update_vehicle', {
-            p_vehicle_id: vehicleId,
-            p_data: updateData
-        });
-
-        if (error) throw new Error(error.message);
-        return Array.isArray(data) ? data[0] : data;
-    },
-
-  /**
-     * Permanently deletes a vehicle record using the secure atomic database RPC
-     * and cleans up associated storage objects from the bucket.
-     */
-    async deleteVehicle(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
-
-        // 1. Fetch associated photo storage paths before database cleanup
-        const { data: photos, error: photoFetchErr } = await supabase
-            .from('vehicle_photos')
-            .select('storage_path')
-            .eq('vehicle_id', vehicleId);
-
-        if (!photoFetchErr && photos && photos.length > 0) {
-            const pathsToRemove = photos.map(p => p.storage_path).filter(Boolean);
-            if (pathsToRemove.length > 0) {
-                await supabase.storage.from('vehicle-photos').remove(pathsToRemove);
-            }
-        }
-
-        // 2. Execute atomic database cascade deletion via secure RPC
-        const { error: rpcError } = await supabase.rpc('delete_vehicle', {
-            p_vehicle_id: vehicleId
-        });
+        // 1. Update the vehicle through the existing RPC
+        const { data: updatedVehicle, error: rpcError } = await supabase
+            .rpc('update_vehicle', {
+                p_vehicle_id: vehicleId,
+                p_data: updateData
+            });
 
         if (rpcError) {
-            throw new Error(rpcError.message);
+            throw new Error(`Failed to update vehicle: ${rpcError.message}`);
         }
 
-        return true;
+        // 2. Synchronize mileage only when mileage was supplied
+        if (updateData.mileage !== undefined && updateData.mileage !== null) {
+            const mileage = Number(updateData.mileage);
+
+            if (!Number.isFinite(mileage) || mileage < 0) {
+                throw new Error('Mileage must be a valid non-negative number.');
+            }
+
+            // 3. Read the authoritative inspection relationship (verification_inspection_id)
+            const { data: vehicleRecord, error: fetchErr } = await supabase
+                .from('vehicles')
+                .select('verification_inspection_id')
+                .eq('id', vehicleId)
+                .single();
+
+            if (fetchErr) {
+                throw new Error(
+                    `Vehicle updated, but authoritative inspection could not be determined: ${fetchErr.message}`
+                );
+            }
+
+            // 4. If an authoritative inspection relationship exists, update THAT inspection only.
+            if (vehicleRecord?.verification_inspection_id) {
+                const { error: inspectionUpdateError } = await supabase
+                    .from('inspections')
+                    .update({
+                        mileage,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', vehicleRecord.verification_inspection_id);
+
+                if (inspectionUpdateError) {
+                    throw new Error(
+                        `Vehicle updated, but inspection mileage could not be synchronized: ${inspectionUpdateError.message}`
+                    );
+                }
+            }
+            // 5. If verification_inspection_id is NULL, safely skip synchronization.
+        }
+
+        return Array.isArray(updatedVehicle)
+            ? updatedVehicle[0]
+            : updatedVehicle;
     },
+
     /**
      * ==========================================
      * VEHICLE LIFECYCLE ACTIONS
@@ -264,7 +276,7 @@ export const vehicleService = {
         return data;
     },
 
-  /**
+    /**
      * ==========================================
      * PHOTO MANAGEMENT METHODS
      * ==========================================
@@ -355,7 +367,6 @@ export const vehicleService = {
             throw new Error('Vehicle ID and Photo ID are required.');
         }
 
-        // Step 1: Unset primary for all photos of this vehicle (Bulk update - NO .single())
         const { error: resetError } = await supabase
             .from('vehicle_photos')
             .update({ is_primary: false })
@@ -365,7 +376,6 @@ export const vehicleService = {
             throw new Error(`Failed to reset primary status: ${resetError.message}`);
         }
 
-        // Step 2: Set target photo as primary (Using array check instead of .single() to prevent coercion crashes)
         const { data, error: setPrimaryError } = await supabase
             .from('vehicle_photos')
             .update({ is_primary: true })
@@ -434,15 +444,78 @@ export const vehicleService = {
     },
 
     /**
+     * Uploads an inspection PDF report (scanner or main report) to storage 
+     * and updates the vehicle inspection record securely.
+     */
+    async uploadInspectionReportPdf(vehicleId, file, reportType = 'scanner') {
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
+
+        if (!file || !(file instanceof File)) {
+            throw new Error('A valid PDF file is required.');
+        }
+
+        const fileExt = file.name.split('.').pop().toLowerCase();
+        if (fileExt !== 'pdf') {
+            throw new Error('Only PDF files are allowed for inspection reports.');
+        }
+
+        const fileName = `inspections/${vehicleId}/${reportType}_${crypto.randomUUID()}.pdf`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('vehicle-photos')
+            .upload(fileName, file, {
+                upsert: false,
+                contentType: 'application/pdf'
+            });
+
+        if (uploadError) {
+            throw new Error(`Failed to upload inspection report: ${uploadError.message}`);
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('vehicle-photos')
+            .getPublicUrl(fileName);
+
+        const { data: vehicleRecord, error: vehicleErr } = await supabase
+            .from('vehicles')
+            .select('verification_inspection_id')
+            .eq('id', vehicleId)
+            .single();
+
+        if (vehicleErr || !vehicleRecord || !vehicleRecord.verification_inspection_id) {
+            await supabase.storage.from('vehicle-photos').remove([fileName]);
+            throw new Error('No verified inspection relationship exists for this vehicle.');
+        }
+
+        const inspectionId = vehicleRecord.verification_inspection_id;
+        const updateField = reportType === 'scanner' ? 'scanner_report_path' : 'report_path';
+
+        const { error: updateError } = await supabase
+            .from('inspections')
+            .update({
+                [updateField]: publicUrl
+            })
+            .eq('id', inspectionId);
+
+        if (updateError) {
+            await supabase.storage
+                .from('vehicle-photos')
+                .remove([fileName]);
+
+            throw new Error(`Failed to save inspection report link: ${updateError.message}`);
+        }
+
+        return publicUrl;
+    },
+
+    /**
      * ==========================================
      * PUBLIC DATA ADAPTERS & LISTINGS
      * ==========================================
      */
 
-    /**
-     * Fetches vehicles that are publicly verified and published,
-     * resolving gallery photos and primary image data.
-     */
     async getVerifiedVehicles(filters = {}) {
         let query = supabase
             .from('vehicles')
@@ -624,6 +697,7 @@ export const vehicleService = {
                 summary,
                 inspection_status,
                 report_path,
+                scanner_report_path,
                 completed_at,
                 inspection_findings (
                     id,
@@ -647,7 +721,7 @@ export const vehicleService = {
                 )
             `)
             .eq('vehicle_id', vehicleId)
-            .eq('inspection_status', 'COMPLETED')
+            .in('inspection_status', ['COMPLETED', 'DRAFT', 'IN_PROGRESS'])
             .order('completed_at', { ascending: false });
 
         if (!inspError && inspections) {
@@ -688,28 +762,3 @@ export const vehicleService = {
         return vehicle;
     }
 };
-
-export const {
-    getAllVehicles,
-    getAdminVehicles,
-    getVehicleById,
-    createVehicle,
-    updateVehicle,
-    deleteVehicle,
-    updateVehiclePrice,
-    verifyVehicle,
-    rejectVehicle,
-    publishVehicle,
-    unpublishVehicle,
-    reserveVehicle,
-    markAvailable,
-    markSold,
-    archiveVehicle,
-    uploadVehiclePhoto,
-    addVehiclePhoto,
-    getVehiclePhotos,
-    setPrimaryPhoto,
-    deleteVehiclePhoto,
-    getVerifiedVehicles,
-    getPublicVehicleDetails
-} = vehicleService;
