@@ -94,7 +94,7 @@
 
                     <!-- Thumbnails Strip -->
                     <div id="gallery-thumbnails" class="grid grid-cols-5 sm:grid-cols-6 gap-3 overflow-x-auto pb-2">
-                        <!-- Populated dynamically -->
+                        <!-- Populated dynamically via DOM methods -->
                     </div>
                 </div>
 
@@ -138,8 +138,8 @@
                         <div class="flex items-start space-x-3">
                             <i class="fa-solid fa-shield-halved text-blue-600 text-xl mt-0.5"></i>
                             <div>
-                                <h4 class="text-xs font-bold uppercase tracking-wider text-blue-900">Dreamland Inspection Guarantee</h4>
-                                <p class="text-xs text-blue-700 mt-1">This vehicle has undergone our rigorous multi-point professional inspection.</p>
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-blue-900">Dreamland Engineering Guarantee</h4>
+                                <p class="text-xs text-blue-700 mt-1">Independent Forensic Audit: Evaluated for structural integrity, live OBD fault codes, and powertrain wear by Dreamland diagnostic engineers.</p>
                             </div>
                         </div>
                     </div>
@@ -376,6 +376,20 @@
                         </div>
                     </div>
 
+                    <!-- Detailed Inspection Checklist Section -->
+                    <div class="space-y-6 pt-6 border-t border-slate-100">
+                        <div class="border-b border-slate-100 pb-3">
+                            <h3 class="font-extrabold text-slate-900 text-xl flex items-center space-x-2">
+                                <i class="fa-solid fa-list-check text-blue-600"></i>
+                                <span>Detailed Inspection Checklist</span>
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Comprehensive section-by-section breakdown of all inspected vehicle components.</p>
+                        </div>
+                        <div id="detailed-checklist-container" class="space-y-6">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
                     <!-- Inspection Findings Section (Rich Evidence & Findings) -->
                     <div id="findings-section" class="hidden space-y-4 pt-4 border-t border-slate-100">
                         <h4 class="font-bold text-slate-900 text-lg flex items-center space-x-2">
@@ -391,8 +405,8 @@
                     <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
                         <div class="space-y-1 text-center md:text-left">
                             <div class="text-xs font-bold uppercase tracking-wider text-emerald-800">Expert Engineer Consultation</div>
-                            <h3 class="text-xl font-extrabold text-slate-900">Questions about this inspection report?</h3>
-                            <p class="text-sm text-slate-600">Discuss specific findings or share this report with your mechanic.</p>
+                            <h3 class="text-xl font-extrabold text-slate-900">Reviewing with your mechanic?</h3>
+                            <p class="text-sm text-slate-600">Send them this exact link or discuss specific diagnostic values directly with our lead engineer on WhatsApp.</p>
                         </div>
                         <div class="flex flex-wrap gap-3 justify-center">
                             <button type="button" onclick="openWhatsApp('inspection_q')" class="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm">
@@ -417,14 +431,14 @@
                             </div>
                         </div>
                         <div class="flex flex-wrap items-center gap-3">
-                            <!-- Scanner Report Render Container (Dynamically switches between download link or fallback notice) -->
+                            <!-- Scanner Report Render Container (Dynamically switches between download link or hidden) -->
                             <div id="scanner-report-container">
                                 <!-- Populated dynamically -->
                             </div>
 
                             <!-- Main Inspection Report Download Button -->
                             <div id="report-btn-container" class="hidden">
-                                <a id="report-download-link" href="#" target="_blank" class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2.5 rounded-xl text-sm transition-colors shadow-sm">
+                                <a id="report-download-link" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2.5 rounded-xl text-sm transition-colors shadow-sm">
                                     <i class="fa-solid fa-file-pdf"></i>
                                     <span>View Inspection Report</span>
                                 </a>
@@ -470,6 +484,29 @@
         const WHATSAPP_NUMBER = '2349066616152'; // Dreamland Motor Engineering Works WhatsApp Number
         let activeVehicleData = null;
 
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function validateUrl(url) {
+            if (!url) return '';
+            const trimmed = String(url).trim();
+            const lower = trimmed.toLowerCase();
+            if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) {
+                return '';
+            }
+            if (trimmed.startsWith('https://') || trimmed.startsWith('http://') || trimmed.startsWith('/')) {
+                return trimmed;
+            }
+            return '';
+        }
+
         async function initVehicleDetails() {
             const params = new URLSearchParams(window.location.search);
             const vehicleId = params.get('id');
@@ -509,8 +546,7 @@
         }
 
         function renderVehicleDetails(v) {
-            const code = v.vehicle_code || v.id.substring(0, 8);
-            document.getElementById('vehicle-code-badge').textContent = `REF: ${code}`;
+            document.getElementById('vehicle-code-badge').textContent = `REF: ${v.vehicle_code || v.id.substring(0, 8)}`;
             document.getElementById('vehicle-title').textContent = `${v.year || ''} ${v.make || ''} ${v.model || ''} ${v.trim || ''}`.trim();
             document.getElementById('vehicle-location').querySelector('span').textContent = v.location || 'Location not specified';
 
@@ -564,6 +600,8 @@
             const placeholder = document.getElementById('no-photo-placeholder');
             const thumbsContainer = document.getElementById('gallery-thumbnails');
 
+            thumbsContainer.innerHTML = '';
+
             const validPhotos = photos ? photos.filter(p => p.public_url && p.public_url.trim() !== '') : [];
 
             if (validPhotos.length === 0) {
@@ -574,34 +612,76 @@
             }
 
             let primaryPhoto = validPhotos.find(p => p.is_primary === true) || validPhotos[0];
-            let activeUrl = primaryPhoto.public_url;
+            let activeUrl = validateUrl(primaryPhoto.public_url) || '#';
 
             mainHero.src = activeUrl;
             mainHero.classList.remove('hidden');
             placeholder.classList.add('hidden');
 
-            thumbsContainer.innerHTML = validPhotos.map((p, idx) => {
-                const url = p.public_url;
-                const isActive = (p.id === primaryPhoto.id);
-                const borderClass = isActive ? 'ring-2 ring-blue-600 opacity-100' : 'opacity-70 hover:opacity-100';
+            validPhotos.forEach((p, idx) => {
+                const url = validateUrl(p.public_url);
+                if (!url) return;
 
-                return `
-                    <div onclick="window.switchHeroPhoto('${url}', this)" class="cursor-pointer rounded-xl overflow-hidden aspect-[4/3] border border-slate-200 bg-slate-100 transition-all ${borderClass}">
-                        <img src="${url}" alt="Thumbnail ${idx + 1}" class="w-full h-full object-cover">
-                    </div>
-                `;
-            }).join('');
+                const isActive = (p.id === primaryPhoto.id);
+
+                const thumbDiv = document.createElement('div');
+                thumbDiv.className = `cursor-pointer rounded-xl overflow-hidden aspect-[4/3] border border-slate-200 bg-slate-100 transition-all ${isActive ? 'ring-2 ring-blue-600 opacity-100' : 'opacity-70 hover:opacity-100'}`;
+                thumbDiv.dataset.photoUrl = url;
+
+                const img = document.createElement('img');
+                img.src = url;
+                img.alt = `Thumbnail ${idx + 1}`;
+                img.className = 'w-full h-full object-cover';
+
+                thumbDiv.appendChild(img);
+
+                thumbDiv.addEventListener('click', () => {
+                    mainHero.src = thumbDiv.dataset.photoUrl;
+                    thumbsContainer.querySelectorAll('> div').forEach(div => {
+                        div.classList.remove('ring-2', 'ring-blue-600', 'opacity-100');
+                        div.classList.add('opacity-70');
+                    });
+                    thumbDiv.classList.remove('opacity-70');
+                    thumbDiv.classList.add('ring-2', 'ring-blue-600', 'opacity-100');
+                });
+
+                thumbsContainer.appendChild(thumbDiv);
+            });
         }
 
-        window.switchHeroPhoto = function(url, el) {
-            document.getElementById('main-hero-photo').src = url;
-            document.querySelectorAll('#gallery-thumbnails > div').forEach(div => {
-                div.classList.remove('ring-2', 'ring-blue-600', 'opacity-100');
-                div.classList.add('opacity-70');
-            });
-            el.classList.remove('opacity-70');
-            el.classList.add('ring-2', 'ring-blue-600', 'opacity-100');
-        };
+        function renderScannerSection(insp) {
+            const container = document.getElementById('scanner-report-container');
+            if (!container) return;
+
+            if (insp && insp.scanner_report_path) {
+                const scannerUrl = validateUrl(insp.scanner_report_path);
+
+                container.innerHTML = '';
+                const a = document.createElement('a');
+                a.href = scannerUrl;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.className = 'inline-flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 text-white font-medium px-4 py-2.5 rounded-xl text-sm transition-colors shadow-sm';
+                
+                const icon = document.createElement('i');
+                icon.className = 'fa-solid fa-file-waveform text-emerald-400';
+                a.appendChild(icon);
+
+                const span = document.createElement('span');
+                span.textContent = 'Scanner Report Available — View PDF';
+                a.appendChild(span);
+
+                container.appendChild(a);
+                container.classList.remove('hidden');
+            } else {
+                container.innerHTML = `
+                    <p class="text-xs text-slate-500 italic">
+                        Scanner report not yet available.
+                    </p>
+                `;
+                container.classList.remove('hidden');
+            }
+        }
 
         function renderInspectionSection(v) {
             const noInspNotice = document.getElementById('no-inspection-notice');
@@ -614,13 +694,22 @@
                 return;
             }
 
-            const inspections = [...rawInspections].sort((a, b) => {
-                const dateA = new Date(a.inspection_date || a.created_at || 0);
-                const dateB = new Date(b.inspection_date || b.created_at || 0);
+            // Filter for COMPLETED inspections only (never display DRAFT, IN_PROGRESS, or CANCELLED)
+            const completedInspections = rawInspections.filter(i => i.inspection_status === 'COMPLETED');
+            if (completedInspections.length === 0) {
+                noInspNotice.classList.remove('hidden');
+                inspDataContainer.classList.add('hidden');
+                return;
+            }
+
+            // Sort completed inspections by completion / creation date descending
+            completedInspections.sort((a, b) => {
+                const dateA = new Date(a.completed_at || a.inspection_date || a.created_at || 0);
+                const dateB = new Date(b.completed_at || b.inspection_date || b.created_at || 0);
                 return dateB - dateA;
             });
 
-            const insp = inspections[0];
+            const insp = completedInspections[0];
 
             noInspNotice.classList.add('hidden');
             inspDataContainer.classList.remove('hidden');
@@ -656,34 +745,152 @@
             document.getElementById('insp-recommendation').textContent = insp.recommendation || 'No recommendation provided.';
             document.getElementById('insp-summary').textContent = insp.summary || 'No inspection summary available.';
 
+            // Render Detailed Inspection Checklist items from inspection_items (preserving PENDING and N/A)
+            renderDetailedChecklist(insp.inspection_items);
+
             renderInspectionFindings(insp.findings);
 
             // Handle Main Inspection Report PDF
             if (insp.report_path) {
                 const reportLink = document.getElementById('report-download-link');
-                reportLink.href = insp.report_path;
+                reportLink.href = validateUrl(insp.report_path);
                 document.getElementById('report-btn-container').classList.remove('hidden');
             } else {
                 document.getElementById('report-btn-container').classList.add('hidden');
             }
 
-            // Handle Scanner Health Report (Conditional rendering based on whether scanner_report_path exists)
-            const scannerContainer = document.getElementById('scanner-report-container');
-            if (insp.scanner_report_path) {
-                scannerContainer.innerHTML = `
-                    <a href="${insp.scanner_report_path}" target="_blank" class="inline-flex items-center space-x-2 bg-slate-800 hover:bg-slate-900 text-white font-medium px-4 py-2.5 rounded-xl text-sm transition-colors shadow-sm">
-                        <i class="fa-solid fa-file-waveform text-emerald-400"></i>
-                        <span>View Scanning Health Report</span>
-                    </a>
-                `;
-            } else {
-                scannerContainer.innerHTML = `
-                    <div class="text-xs text-slate-500 bg-slate-100 px-3 py-2.5 rounded-xl flex items-center space-x-2 border border-slate-200">
-                        <i class="fa-solid fa-circle-exclamation text-amber-500"></i>
-                        <span>Scanning health report not uploaded, <button type="button" onclick="openWhatsApp('scanner_q')" class="text-emerald-700 font-bold hover:underline ml-1">contact us on WhatsApp for it</button>.</span>
-                    </div>
-                `;
+            // Handle Scanner Diagnostic Report using renderScannerSection
+            renderScannerSection(insp);
+        }
+
+        function renderDetailedChecklist(items) {
+            const container = document.getElementById('detailed-checklist-container');
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            if (!items || items.length === 0) {
+                const p = document.createElement('p');
+                p.className = 'text-xs text-slate-500 italic';
+                p.textContent = 'No detailed checklist items recorded.';
+                container.appendChild(p);
+                return;
             }
+
+            // Group by section
+            const sectionsMap = {};
+            items.forEach(item => {
+                const sec = item.section || 'General';
+                if (!sectionsMap[sec]) sectionsMap[sec] = [];
+                sectionsMap[sec].push(item);
+            });
+
+            Object.keys(sectionsMap).forEach(sectionName => {
+                const secItems = sectionsMap[sectionName];
+
+                const sectionDiv = document.createElement('div');
+                sectionDiv.className = 'bg-slate-50 rounded-2xl border border-slate-200 p-5 space-y-4';
+
+                const h4 = document.createElement('h4');
+                h4.className = 'font-extrabold text-slate-900 text-base uppercase tracking-wider border-b border-slate-200 pb-2 flex items-center justify-between';
+                
+                const secSpan = document.createElement('span');
+                secSpan.textContent = sectionName;
+                h4.appendChild(secSpan);
+
+                const countSpan = document.createElement('span');
+                countSpan.className = 'text-xs font-mono font-semibold text-slate-500';
+                countSpan.textContent = `${secItems.length} items`;
+                h4.appendChild(countSpan);
+
+                sectionDiv.appendChild(h4);
+
+                const itemsWrapper = document.createElement('div');
+                itemsWrapper.className = 'space-y-3';
+
+                secItems.forEach(item => {
+                    const status = item.status || 'PENDING';
+                    let badgeColor = 'bg-slate-100 text-slate-500 border-slate-200';
+                    if (status === 'GOOD') badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                    else if (status === 'FAIR') badgeColor = 'bg-blue-50 text-blue-700 border-blue-200';
+                    else if (status === 'ATTENTION') badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
+                    else if (status === 'CRITICAL') badgeColor = 'bg-red-50 text-red-700 border-red-200';
+                    else if (status === 'N/A') badgeColor = 'bg-slate-100 text-slate-500 border-slate-200';
+                    else if (status === 'PENDING') badgeColor = 'bg-slate-100 text-slate-500 border-slate-200';
+
+                    const statusDisplay = status === 'PENDING' ? 'NOT ASSESSED' : status;
+
+                    const cardDiv = document.createElement('div');
+                    cardDiv.className = 'bg-white p-4 rounded-xl border border-slate-200 space-y-2 text-sm shadow-sm';
+
+                    const topRow = document.createElement('div');
+                    topRow.className = 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2';
+
+                    const titleGroup = document.createElement('div');
+                    titleGroup.className = 'flex items-center flex-wrap gap-y-1';
+
+                    if (item.item_code) {
+                        const codeSpan = document.createElement('span');
+                        codeSpan.className = 'font-mono text-xs text-slate-400 font-semibold mr-2';
+                        codeSpan.textContent = item.item_code;
+                        titleGroup.appendChild(codeSpan);
+                    }
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'font-bold text-slate-900';
+                    nameSpan.textContent = item.item_name || '';
+                    titleGroup.appendChild(nameSpan);
+
+                    if (item.is_safety_critical) {
+                        const safetySpan = document.createElement('span');
+                        safetySpan.className = 'bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide ml-2';
+                        safetySpan.textContent = 'Safety Critical';
+                        titleGroup.appendChild(safetySpan);
+                    }
+
+                    topRow.appendChild(titleGroup);
+
+                    const statusBadge = document.createElement('span');
+                    statusBadge.className = `text-xs px-2.5 py-1 rounded-lg font-bold uppercase border ${badgeColor} self-start sm:self-auto`;
+                    statusBadge.textContent = statusDisplay;
+                    topRow.appendChild(statusBadge);
+
+                    cardDiv.appendChild(topRow);
+
+                    if (item.measurement_value !== null && item.measurement_value !== undefined && String(item.measurement_value).trim() !== '') {
+                        const measDiv = document.createElement('div');
+                        measDiv.className = 'text-xs text-slate-600 mt-1';
+                        measDiv.innerHTML = `<strong>Measurement:</strong> ${escapeHtml(item.measurement_value)} ${escapeHtml(item.measurement_unit || '')}`;
+                        cardDiv.appendChild(measDiv);
+                    }
+
+                    if (item.observation) {
+                        const obsDiv = document.createElement('div');
+                        obsDiv.className = 'text-xs text-slate-600 mt-1';
+                        obsDiv.innerHTML = `<strong>Observation:</strong> ${escapeHtml(item.observation)}`;
+                        cardDiv.appendChild(obsDiv);
+                    }
+
+                    if (item.recommended_action) {
+                        const actDiv = document.createElement('div');
+                        actDiv.className = 'text-xs text-blue-700 font-medium mt-1';
+                        actDiv.innerHTML = `<strong>Recommended Action:</strong> ${escapeHtml(item.recommended_action)}`;
+                        cardDiv.appendChild(actDiv);
+                    }
+
+                    if (item.estimated_cost !== null && item.estimated_cost !== undefined && Number(item.estimated_cost) > 0) {
+                        const costDiv = document.createElement('div');
+                        costDiv.className = 'text-xs text-emerald-700 font-medium mt-1';
+                        costDiv.innerHTML = `<strong>Est. Cost:</strong> ₦${Number(item.estimated_cost).toLocaleString()}`;
+                        cardDiv.appendChild(costDiv);
+                    }
+
+                    itemsWrapper.appendChild(cardDiv);
+                });
+
+                sectionDiv.appendChild(itemsWrapper);
+                container.appendChild(sectionDiv);
+            });
         }
 
         function renderInspectionFindings(findings) {
@@ -696,28 +903,65 @@
             }
 
             section.classList.remove('hidden');
-            container.innerHTML = findings.map(f => {
-                const severityColor = f.severity === 'MAJOR' || f.severity === 'CRITICAL' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-800 border-amber-200';
-                
-                const photosHtml = (f.photos && f.photos.length > 0) ? `
-                    <div class="flex gap-2 mt-3 overflow-x-auto pb-1">
-                        ${f.photos.map(p => `<a href="${p.public_url}" target="_blank" class="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0 block"><img src="${p.public_url}" class="w-full h-full object-cover"></a>`).join('')}
-                    </div>
-                ` : '';
+            container.innerHTML = '';
 
-                return `
-                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                        <div class="space-y-1">
-                            <div class="flex items-center space-x-2">
-                                <span class="font-bold text-slate-800">${f.category || 'General'}</span>
-                                <span class="text-xs px-2 py-0.5 rounded font-semibold uppercase border ${severityColor}">${f.severity || 'NOTE'}</span>
-                            </div>
-                            <p class="text-slate-600">${f.description || f.finding || 'No details provided.'}</p>
-                            ${photosHtml}
-                        </div>
-                    </div>
-                `;
-            }).join('');
+            findings.forEach(f => {
+                const severity = f.severity || 'NOTE';
+                const severityColor = severity === 'MAJOR' || severity === 'CRITICAL' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-800 border-amber-200';
+
+                const findingDiv = document.createElement('div');
+                findingDiv.className = 'bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3';
+
+                const innerSpace = document.createElement('div');
+                innerSpace.className = 'space-y-1';
+
+                const topFlex = document.createElement('div');
+                topFlex.className = 'flex items-center space-x-2';
+
+                const catSpan = document.createElement('span');
+                catSpan.className = 'font-bold text-slate-800';
+                catSpan.textContent = f.category || 'General';
+                topFlex.appendChild(catSpan);
+
+                const sevBadge = document.createElement('span');
+                sevBadge.className = `text-xs px-2 py-0.5 rounded font-semibold uppercase border ${severityColor}`;
+                sevBadge.textContent = severity;
+                topFlex.appendChild(sevBadge);
+
+                innerSpace.appendChild(topFlex);
+
+                const descP = document.createElement('p');
+                descP.className = 'text-slate-600';
+                descP.textContent = f.description || f.finding || 'No details provided.';
+                innerSpace.appendChild(descP);
+
+                if (f.photos && f.photos.length > 0) {
+                    const photosScroll = document.createElement('div');
+                    photosScroll.className = 'flex gap-2 mt-3 overflow-x-auto pb-1';
+
+                    f.photos.forEach(p => {
+                        const pUrl = validateUrl(p.public_url);
+                        if (!pUrl) return;
+
+                        const a = document.createElement('a');
+                        a.href = pUrl;
+                        a.target = '_blank';
+                        a.rel = 'noopener noreferrer';
+                        a.className = 'w-16 h-16 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0 block';
+
+                        const img = document.createElement('img');
+                        img.src = pUrl;
+                        img.className = 'w-full h-full object-cover';
+                        a.appendChild(img);
+
+                        photosScroll.appendChild(a);
+                    });
+                    innerSpace.appendChild(photosScroll);
+                }
+
+                findingDiv.appendChild(innerSpace);
+                container.appendChild(findingDiv);
+            });
         }
 
         // Global Share Handler
@@ -765,8 +1009,9 @@
             const toast = document.createElement('div');
             toast.id = 'toast-notification';
             toast.className = 'fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white px-5 py-3 rounded-2xl text-xs font-bold shadow-2xl z-50 transition-all duration-300 opacity-0 translate-y-2 border border-slate-700 flex items-center space-x-2';
-            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i><span>${message}</span>`;
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i><span id="toast-text"></span>`;
             document.body.appendChild(toast);
+            document.getElementById('toast-text').textContent = message;
 
             setTimeout(() => {
                 toast.classList.remove('opacity-0', 'translate-y-2');
@@ -829,7 +1074,7 @@ Vehicle: ${vehicleName}
 Reference: ${vehicleCode}
 Vehicle ID: ${v.id}
 
-I have a question about the inspection findings.
+I am reviewing this with my mechanic and have questions about specific diagnostic values.
 
 Vehicle link:
 ${currentUrl}`;
@@ -842,7 +1087,7 @@ Vehicle: ${vehicleName}
 Reference: ${vehicleCode}
 Vehicle ID: ${v.id}
 
-The scanning health report has not been uploaded yet. Please send me the unedited scanner health report for this vehicle.
+Please dispatch the raw OBD-II diagnostic log / scanning health report for this vehicle.
 
 Vehicle link:
 ${currentUrl}`;
