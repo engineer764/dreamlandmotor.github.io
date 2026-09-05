@@ -410,6 +410,1319 @@
                             <!-- Populated dynamically -->
                         </div>
                         <div id="checklist-toggle-container" class="hidden pt-2 text-center">
+                            <button type="button" id="checklist-toggle-btn" aria-expanded="false" aria-controls="detailed-checklist-container"
+                                    class="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm">
+                                <i id="checklist-toggle-icon" class="fa-solid fa-list-check"></i>
+                                <span id="checklist-toggle-text">View Complete Inspection</span>
+                            </button>
+                            <p id="checklist-toggle-meta" class="text-xs text-slate-500 mt-2"></p>
+                        </div>
+                    </div>
+
+                    <!-- Inspection Findings Section (Rich Evidence & Findings) -->
+                    <div id="findings-section" class="hidden space-y-4 pt-4 border-t border-slate-100">
+                        <h4 class="font-bold text-slate-900 text-lg flex items-center space-x-2">
+                            <i class="fa-solid fa-clipboard-list text-blue-600"></i>
+                            <span>Evaluated Inspection Findings & Evidence</span>
+                        </h4>
+                        <div id="findings-container" class="space-y-3">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- WhatsApp & Share Action Box 2 -->
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div class="space-y-1 text-center md:text-left">
+                            <div class="text-xs font-bold uppercase tracking-wider text-emerald-800">Expert Engineer Consultation</div>
+                            <h3 class="text-xl font-extrabold text-slate-900">Reviewing with your mechanic?</h3>
+                            <p class="text-sm text-slate-600">Send them this exact link or discuss specific diagnostic values directly with our lead engineer on WhatsApp.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-3 justify-center">
+                            <button type="button" onclick="openWhatsApp('inspection_q')" class="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm">
+                                <i class="fa-brands fa-whatsapp text-lg"></i>
+                                <span>Ask About Inspection</span>
+                            </button>
+                            <button type="button" onclick="shareVehicle()" class="inline-flex items-center space-x-2 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm">
+                                <i class="fa-solid fa-share-nodes text-blue-600"></i>
+                                <span>Share Vehicle</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Verification Information & Report Link Card (Conditional Scanner Health Report / Notice) -->
+                    <div class="bg-blue-50/60 rounded-2xl border border-blue-100 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div class="space-y-1">
+                            <div class="text-xs font-bold uppercase tracking-wider text-blue-900">Verification Certificate & Reports</div>
+                            <div class="text-xs text-blue-700 flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                                <span><strong>Status:</strong> <span id="cert-status">VERIFIED</span></span>
+                                <span id="cert-ref-wrapper"><strong>Ref:</strong> <span id="cert-ref">--</span></span>
+                                <span id="cert-date-wrapper"><strong>Verified Date:</strong> <span id="cert-date">--</span></span>
+                            </div>
+                        </div>
+                        <div class="text-xs text-blue-700">
+                            <i class="fa-solid fa-circle-check mr-1"></i>
+                            Verification information for this published vehicle.
+                        </div>                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Sticky Mobile Action Bar -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-slate-200 p-3 sm:hidden z-50 flex gap-2 shadow-lg">
+        <button type="button" onclick="openWhatsApp('enquiry')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-2 rounded-xl text-xs flex items-center justify-center space-x-1 shadow-sm">
+            <i class="fa-brands fa-whatsapp text-sm"></i>
+            <span>WhatsApp</span>
+        </button>
+        <button type="button" onclick="shareVehicle()" class="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center shadow-sm">
+            <i class="fa-solid fa-share-nodes text-blue-600 text-sm"></i>
+        </button>
+        <button type="button" onclick="openWhatsApp('schedule')" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 px-2 rounded-xl text-xs flex items-center justify-center space-x-1 shadow-sm">
+            <i class="fa-solid fa-calendar-days"></i>
+            <span>Schedule</span>
+        </button>
+    </div>
+
+    <!-- Public Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-8 border-t border-slate-800 mt-16 mb-12 sm:mb-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs space-y-2">
+            <p>&copy; 2026 Dreamland Verified Cars. All rights reserved.</p>
+            <p>Professional vehicle inspections, transparent condition grading, and verified sales.</p>
+        </div>
+    </footer>
+
+    <!-- Page Controller Script -->
+    <script type="module">
+        import { vehicleService } from './vehicleService.js';
+
+        const WHATSAPP_NUMBER = '2349066616152'; // Dreamland Motor Engineering Works WhatsApp Number
+        let activeVehicleData = null;
+
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function validateUrl(url) {
+            if (!url) return '';
+            const trimmed = String(url).trim();
+            const lower = trimmed.toLowerCase();
+            if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) {
+                return '';
+            }
+            if (trimmed.startsWith('https://') || trimmed.startsWith('http://') || trimmed.startsWith('/')) {
+                return trimmed;
+            }
+            return '';
+        }
+
+        async function initVehicleDetails() {
+            const params = new URLSearchParams(window.location.search);
+            const vehicleId = params.get('id');
+
+            const loadingState = document.getElementById('loading-state');
+            const errorState = document.getElementById('error-state');
+            const vehicleContent = document.getElementById('vehicle-content');
+
+            if (!vehicleId) {
+                loadingState.classList.add('hidden');
+                document.getElementById('error-title').textContent = 'Vehicle not specified.';
+                document.getElementById('error-message').textContent = 'Please provide a valid vehicle ID in the URL.';
+                errorState.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const vehicle = await vehicleService.getPublicVehicleDetails(vehicleId);
+
+                if (!vehicle) {
+                    throw new Error('Vehicle record not found.');
+                }
+
+                activeVehicleData = vehicle;
+                renderVehicleDetails(vehicle);
+
+                loadingState.classList.add('hidden');
+                vehicleContent.classList.remove('hidden');
+
+            } catch (err) {
+                console.error('Failed to load public vehicle details:', err);
+                loadingState.classList.add('hidden');
+                document.getElementById('error-title').textContent = 'Vehicle not found.';
+                document.getElementById('error-message').textContent = 'Unable to load vehicle details or the record does not exist in the verified catalog.';
+                errorState.classList.remove('hidden');
+            }
+        }
+
+        function renderVehicleDetails(v) {
+            document.getElementById('vehicle-code-badge').textContent = `REF: ${v.vehicle_code || v.id.substring(0, 8)}`;
+            document.getElementById('vehicle-title').textContent = `${v.year || ''} ${v.make || ''} ${v.model || ''} ${v.trim || ''}`.trim();
+            document.getElementById('vehicle-location').querySelector('span').textContent = v.location || 'Location not specified';
+
+            const currency = v.currency || 'NGN';
+            const formattedPrice = v.price ? new Intl.NumberFormat('en-NG', { style: 'currency', currency: currency, maximumFractionDigits: 0 }).format(v.price) : 'Price TBD';
+            document.getElementById('vehicle-price').textContent = formattedPrice;
+
+            renderPhotoGallery(v.photos);
+
+            document.getElementById('spec-year').textContent = v.year || 'Not provided';
+            document.getElementById('spec-mileage').textContent = v.mileage !== null && v.mileage !== undefined ? `${Number(v.mileage).toLocaleString()} km` : 'Not provided';
+            document.getElementById('spec-transmission').textContent = v.transmission || 'Not provided';
+            document.getElementById('spec-fuel').textContent = v.fuel_type || 'Not provided';
+            document.getElementById('spec-body').textContent = v.body_type || 'Not provided';
+            document.getElementById('spec-colour').textContent = v.colour || 'Not provided';
+            document.getElementById('spec-engine').textContent = v.engine || 'Not provided';
+
+            document.getElementById('vehicle-description').textContent = v.description || 'No description provided.';
+
+            document.getElementById('full-make').textContent = v.make || 'Not provided';
+            document.getElementById('full-model').textContent = v.model || 'Not provided';
+            document.getElementById('full-trim').textContent = v.trim || 'Not provided';
+            document.getElementById('full-year').textContent = v.year || 'Not provided';
+            document.getElementById('full-mileage').textContent = v.mileage !== null && v.mileage !== undefined ? `${Number(v.mileage).toLocaleString()} km` : 'Not provided';
+            document.getElementById('full-engine').textContent = v.engine || 'Not provided';
+            document.getElementById('full-transmission').textContent = v.transmission || 'Not provided';
+            document.getElementById('full-fuel').textContent = v.fuel_type || 'Not provided';
+            document.getElementById('full-colour').textContent = v.colour || 'Not provided';
+            document.getElementById('full-body').textContent = v.body_type || 'Not provided';
+            document.getElementById('full-location').textContent = v.location || 'Not provided';
+            document.getElementById('full-vin').textContent = v.vin || 'Not provided';
+            document.getElementById('full-reg').textContent = v.registration_number || 'Not provided';
+
+            renderInspectionSection(v);
+
+            document.getElementById('cert-status').textContent = v.verification_status || 'VERIFIED';
+            if (v.verification_reference) {
+                document.getElementById('cert-ref').textContent = v.verification_reference;
+            } else {
+                document.getElementById('cert-ref-wrapper').classList.add('hidden');
+            }
+            if (v.verified_at) {
+                document.getElementById('cert-date').textContent = new Date(v.verified_at).toLocaleDateString();
+            } else {
+                document.getElementById('cert-date-wrapper').classList.add('hidden');
+            }
+        }
+
+        function renderPhotoGallery(photos) {
+            const mainHero = document.getElementById('main-hero-photo');
+            const placeholder = document.getElementById('no-photo-placeholder');
+            const thumbsContainer = document.getElementById('gallery-thumbnails');
+
+            thumbsContainer.innerHTML = '';
+
+            const validPhotos = photos ? photos.filter(p => p.public_url && p.public_url.trim() !== '') : [];
+
+            if (validPhotos.length === 0) {
+                mainHero.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+                thumbsContainer.innerHTML = '<p class="text-xs text-slate-400 col-span-full">No photos available for this vehicle.</p>';
+                return;
+            }
+
+            let primaryPhoto = validPhotos.find(p => p.is_primary === true) || validPhotos[0];
+            let activeUrl = validateUrl(primaryPhoto.public_url) || '#';
+
+            mainHero.src = activeUrl;
+            mainHero.classList.remove('hidden');
+            placeholder.classList.add('hidden');
+
+            validPhotos.forEach((p, idx) => {
+                const url = validateUrl(p.public_url);
+                if (!url) return;
+
+                const isActive = (p.id === primaryPhoto.id);
+
+                const thumbDiv = document.createElement('div');
+                thumbDiv.className = `cursor-pointer rounded-xl overflow-hidden aspect-[4/3] border border-slate-200 bg-slate-100 transition-all ${isActive ? 'ring-2 ring-blue-600 opacity-100' : 'opacity-70 hover:opacity-100'}`;
+                thumbDiv.dataset.photoUrl = url;
+
+                const img = document.createElement('img');
+                img.src = url;
+                img.alt = `Thumbnail ${idx + 1}`;
+                img.className = 'w-full h-full object-cover';
+
+                thumbDiv.appendChild(img);
+
+                thumbDiv.addEventListener('click', () => {
+                    mainHero.src = thumbDiv.dataset.photoUrl;
+                    thumbsContainer.querySelectorAll('> div').forEach(div => {
+                        div.classList.remove('ring-2', 'ring-blue-600', 'opacity-100');
+                        div.classList.add('opacity-70');
+                    });
+                    thumbDiv.classList.remove('opacity-70');
+                    thumbDiv.classList.add('ring-2', 'ring-blue-600', 'opacity-100');
+                });
+
+                thumbsContainer.appendChild(thumbDiv);
+            });
+        }
+
+        function renderScannerSection(insp) {
+            const container = document.getElementById('scanner-report-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const scannerUrl = validateUrl(insp?.scanner_report_path);
+            if (scannerUrl) {
+                const a = document.createElement('a');
+                a.href = scannerUrl;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.className = 'inline-flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 text-white font-bold px-4 py-2.5 rounded-xl text-sm transition-colors shadow-sm';
+                a.innerHTML = '<i class="fa-solid fa-file-waveform text-emerald-400"></i><span>View Scanner Diagnostic PDF</span>';
+                container.appendChild(a);
+            } else {
+                const notice = document.createElement('span');
+                notice.className = 'inline-flex items-center space-x-2 bg-white text-slate-500 border border-slate-200 font-medium px-4 py-2.5 rounded-xl text-sm';
+                notice.innerHTML = '<i class="fa-solid fa-file-waveform"></i><span>Scanner report not yet available</span>';
+                container.appendChild(notice);
+            }
+        }
+
+        function normalizeCondition(condition, score) {
+            const raw = String(condition || '').trim().toUpperCase();
+            if (raw.includes('EXCELLENT')) return 'EXCELLENT';
+            if (raw === 'GOOD' || raw.includes('GOOD')) return 'GOOD';
+            if (raw.includes('FAIR')) return 'FAIR';
+            if (raw.includes('CRITICAL')) return 'CRITICAL';
+            if (raw.includes('POOR')) return 'POOR';
+            if (raw.includes('UNSATISFACTORY')) return 'UNSATISFACTORY';
+            if (raw.includes('ATTENTION')) return 'NEEDS ATTENTION';
+
+            const n = Number(score);
+            if (Number.isFinite(n)) {
+                if (n >= 90) return 'EXCELLENT';
+                if (n >= 80) return 'GOOD';
+                if (n >= 70) return 'FAIR';
+                if (n >= 60) return 'NEEDS ATTENTION';
+                return 'POOR';
+            }
+            return 'NOT RATED';
+        }
+
+        function checklistFacts(insp) {
+            const items = Array.isArray(insp?.inspection_items) ? insp.inspection_items : [];
+            const applicable = items.filter(x => x?.is_applicable !== false);
+            const assessed = applicable.filter(x => String(x?.status || '').toUpperCase() !== 'PENDING');
+            const criticalItems = items.filter(x =>
+                x?.is_safety_critical === true &&
+                ['CRITICAL', 'ATTENTION'].includes(String(x?.status || '').toUpperCase())
+            );
+            return { items, applicable, assessed, criticalItems };
+        }
+
+        function findingFacts(insp) {
+            const findings = Array.isArray(insp?.findings) ? insp.findings : [];
+            const critical = findings.filter(f => {
+                const s = String(f?.severity ?? '').toUpperCase();
+                const n = Number(f?.severity);
+                return s === 'CRITICAL' || n >= 4;
+            });
+            const major = findings.filter(f => {
+                const s = String(f?.severity ?? '').toUpperCase();
+                const n = Number(f?.severity);
+                return s === 'MAJOR' || n === 3;
+            });
+            return { findings, critical, major };
+        }
+
+        function deriveInspectionRecommendation(insp) {
+            const facts = checklistFacts(insp);
+            const findings = findingFacts(insp);
+            const condition = normalizeCondition(insp?.overall_condition, insp?.overall_score);
+
+            if (findings.critical.length || facts.criticalItems.length) {
+                return 'Do not treat this vehicle as ready for unrestricted use or purchase without resolving the identified safety-critical findings and completing a follow-up inspection.';
+            }
+            if (condition === 'EXCELLENT') {
+                return 'Suitable for purchase based on the completed inspection, subject to normal maintenance appropriate to the vehicle’s age, mileage and service history.';
+            }
+            if (condition === 'GOOD') {
+                return 'A generally sound vehicle with limited items requiring attention. Review the noted recommendations and confirm routine maintenance before purchase.';
+            }
+            if (condition === 'FAIR') {
+                return 'The vehicle is serviceable but several areas require attention. Review the identified items, obtain cost estimates where necessary, and consider the findings before purchase.';
+            }
+            if (condition === 'NEEDS ATTENTION') {
+                return 'Multiple areas require corrective attention. The identified repairs should be assessed and addressed before the vehicle is considered ready for normal use or purchase.';
+            }
+            if (condition === 'POOR' || condition === 'UNSATISFACTORY') {
+                return 'The inspection identified substantial concerns. A detailed repair assessment is recommended before considering this vehicle for purchase or normal operation.';
+            }
+            return insp?.recommendation || 'Review the complete inspection findings before making a purchase decision.';
+        }
+
+        function deriveInspectionSummary(insp) {
+            const facts = checklistFacts(insp);
+            const findings = findingFacts(insp);
+            const score = Number(insp?.overall_score);
+            const condition = normalizeCondition(insp?.overall_condition, score);
+            const assessedText = facts.applicable.length
+                ? `${facts.assessed.length.toLocaleString()} of ${facts.applicable.length.toLocaleString()} applicable inspection points were assessed`
+                : 'the available inspection results were reviewed';
+            const scoreText = Number.isFinite(score) ? `, producing an overall score of ${score}/100` : '';
+
+            if (findings.critical.length || facts.criticalItems.length) {
+                return `The completed Dreamland point-to-point inspection found ${assessedText}${scoreText}. Although the overall result is ${condition.toLowerCase()}, safety-critical concerns were identified and take priority over the headline score. These findings should be resolved and verified before the vehicle is considered ready for normal use or purchase.`;
+            }
+            if (condition === 'EXCELLENT') {
+                return `The vehicle demonstrated an excellent overall condition during the Dreamland multi-point inspection. ${assessedText}${scoreText}. The inspection results indicate a strong and well-presented vehicle with no significant safety-critical concerns identified. It presents as a strong candidate for purchase, subject to normal maintenance appropriate to its age and mileage.`;
+            }
+            if (condition === 'GOOD') {
+                return `The vehicle returned a good overall result from the Dreamland multi-point inspection. ${assessedText}${scoreText}. Most inspected components were found to be in satisfactory condition, with only limited areas requiring attention. The vehicle presents as a generally sound candidate for purchase, subject to the recommendations recorded in this report.`;
+            }
+            if (condition === 'FAIR') {
+                return `The vehicle returned a fair overall result from the Dreamland multi-point inspection. ${assessedText}${scoreText}. The vehicle remains serviceable, but the inspection identified areas that should receive attention. The findings and recommended actions should be reviewed carefully before purchase.`;
+            }
+            if (condition === 'NEEDS ATTENTION') {
+                return `The Dreamland multi-point inspection identified several areas requiring attention. ${assessedText}${scoreText}. The vehicle should not be evaluated on the headline score alone; the detailed findings and recommended corrective actions should be reviewed and costed before purchase or normal use.`;
+            }
+            if (condition === 'POOR' || condition === 'UNSATISFACTORY') {
+                return `The Dreamland multi-point inspection identified significant areas of concern. ${assessedText}${scoreText}. The detailed findings indicate that corrective work may be required before the vehicle can be considered a sound purchase or suitable for normal operation. A repair assessment and follow-up inspection are recommended.`;
+            }
+            return `The Dreamland inspection results have been reviewed. ${assessedText}${scoreText}. Please review the complete checklist, findings and professional recommendation before making a purchase decision.`;
+        }
+
+        let checklistExpanded = false;
+
+        function updateChecklistToggle(sectionCount, total, assessed) {
+            const box = document.getElementById('checklist-toggle-container');
+            const btn = document.getElementById('checklist-toggle-btn');
+            const text = document.getElementById('checklist-toggle-text');
+            const icon = document.getElementById('checklist-toggle-icon');
+            const meta = document.getElementById('checklist-toggle-meta');
+            if (!box || !btn) return;
+
+            if (sectionCount <= 2) {
+                box.classList.add('hidden');
+                return;
+            }
+            box.classList.remove('hidden');
+
+            btn.setAttribute('aria-expanded', checklistExpanded ? 'true' : 'false');
+            btn.setAttribute('aria-controls', 'detailed-checklist-container');
+
+            if (checklistExpanded) {
+                text.textContent = 'Collapse Inspection';
+                icon.className = 'fa-solid fa-chevron-up';
+                meta.textContent = `Showing all ${total.toLocaleString()} applicable inspection points (${assessed.toLocaleString()} assessed).`;
+            } else {
+                text.textContent = 'View Complete Inspection';
+                icon.className = 'fa-solid fa-list-check';
+                meta.textContent = `Showing the first 2 sections. ${total.toLocaleString()} applicable points are available in the complete inspection.`;
+            }
+        }
+
+        function setChecklistVisibility() {
+            const container = document.getElementById('detailed-checklist-container');
+            if (!container) return;
+            Array.from(container.querySelectorAll('[data-inspection-section]')).forEach((section, index) => {
+                section.classList.toggle('hidden', !checklistExpanded && index >= 2);
+            });
+        }
+
+        function bindChecklistToggle() {
+            const btn = document.getElementById('checklist-toggle-btn');
+            if (!btn || btn.dataset.bound === 'true') return;
+            btn.dataset.bound = 'true';
+            btn.addEventListener('click', () => {
+                checklistExpanded = !checklistExpanded;
+                setChecklistVisibility();
+
+                const sections = document.querySelectorAll('#detailed-checklist-container [data-inspection-section]').length;
+                const insp = activeVehicleData?.inspections?.find(i => i.inspection_status === 'COMPLETED');
+                const facts = checklistFacts(insp || {});
+                updateChecklistToggle(sections, facts.applicable.length, facts.assessed.length);
+
+                if (checklistExpanded) {
+                    document.getElementById('detailed-checklist-container')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        }
+
+        function renderInspectionSection(v) {
+            const noInspNotice = document.getElementById('no-inspection-notice');
+            const inspDataContainer = document.getElementById('inspection-data-container');
+            const rawInspections = Array.isArray(v.inspections) ? v.inspections : [];
+
+            if (!rawInspections.length) {
+                noInspNotice.classList.remove('hidden');
+                inspDataContainer.classList.add('hidden');
+                return;
+            }
+
+            const completed = rawInspections.filter(i => String(i?.inspection_status || '').toUpperCase() === 'COMPLETED');
+            if (!completed.length) {
+                noInspNotice.classList.remove('hidden');
+                inspDataContainer.classList.add('hidden');
+                return;
+            }
+
+            let insp = v.verification_inspection_id
+                ? completed.find(i => i.id === v.verification_inspection_id)
+                : null;
+
+            if (!insp) {
+                completed.sort((a, b) =>
+                    new Date(b.completed_at || b.inspection_date || b.created_at || 0) -
+                    new Date(a.completed_at || a.inspection_date || a.created_at || 0)
+                );
+                insp = completed[0];
+            }
+
+            noInspNotice.classList.add('hidden');
+            inspDataContainer.classList.remove('hidden');
+
+            document.getElementById('insp-number').textContent = insp.inspection_number || 'Not assigned';
+            document.getElementById('insp-date').textContent =
+                insp.inspection_date ? new Date(insp.inspection_date).toLocaleDateString() :
+                (insp.completed_at ? new Date(insp.completed_at).toLocaleDateString() : 'N/A');
+            document.getElementById('insp-status').textContent = insp.inspection_status || 'COMPLETED';
+            document.getElementById('insp-mileage').textContent =
+                insp.mileage !== null && insp.mileage !== undefined
+                    ? `${Number(insp.mileage).toLocaleString()} km`
+                    : (v.mileage ? `${Number(v.mileage).toLocaleString()} km` : 'N/A');
+
+            if (insp.overall_score !== null && insp.overall_score !== undefined) {
+                document.getElementById('insp-overall-score-num').textContent = insp.overall_score;
+                document.getElementById('insp-overall-score-text').textContent = `${insp.overall_score} / 100 Overall Score`;
+            } else {
+                document.getElementById('insp-overall-score-num').textContent = '--';
+                document.getElementById('insp-overall-score-text').textContent = 'Score not available';
+            }
+
+            const condition = normalizeCondition(insp.overall_condition, insp.overall_score);
+            const recommendation = deriveInspectionRecommendation(insp);
+            const summary = deriveInspectionSummary(insp);
+
+            document.getElementById('insp-condition').textContent = condition;
+            document.getElementById('insp-recommendation-short').textContent = recommendation;
+
+            const setScore = (id, val) => {
+                document.getElementById(id).textContent = val !== null && val !== undefined ? val : 'N/A';
+            };
+            setScore('score-mechanical', insp.mechanical_score);
+            setScore('score-electrical', insp.electrical_score);
+            setScore('score-body', insp.body_score);
+            setScore('score-interior', insp.interior_score);
+            setScore('score-suspension', insp.suspension_score);
+            setScore('score-brakes', insp.brake_score);
+            setScore('score-diagnostic', insp.diagnostic_score);
+            setScore('score-road', insp.road_test_score);
+
+            document.getElementById('insp-recommendation').textContent = recommendation;
+            document.getElementById('insp-summary').textContent = summary;
+
+            checklistExpanded = false;
+            renderDetailedChecklist(insp.inspection_items);
+            renderInspectionFindings(insp.findings);
+
+            const reportUrl = validateUrl(insp.report_path);
+            if (reportUrl) {
+                document.getElementById('report-download-link').href = reportUrl;
+                document.getElementById('report-btn-container').classList.remove('hidden');
+            } else {
+                document.getElementById('report-btn-container').classList.add('hidden');
+            }
+
+            renderScannerSection(insp);
+            bindChecklistToggle();
+        }
+
+        function renderDetailedChecklist(items) {
+            const container = document.getElementById('detailed-checklist-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (!Array.isArray(items) || items.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'bg-slate-50 border border-dashed border-slate-200 rounded-xl p-5 text-sm text-slate-500';
+                empty.innerHTML = '<div class="font-semibold text-slate-700 mb-1">Detailed checklist unavailable</div><div>The inspection summary is available, but the individual point-to-point items were not returned by the public data service.</div>';
+                container.appendChild(empty);
+                document.getElementById('checklist-toggle-container')?.classList.add('hidden');
+                return;
+            }
+
+            const sections = new Map();
+            items.forEach(item => {
+                const section = item?.section || 'General';
+                if (!sections.has(section)) sections.set(section, []);
+                sections.get(section).push(item);
+            });
+
+            sections.forEach((secItems, sectionName) => {
+                const sectionDiv = document.createElement('div');
+                sectionDiv.dataset.inspectionSection = 'true';
+                sectionDiv.className = 'bg-slate-50 rounded-2xl border border-slate-200 p-5 space-y-4';
+
+                const h4 = document.createElement('h4');
+                h4.className = 'font-extrabold text-slate-900 text-base uppercase tracking-wider border-b border-slate-200 pb-2 flex items-center justify-between';
+
+                const title = document.createElement('span');
+                title.textContent = sectionName;
+                h4.appendChild(title);
+
+                const count = document.createElement('span');
+                count.className = 'text-xs font-mono font-semibold text-slate-500';
+                const assessed = secItems.filter(x => x?.is_applicable !== false && String(x?.status || '').toUpperCase() !== 'PENDING').length;
+                count.textContent = `${secItems.length} items · ${assessed} assessed`;
+                h4.appendChild(count);
+                sectionDiv.appendChild(h4);
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'space-y-3';
+
+                secItems.forEach(item => {
+                    const status = String(item?.status || 'PENDING').toUpperCase();
+                    const badge =
+                        status === 'GOOD' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                        status === 'FAIR' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                        status === 'ATTENTION' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                        status === 'CRITICAL' ? 'bg-red-50 text-red-700 border-red-200' :
+                        'bg-slate-100 text-slate-500 border-slate-200';
+
+                    const card = document.createElement('div');
+                    card.className = 'bg-white p-4 rounded-xl border border-slate-200 space-y-2 text-sm shadow-sm';
+
+                    const top = document.createElement('div');
+                    top.className = 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2';
+
+                    const titleGroup = document.createElement('div');
+                    titleGroup.className = 'flex items-center flex-wrap gap-y-1';
+
+                    if (item?.item_code) {
+                        const code = document.createElement('span');
+                        code.className = 'font-mono text-xs text-slate-400 font-semibold mr-2';
+                        code.textContent = item.item_code;
+                        titleGroup.appendChild(code);
+                    }
+
+                    const name = document.createElement('span');
+                    name.className = 'font-bold text-slate-900';
+                    name.textContent = item?.item_name || '';
+                    titleGroup.appendChild(name);
+
+                    if (item?.is_safety_critical) {
+                        const safety = document.createElement('span');
+                        safety.className = 'bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide ml-2';
+                        safety.textContent = 'Safety Critical';
+                        titleGroup.appendChild(safety);
+                    }
+
+                    top.appendChild(titleGroup);
+
+                    const statusBadge = document.createElement('span');
+                    statusBadge.className = `text-xs px-2.5 py-1 rounded-lg font-bold uppercase border ${badge}`;
+                    statusBadge.textContent = status === 'PENDING' ? 'NOT ASSESSED' : status;
+                    top.appendChild(statusBadge);
+                    card.appendChild(top);
+
+                    if (item?.measurement_value !== null && item?.measurement_value !== undefined && String(item.measurement_value).trim() !== '') {
+                        const d = document.createElement('div');
+                        d.className = 'text-xs text-slate-600 mt-1';
+                        d.innerHTML = `<strong>Measurement:</strong> ${escapeHtml(item.measurement_value)} ${escapeHtml(item.measurement_unit || '')}`;
+                        card.appendChild(d);
+                    }
+                    if (item?.observation) {
+                        const d = document.createElement('div');
+                        d.className = 'text-xs text-slate-600 mt-1';
+                        d.innerHTML = `<strong>Observation:</strong> ${escapeHtml(item.observation)}`;
+                        card.appendChild(d);
+                    }
+                    if (item?.recommended_action) {
+                        const d = document.createElement('div');
+                        d.className = 'text-xs text-blue-700 font-medium mt-1';
+                        d.innerHTML = `<strong>Recommended Action:</strong> ${escapeHtml(item.recommended_action)}`;
+                        card.appendChild(d);
+                    }
+                    if (item?.estimated_cost !== null && item?.estimated_cost !== undefined && Number(item.estimated_cost) > 0) {
+                        const d = document.createElement('div');
+                        d.className = 'text-xs text-emerald-700 font-medium mt-1';
+                        d.innerHTML = `<strong>Est. Cost:</strong> ₦${Number(item.estimated_cost).toLocaleString()}`;
+                        card.appendChild(d);
+                    }
+
+                    wrapper.appendChild(card);
+                });
+
+                sectionDiv.appendChild(wrapper);
+                container.appendChild(sectionDiv);
+            });
+
+            setChecklistVisibility();
+
+            const facts = checklistFacts({ inspection_items: items });
+            const sectionCount = container.querySelectorAll('[data-inspection-section]').length;
+            updateChecklistToggle(sectionCount, facts.applicable.length, facts.assessed.length);
+        }
+
+        function renderInspectionFindings(findings) {
+            const section = document.getElementById('findings-section');
+            const container = document.getElementById('findings-container');
+
+            if (!Array.isArray(findings) || findings.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+
+            section.classList.remove('hidden');
+            container.innerHTML = '';
+
+            findings.forEach(f => {
+                const n = Number(f?.severity);
+                const raw = String(f?.severity ?? 'NOTE').toUpperCase();
+                const severity = Number.isFinite(n)
+                    ? (n >= 4 ? 'CRITICAL' : n === 3 ? 'MAJOR' : n === 2 ? 'MODERATE' : 'NOTE')
+                    : raw;
+
+                const severityColor =
+                    severity === 'CRITICAL' || severity === 'MAJOR'
+                        ? 'bg-red-50 text-red-700 border-red-200'
+                        : severity === 'MODERATE'
+                            ? 'bg-amber-50 text-amber-800 border-amber-200'
+                            : 'bg-slate-50 text-slate-700 border-slate-200';
+
+                const findingDiv = document.createElement('div');
+                findingDiv.className = 'bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3';
+
+                const inner = document.createElement('div');
+                inner.className = 'space-y-1 w-full';
+
+                const top = document.createElement('div');
+                top.className = 'flex items-center flex-wrap gap-2';
+
+                const category = document.createElement('span');
+                category.className = 'font-bold text-slate-800';
+                category.textContent = f?.area || f?.category || f?.component || 'General';
+                top.appendChild(category);
+
+                const sev = document.createElement('span');
+                sev.className = `text-xs px-2 py-0.5 rounded font-semibold uppercase border ${severityColor}`;
+                sev.textContent = severity;
+                top.appendChild(sev);
+                inner.appendChild(top);
+
+                if (f?.component) {
+                    const component = document.createElement('div');
+                    component.className = 'text-xs font-semibold text-slate-500';
+                    component.textContent = f.component;
+                    inner.appendChild(component);
+                }
+
+                const desc = document.createElement('p');
+                desc.className = 'text-slate-600';
+                desc.textContent = f?.finding || f?.description || 'No details provided.';
+                inner.appendChild(desc);
+
+                if (f?.significance) {
+                    const p = document.createElement('p');
+                    p.className = 'text-xs text-slate-500';
+                    p.innerHTML = `<strong>Significance:</strong> ${escapeHtml(f.significance)}`;
+                    inner.appendChild(p);
+                }
+
+                if (f?.recommended_action) {
+                    const p = document.createElement('p');
+                    p.className = 'text-xs text-blue-700 font-medium';
+                    p.innerHTML = `<strong>Recommended Action:</strong> ${escapeHtml(f.recommended_action)}`;
+                    inner.appendChild(p);
+                }
+
+                if (f?.estimated_cost !== null && f?.estimated_cost !== undefined && Number(f.estimated_cost) > 0) {
+                    const p = document.createElement('p');
+                    p.className = 'text-xs text-emerald-700 font-medium';
+                    p.innerHTML = `<strong>Est. Cost:</strong> ₦${Number(f.estimated_cost).toLocaleString()}`;
+                    inner.appendChild(p);
+                }
+
+                if (Array.isArray(f?.photos) && f.photos.length) {
+                    const photos = document.createElement('div');
+                    photos.className = 'flex gap-2 mt-3 overflow-x-auto pb-1';
+
+                    f.photos.forEach(p => {
+                        const url = validateUrl(p?.public_url);
+                        if (!url) return;
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.target = '_blank';
+                        a.rel = 'noopener noreferrer';
+                        a.className = 'w-16 h-16 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0 block';
+
+                        const img = document.createElement('img');
+                        img.src = url;
+                        img.alt = 'Inspection finding evidence';
+                        img.className = 'w-full h-full object-cover';
+                        a.appendChild(img);
+                        photos.appendChild(a);
+                    });
+
+                    if (photos.children.length) inner.appendChild(photos);
+                }
+
+                findingDiv.appendChild(inner);
+                container.appendChild(findingDiv);
+            });
+        }
+
+        // Global Share Handler
+        window.shareVehicle = async function() {
+            if (!activeVehicleData) {
+                alert('Vehicle details are still loading.');
+                return;
+            }
+
+            const v = activeVehicleData;
+            const vehicleName = `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim();
+            const shareTitle = `Verified ${vehicleName} — Dreamland Motor Engineering Works`;
+            const shareText = `Check out this verified vehicle inspection report for ${vehicleName} (Ref: ${v.vehicle_code || 'N/A'}) from Dreamland.`;
+            const shareUrl = window.location.href;
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: shareTitle,
+                        text: shareText,
+                        url: shareUrl
+                    });
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        fallbackCopyClipboard(shareUrl);
+                    }
+                }
+            } else {
+                fallbackCopyClipboard(shareUrl);
+            }
+        };
+
+        function fallbackCopyClipboard(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                showToast('Vehicle link copied to clipboard!');
+            }).catch(() => {
+                prompt('Copy vehicle link:', url);
+            });
+        }
+
+        function showToast(message) {
+            const existingToast = document.getElementById('toast-notification');
+            if (existingToast) existingToast.remove();
+
+            const toast = document.createElement('div');
+            toast.id = 'toast-notification';
+            toast.className = 'fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white px-5 py-3 rounded-2xl text-xs font-bold shadow-2xl z-50 transition-all duration-300 opacity-0 translate-y-2 border border-slate-700 flex items-center space-x-2';
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i><span id="toast-text"></span>`;
+            document.body.appendChild(toast);
+            document.getElementById('toast-text').textContent = message;
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-0', 'translate-y-2');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Global WhatsApp Handler
+        window.openWhatsApp = function(type) {
+            if (!activeVehicleData) {
+                alert('Vehicle details are still loading.');
+                return;
+            }
+
+            const v = activeVehicleData;
+            const vehicleName = `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim();
+            const vehicleCode = v.vehicle_code || v.id.substring(0, 8);
+            const currentUrl = window.location.href;
+
+            let message = '';
+
+            if (type === 'enquiry') {
+                message = `Hello Dreamland Motor Engineering Works.
+
+I am interested in this vehicle:
+
+Vehicle: ${vehicleName}
+Reference: ${vehicleCode}
+Vehicle ID: ${v.id}
+
+Please provide more information about this vehicle.
+
+Vehicle link:
+${currentUrl}`;
+            } else if (type === 'schedule') {
+                message = `Hello Dreamland Motor Engineering Works.
+
+I would like to schedule a vehicle inspection for another car.
+
+I was viewing this vehicle on your website:
+
+Vehicle: ${vehicleName}
+Reference: ${vehicleCode}
+Vehicle ID: ${v.id}
+
+I would like to discuss arranging an inspection.
+
+Vehicle link:
+${currentUrl}`;
+            } else if (type === 'inspection_q') {
+                message = `Hello Dreamland Motor Engineering Works.
+
+I have reviewed the inspection report for:
+
+Vehicle: ${vehicleName}
+Reference: ${vehicleCode}
+Vehicle ID: ${v.id}
+
+I am reviewing this with my mechanic and have questions about specific diagnostic values.
+
+Vehicle link:
+${currentUrl}`;
+            } else if (type === 'scanner_q') {
+                message = `Hello Dreamland Motor Engineering Works.
+
+I am viewing this vehicle:
+
+Vehicle: ${vehicleName}
+Reference: ${vehicleCode}
+Vehicle ID: ${v.id}
+
+Please dispatch the raw OBD-II diagnostic log / scanning health report for this vehicle.
+
+Vehicle link:
+${currentUrl}`;
+            }
+
+            const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank', 'noopener');
+        };
+
+        initVehicleDetails();
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verified Vehicle Details & Inspection Report — Dreamland Verified Cars</title>
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 font-sans text-slate-900 antialiased min-h-screen flex flex-col pb-20 sm:pb-0">
+
+    <!-- Public Header -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-car-shield text-blue-500 text-2xl"></i>
+                <span class="font-bold text-lg tracking-wide">Dreamland Verified Cars</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button type="button" onclick="shareVehicle()" class="text-sm text-slate-300 hover:text-white flex items-center space-x-1.5 transition-colors bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700">
+                    <i class="fa-solid fa-share-nodes text-blue-400"></i>
+                    <span class="hidden sm:inline">Share</span>
+                </button>
+                <a href="verified-cars.html" class="text-sm text-slate-300 hover:text-white flex items-center space-x-2 transition-colors">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Back to Verified Cars</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Loading State -->
+        <div id="loading-state" class="py-24 text-center">
+            <i class="fa-solid fa-spinner fa-spin text-3xl text-blue-600 mb-4"></i>
+            <p class="text-slate-600 font-medium">Loading verified vehicle details...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="error-state" class="py-24 text-center hidden">
+            <div class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                <i class="fa-solid fa-circle-exclamation text-red-500 text-4xl mb-3"></i>
+                <h2 id="error-title" class="text-xl font-bold text-slate-900 mb-2">Unable to load vehicle details.</h2>
+                <p id="error-message" class="text-sm text-slate-600 mb-6">Please check the vehicle ID or try again later.</p>
+                <a href="verified-cars.html" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors">
+                    Return to Catalog
+                </a>
+            </div>
+        </div>
+
+        <!-- Vehicle Content Wrapper (Hidden initially) -->
+        <div id="vehicle-content" class="hidden space-y-8">
+
+            <!-- Top Header Details (Title, Reference, Verification Badge) -->
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <div>
+                    <div class="flex items-center space-x-3 mb-1">
+                        <span id="vehicle-code-badge" class="bg-slate-100 text-slate-700 font-mono text-xs px-2.5 py-1 rounded-md font-semibold">REF: --</span>
+                        <span class="inline-flex items-center space-x-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-3 py-1 rounded-full font-bold">
+                            <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                            <span>DREAMLAND VERIFIED</span>
+                        </span>
+                    </div>
+                    <h1 id="vehicle-title" class="text-2xl sm:text-3xl font-extrabold text-slate-900">Loading Vehicle...</h1>
+                    <p id="vehicle-location" class="text-sm text-slate-500 mt-1 flex items-center space-x-1.5">
+                        <i class="fa-solid fa-location-dot text-slate-400"></i>
+                        <span>Location not specified</span>
+                    </p>
+                </div>
+                <div class="flex items-center justify-between md:justify-end gap-6">
+                    <div class="text-left md:text-right">
+                        <div class="text-xs font-semibold uppercase text-slate-400 tracking-wider">Verified Price</div>
+                        <div id="vehicle-price" class="text-3xl font-extrabold text-blue-600 mt-0.5">₦0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hero Section: Primary Photo & Quick Info / Gallery -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- Photo Gallery (2 columns on lg) -->
+                <div class="lg:col-span-2 space-y-4">
+                    <!-- Main Active Photo Frame -->
+                    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm aspect-[16/10] flex items-center justify-center bg-slate-900 relative">
+                        <img id="main-hero-photo" src="" alt="Vehicle Main Photo" class="w-full h-full object-cover">
+                        <div id="no-photo-placeholder" class="hidden absolute inset-0 flex flex-col items-center justify-center text-slate-400 bg-slate-100">
+                            <i class="fa-solid fa-car text-5xl mb-2"></i>
+                            <p class="text-sm font-medium">No photo available</p>
+                        </div>
+                    </div>
+
+                    <!-- Thumbnails Strip -->
+                    <div id="gallery-thumbnails" class="grid grid-cols-5 sm:grid-cols-6 gap-3 overflow-x-auto pb-2">
+                        <!-- Populated dynamically via DOM methods -->
+                    </div>
+                </div>
+
+                <!-- Right Column: Key Specifications Summary Card -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between space-y-6">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-lg border-b border-slate-100 pb-3 mb-4">Quick Specifications</h3>
+                        <ul class="space-y-3.5 text-sm">
+                            <li class="flex justify-between items-center">
+                                <span class="text-slate-500 font-medium">Year</span>
+                                <span id="spec-year" class="font-bold text-slate-800">--</span>
+                            </li>
+                            <li class="flex justify-between items-center">
+                                <span class="text-slate-500 font-medium">Mileage</span>
+                                <span id="spec-mileage" class="font-bold text-slate-800">--</span>
+                            </li>
+                            <li class="flex justify-between items-center">
+                                <span class="text-slate-500 font-medium">Transmission</span>
+                                <span id="spec-transmission" class="font-bold text-slate-800">--</span>
+                            </li>
+                            <li class="flex justify-between items-center">
+                                <span class="text-slate-500 font-medium">Fuel Type</span>
+                                <span id="spec-fuel" class="font-bold text-slate-800">--</span>
+                            </li>
+                            <li class="flex justify-between items-center">
+                                <span class="text-slate-500 font-medium">Body Type</span>
+                                <span id="spec-body" class="font-bold text-slate-800">--</span>
+                            </li>
+                            <li class="flex justify-between items-center">
+                                <span class="text-slate-500 font-medium">Colour</span>
+                                <span id="spec-colour" class="font-bold text-slate-800">--</span>
+                            </li>
+                            <li class="flex justify-between items-center">
+                                <span class="text-slate-500 font-medium">Engine</span>
+                                <span id="spec-engine" class="font-bold text-slate-800">--</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-100 bg-blue-50/50 p-4 rounded-xl">
+                        <div class="flex items-start space-x-3">
+                            <i class="fa-solid fa-shield-halved text-blue-600 text-xl mt-0.5"></i>
+                            <div>
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-blue-900">Dreamland Engineering Guarantee</h4>
+                                <p class="text-xs text-blue-700 mt-1">Independent Forensic Audit: Evaluated for structural integrity, live OBD fault codes, and powertrain wear by Dreamland diagnostic engineers.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- WhatsApp & Share Action Box 1 -->
+            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="space-y-1 text-center md:text-left">
+                    <div class="text-xs font-bold uppercase tracking-wider text-emerald-800">Instant Enquiry & Assistance</div>
+                    <h3 class="text-xl font-extrabold text-slate-900">Interested in this verified vehicle?</h3>
+                    <p class="text-sm text-slate-600">Chat directly with Dreamland or share this report with friends.</p>
+                </div>
+                <div class="flex flex-wrap gap-3 justify-center">
+                    <button type="button" onclick="openWhatsApp('enquiry')" class="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm">
+                        <i class="fa-brands fa-whatsapp text-lg"></i>
+                        <span>WhatsApp About Vehicle</span>
+                    </button>
+                    <button type="button" onclick="shareVehicle()" class="inline-flex items-center space-x-2 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm">
+                        <i class="fa-solid fa-share-nodes text-blue-600"></i>
+                        <span>Share Vehicle</span>
+                    </button>
+                    <button type="button" onclick="openWhatsApp('schedule')" class="inline-flex items-center space-x-2 bg-white hover:bg-slate-100 text-emerald-800 border border-emerald-300 font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm">
+                        <i class="fa-solid fa-calendar-days"></i>
+                        <span>Schedule Inspection</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Description & Full Technical Specifications Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- Description Card (1 col) -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                    <h3 class="font-bold text-slate-900 text-lg border-b border-slate-100 pb-3">Vehicle Description</h3>
+                    <p id="vehicle-description" class="text-sm text-slate-600 leading-relaxed whitespace-pre-line">No description provided.</p>
+                </div>
+
+                <!-- Complete Specifications Table/Grid (2 cols) -->
+                <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                    <h3 class="font-bold text-slate-900 text-lg border-b border-slate-100 pb-3">Complete Specifications</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Make</span>
+                            <span id="full-make" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Model</span>
+                            <span id="full-model" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Trim</span>
+                            <span id="full-trim" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Year</span>
+                            <span id="full-year" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Mileage</span>
+                            <span id="full-mileage" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Engine</span>
+                            <span id="full-engine" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Transmission</span>
+                            <span id="full-transmission" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Fuel Type</span>
+                            <span id="full-fuel" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Colour</span>
+                            <span id="full-colour" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Body Type</span>
+                            <span id="full-body" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">Location</span>
+                            <span id="full-location" class="font-semibold text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between">
+                            <span class="text-slate-500 font-medium">VIN</span>
+                            <span id="full-vin" class="font-semibold font-mono text-slate-800">--</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex justify-between sm:col-span-2">
+                            <span class="text-slate-500 font-medium">Registration Number</span>
+                            <span id="full-reg" class="font-semibold font-mono text-slate-800">--</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Inspection Section -->
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-8">
+                
+                <div class="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                        <div class="text-xs font-bold uppercase tracking-wider text-blue-600 mb-1">DREAMLAND INSPECTION REPORT</div>
+                        <h2 class="text-2xl font-extrabold text-slate-900">Multi-Point Mechanical & Structural Evaluation</h2>
+                    </div>
+                </div>
+
+                <!-- If No Inspection Available -->
+                <div id="no-inspection-notice" class="hidden py-12 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    <i class="fa-solid fa-file-lines text-slate-300 text-4xl mb-3"></i>
+                    <h3 class="font-bold text-slate-700 text-lg">Inspection Report Pending</h3>
+                    <p class="text-sm text-slate-500 mt-1">Inspection has not yet been completed or published for this vehicle.</p>
+                </div>
+
+                <!-- Inspection Content (Shown if inspection exists) -->
+                <div id="inspection-data-container" class="space-y-8 hidden">
+                    
+                    <!-- Inspection Header Stats Bar -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm">
+                        <div>
+                            <div class="text-xs text-slate-400 font-semibold uppercase">Inspection No</div>
+                            <div id="insp-number" class="font-bold text-slate-800 font-mono mt-0.5">Not assigned</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-400 font-semibold uppercase">Inspection Date</div>
+                            <div id="insp-date" class="font-bold text-slate-800 mt-0.5">--</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-400 font-semibold uppercase">Status</div>
+                            <div id="insp-status" class="font-bold text-emerald-600 mt-0.5 uppercase">--</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-400 font-semibold uppercase">Mileage at Inspection</div>
+                            <div id="insp-mileage" class="font-bold text-slate-800 mt-0.5">--</div>
+                        </div>
+                    </div>
+
+                    <!-- Overall Score & Condition Banner -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-gradient-to-br from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-sm">
+                        <div class="flex items-center space-x-4 border-b md:border-b-0 md:border-r border-slate-700 pb-4 md:pb-0">
+                            <div class="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center text-2xl font-black shadow-inner">
+                                <span id="insp-overall-score-num">--</span>
+                            </div>
+                            <div>
+                                <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">Overall Score</div>
+                                <div id="insp-overall-score-text" class="text-xl font-extrabold mt-0.5">Score not available</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4 border-b md:border-b-0 md:border-r border-slate-700 pb-4 md:pb-0">
+                            <div class="w-16 h-16 rounded-2xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl">
+                                <i class="fa-solid fa-award"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">Overall Condition</div>
+                                <div id="insp-condition" class="text-xl font-extrabold text-emerald-400 mt-0.5">Not provided</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="w-16 h-16 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-2xl">
+                                <i class="fa-solid fa-thumbs-up"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">Recommendation</div>
+                                <div id="insp-recommendation-short" class="text-sm font-bold text-indigo-300 mt-0.5 line-clamp-2">No recommendation provided.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Score Breakdown Grid -->
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-lg mb-4">Detailed Score Breakdown</h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            <!-- Mechanical -->
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div class="text-xs text-slate-500 font-semibold uppercase mb-1">Mechanical</div>
+                                <div id="score-mechanical" class="text-2xl font-extrabold text-slate-800">N/A</div>
+                            </div>
+                            <!-- Electrical -->
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div class="text-xs text-slate-500 font-semibold uppercase mb-1">Electrical</div>
+                                <div id="score-electrical" class="text-2xl font-extrabold text-slate-800">N/A</div>
+                            </div>
+                            <!-- Body -->
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div class="text-xs text-slate-500 font-semibold uppercase mb-1">Body & Frame</div>
+                                <div id="score-body" class="text-2xl font-extrabold text-slate-800">N/A</div>
+                            </div>
+                            <!-- Interior -->
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div class="text-xs text-slate-500 font-semibold uppercase mb-1">Interior</div>
+                                <div id="score-interior" class="text-2xl font-extrabold text-slate-800">N/A</div>
+                            </div>
+                            <!-- Suspension -->
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div class="text-xs text-slate-500 font-semibold uppercase mb-1">Suspension</div>
+                                <div id="score-suspension" class="text-2xl font-extrabold text-slate-800">N/A</div>
+                            </div>
+                            <!-- Brakes -->
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div class="text-xs text-slate-500 font-semibold uppercase mb-1">Brakes</div>
+                                <div id="score-brakes" class="text-2xl font-extrabold text-slate-800">N/A</div>
+                            </div>
+                            <!-- Diagnostics -->
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div class="text-xs text-slate-500 font-semibold uppercase mb-1">Diagnostics</div>
+                                <div id="score-diagnostic" class="text-2xl font-extrabold text-slate-800">N/A</div>
+                            </div>
+                            <!-- Road Test -->
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div class="text-xs text-slate-500 font-semibold uppercase mb-1">Road Test</div>
+                                <div id="score-road" class="text-2xl font-extrabold text-slate-800">N/A</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Recommendation & Summary -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                        <div class="space-y-2">
+                            <h4 class="font-bold text-slate-900 flex items-center space-x-2">
+                                <i class="fa-solid fa-stethoscope text-blue-600"></i>
+                                <span>Professional Recommendation</span>
+                            </h4>
+                            <p id="insp-recommendation" class="text-sm text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-100 leading-relaxed">No recommendation provided.</p>
+                        </div>
+                        <div class="space-y-2">
+                            <h4 class="font-bold text-slate-900 flex items-center space-x-2">
+                                <i class="fa-solid fa-file-waveform text-blue-600"></i>
+                                <span>Inspection Summary</span>
+                            </h4>
+                            <p id="insp-summary" class="text-sm text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-100 leading-relaxed">No inspection summary available.</p>
+                        </div>
+                    </div>
+
+                    <!-- Inspection Documents -->
+                    <div class="bg-blue-50/60 border border-blue-100 rounded-2xl p-5 sm:p-6">
+                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                            <div>
+                                <div class="text-xs font-bold uppercase tracking-wider text-blue-700">Inspection Documents</div>
+                                <h3 class="font-extrabold text-slate-900 text-lg mt-0.5">Review the complete evidence</h3>
+                                <p class="text-xs text-slate-600 mt-1">The full point-to-point inspection and live scanner diagnostic report are available here.</p>
+                            </div>
+                            <div class="flex flex-wrap gap-3">
+                                <div id="report-btn-container" class="hidden">
+                                    <a id="report-download-link" href="#" target="_blank" rel="noopener noreferrer"
+                                       class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-sm transition-colors shadow-sm">
+                                        <i class="fa-solid fa-file-pdf"></i>
+                                        <span>View Full Inspection PDF</span>
+                                    </a>
+                                </div>
+                                <div id="scanner-report-container"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Inspection Checklist Section -->
+                    <div class="space-y-6 pt-6 border-t border-slate-100">
+                        <div class="border-b border-slate-100 pb-3">
+                            <h3 class="font-extrabold text-slate-900 text-xl flex items-center space-x-2">
+                                <i class="fa-solid fa-list-check text-blue-600"></i>
+                                <span>Detailed Inspection Checklist</span>
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Comprehensive section-by-section breakdown of all inspected vehicle components.</p>
+                        </div>
+                        <div id="detailed-checklist-container" class="space-y-6">
+                            <!-- Populated dynamically -->
+                        </div>
+                        <div id="checklist-toggle-container" class="hidden pt-2 text-center">
                             <button type="button" id="checklist-toggle-btn"
                                     class="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm">
                                 <i id="checklist-toggle-icon" class="fa-solid fa-list-check"></i>
