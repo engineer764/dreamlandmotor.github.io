@@ -577,7 +577,7 @@ export const vehicleService = {
      * PUBLIC DATA ADAPTER (vehicle-details.html)
      * ==========================================
      */
-    async getPublicVehicleDetails(vehicleId) {
+  async getPublicVehicleDetails(vehicleId) {
         if (!vehicleId) throw new Error('Vehicle ID is required.');
 
         const { data: vehicle, error: vehicleError } = await supabase
@@ -748,4 +748,3 @@ export const vehicleService = {
 
         return vehicle;
     }
-};
