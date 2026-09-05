@@ -792,4 +792,4 @@ export const vehicleService = {
         }
 
         return vehicle;
-    }
+    }}
