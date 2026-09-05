@@ -624,7 +624,7 @@ export const vehicleService = {
      * PUBLIC DATA ADAPTER (vehicle-details.html)
      * ==========================================
      */
-    async getPublicVehicleDetails(vehicleId) {
+   async getPublicVehicleDetails(vehicleId) {
         if (!vehicleId) throw new Error('Vehicle ID is required.');
 
         const { data: vehicle, error: vehicleError } = await supabase
@@ -649,10 +649,14 @@ export const vehicleService = {
                 vin,
                 registration_number,
                 verification_status,
+                publication_status,
                 verification_reference,
-                verified_at
+                verified_at,
+                verification_inspection_id
             `)
             .eq('id', vehicleId)
+            .eq('verification_status', 'VERIFIED')
+            .eq('publication_status', 'PUBLISHED')
             .single();
 
         if (vehicleError || !vehicle) return null;
@@ -675,58 +679,74 @@ export const vehicleService = {
 
         vehicle.photos = (!photosError && photos) ? photos : [];
 
-        const { data: inspections, error: inspError } = await supabase
-            .from('inspections')
-            .select(`
-                id,
-                vehicle_id,
-                inspection_number,
-                inspection_date,
-                mileage,
-                overall_score,
-                mechanical_score,
-                electrical_score,
-                body_score,
-                interior_score,
-                suspension_score,
-                brake_score,
-                diagnostic_score,
-                road_test_score,
-                overall_condition,
-                recommendation,
-                summary,
-                inspection_status,
-                report_path,
-                scanner_report_path,
-                completed_at,
-                inspection_findings (
+        if (vehicle.verification_inspection_id) {
+            const { data: inspection, error: inspError } = await supabase
+                .from('inspections')
+                .select(`
                     id,
-                    inspection_id,
-                    area,
-                    component,
-                    rating,
-                    severity,
-                    finding,
-                    significance,
-                    recommended_action,
-                    estimated_cost,
-                    is_safety_critical,
-                    finding_photos (
+                    vehicle_id,
+                    inspection_number,
+                    inspection_date,
+                    mileage,
+                    overall_score,
+                    mechanical_score,
+                    electrical_score,
+                    body_score,
+                    interior_score,
+                    suspension_score,
+                    brake_score,
+                    diagnostic_score,
+                    road_test_score,
+                    overall_condition,
+                    recommendation,
+                    summary,
+                    inspection_status,
+                    report_path,
+                    scanner_report_path,
+                    completed_at,
+                    inspection_items (
                         id,
-                        finding_id,
-                        public_url,
-                        caption,
+                        inspection_id,
+                        section,
+                        item_code,
+                        item_name,
+                        status,
+                        is_applicable,
+                        is_safety_critical,
+                        observation,
+                        recommended_action,
+                        estimated_cost,
+                        measurement_value,
+                        measurement_unit,
                         sort_order
+                    ),
+                    inspection_findings (
+                        id,
+                        inspection_id,
+                        area,
+                        component,
+                        rating,
+                        severity,
+                        finding,
+                        significance,
+                        recommended_action,
+                        estimated_cost,
+                        is_safety_critical,
+                        finding_photos (
+                            id,
+                            finding_id,
+                            public_url,
+                            caption,
+                            sort_order
+                        )
                     )
-                )
-            `)
-            .eq('vehicle_id', vehicleId)
-            .in('inspection_status', ['COMPLETED', 'DRAFT', 'IN_PROGRESS'])
-            .order('completed_at', { ascending: false });
+                `)
+                .eq('id', vehicle.verification_inspection_id)
+                .eq('inspection_status', 'COMPLETED')
+                .single();
 
-        if (!inspError && inspections) {
-            vehicle.inspections = inspections.map(insp => {
-                const mappedFindings = (insp.inspection_findings || []).map(f => {
+            if (!inspError && inspection) {
+                const mappedFindings = (inspection.inspection_findings || []).map(f => {
                     let severityLabel = f.rating;
                     if (f.rating === 'CRITICAL') {
                         severityLabel = f.is_safety_critical ? 'CRITICAL SAFETY' : 'CRITICAL';
@@ -750,15 +770,26 @@ export const vehicleService = {
                     };
                 });
 
-                return {
-                    ...insp,
+                const mappedItems = (inspection.inspection_items || []).map(item => ({
+                    ...item
+                }));
+
+                const normalizedInspection = {
+                    ...inspection,
+                    inspection_items: mappedItems,
                     findings: mappedFindings
                 };
-            });
+
+                vehicle.inspections = [normalizedInspection];
+                vehicle.inspection = normalizedInspection;
+            } else {
+                vehicle.inspections = [];
+                vehicle.inspection = null;
+            }
         } else {
             vehicle.inspections = [];
+            vehicle.inspection = null;
         }
 
         return vehicle;
     }
-};
