@@ -7,6 +7,10 @@ export const vehicleService = {
      * ==========================================
      */
 
+    /**
+     * Fetches all vehicles for the admin inventory dashboard, 
+     * enriching each vehicle record with its latest inspection status.
+     */
     async getAdminVehicles() {
         const { data: vehicles, error: vehicleError } = await supabase
             .from('vehicles')
@@ -67,6 +71,9 @@ export const vehicleService = {
         return this.getAdminVehicles();
     },
 
+    /**
+     * Fetches a single vehicle by its UUID.
+     */
     async getVehicleById(vehicleId) {
         if (!vehicleId) throw new Error('Vehicle ID is required.');
 
@@ -101,6 +108,7 @@ export const vehicleService = {
             throw new Error('Vehicle ID is required for update.');
         }
 
+        // 1. Update the vehicle through the existing RPC
         const { data: updatedVehicle, error: rpcError } = await supabase
             .rpc('update_vehicle', {
                 p_vehicle_id: vehicleId,
@@ -111,6 +119,7 @@ export const vehicleService = {
             throw new Error(`Failed to update vehicle: ${rpcError.message}`);
         }
 
+        // 2. Synchronize mileage only when mileage was supplied
         if (updateData.mileage !== undefined && updateData.mileage !== null) {
             const mileage = Number(updateData.mileage);
 
@@ -118,6 +127,7 @@ export const vehicleService = {
                 throw new Error('Mileage must be a valid non-negative number.');
             }
 
+            // 3. Read the authoritative inspection relationship (verification_inspection_id)
             const { data: vehicleRecord, error: fetchErr } = await supabase
                 .from('vehicles')
                 .select('verification_inspection_id')
@@ -130,6 +140,7 @@ export const vehicleService = {
                 );
             }
 
+            // 4. If an authoritative inspection relationship exists, update THAT inspection only.
             if (vehicleRecord?.verification_inspection_id) {
                 const { error: inspectionUpdateError } = await supabase
                     .from('inspections')
@@ -145,6 +156,7 @@ export const vehicleService = {
                     );
                 }
             }
+            // 5. If verification_inspection_id is NULL, safely skip synchronization.
         }
 
         return Array.isArray(updatedVehicle)
@@ -155,11 +167,14 @@ export const vehicleService = {
     /**
      * ==========================================
      * VEHICLE LIFECYCLE ACTIONS
+     * Protected state changes MUST use database RPCs.
      * ==========================================
      */
 
     async verifyVehicle(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
 
         const { data, error } = await supabase.rpc('verify_vehicle', {
             p_vehicle_id: vehicleId
@@ -170,7 +185,9 @@ export const vehicleService = {
     },
 
     async rejectVehicle(vehicleId, reason) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
 
         const { data, error } = await supabase.rpc('reject_vehicle', {
             p_vehicle_id: vehicleId,
@@ -182,7 +199,9 @@ export const vehicleService = {
     },
 
     async publishVehicle(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
 
         const { data, error } = await supabase.rpc('publish_vehicle', {
             p_vehicle_id: vehicleId
@@ -193,7 +212,9 @@ export const vehicleService = {
     },
 
     async unpublishVehicle(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
 
         const { data, error } = await supabase.rpc('unpublish_vehicle', {
             p_vehicle_id: vehicleId
@@ -204,7 +225,9 @@ export const vehicleService = {
     },
 
     async reserveVehicle(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
 
         const { data, error } = await supabase.rpc('reserve_vehicle', {
             p_vehicle_id: vehicleId
@@ -215,7 +238,9 @@ export const vehicleService = {
     },
 
     async markAvailable(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
 
         const { data, error } = await supabase.rpc('mark_vehicle_available', {
             p_vehicle_id: vehicleId
@@ -226,7 +251,9 @@ export const vehicleService = {
     },
 
     async markSold(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
 
         const { data, error } = await supabase.rpc('mark_vehicle_sold', {
             p_vehicle_id: vehicleId
@@ -237,7 +264,9 @@ export const vehicleService = {
     },
 
     async archiveVehicle(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
 
         const { data, error } = await supabase.rpc('archive_vehicle', {
             p_vehicle_id: vehicleId
@@ -314,6 +343,9 @@ export const vehicleService = {
         return this.uploadVehiclePhoto(vehicleId, file, options);
     },
 
+    /**
+     * Fetches photos for a vehicle, ordered by primary first then sort order.
+     */
     async getVehiclePhotos(vehicleId) {
         if (!vehicleId) throw new Error('Vehicle ID is required.');
         const { data, error } = await supabase
@@ -327,6 +359,9 @@ export const vehicleService = {
         return data || [];
     },
 
+    /**
+     * Sets a specific photo as primary for a vehicle safely without PGRST116 coercion errors.
+     */
     async setPrimaryPhoto(vehicleId, photoId) {
         if (!vehicleId || !photoId) {
             throw new Error('Vehicle ID and Photo ID are required.');
@@ -359,6 +394,9 @@ export const vehicleService = {
         return data[0];
     },
 
+    /**
+     * Deletes a vehicle photo from storage and database, promoting another photo if primary was deleted.
+     */
     async deleteVehiclePhoto(photoId) {
         if (!photoId) throw new Error('Photo ID is required.');
 
@@ -405,9 +443,18 @@ export const vehicleService = {
         return true;
     },
 
+    /**
+     * Uploads an inspection PDF report (scanner or main report) to storage 
+     * and updates the vehicle inspection record securely.
+     */
     async uploadInspectionReportPdf(vehicleId, file, reportType = 'scanner') {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
-        if (!file || !(file instanceof File)) throw new Error('A valid PDF file is required.');
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
+
+        if (!file || !(file instanceof File)) {
+            throw new Error('A valid PDF file is required.');
+        }
 
         const fileExt = file.name.split('.').pop().toLowerCase();
         if (fileExt !== 'pdf') {
@@ -577,7 +624,7 @@ export const vehicleService = {
      * PUBLIC DATA ADAPTER (vehicle-details.html)
      * ==========================================
      */
-  async getPublicVehicleDetails(vehicleId) {
+    async getPublicVehicleDetails(vehicleId) {
         if (!vehicleId) throw new Error('Vehicle ID is required.');
 
         const { data: vehicle, error: vehicleError } = await supabase
@@ -602,10 +649,8 @@ export const vehicleService = {
                 vin,
                 registration_number,
                 verification_status,
-                publication_status,
                 verification_reference,
-                verified_at,
-                verification_inspection_id
+                verified_at
             `)
             .eq('id', vehicleId)
             .single();
@@ -654,21 +699,6 @@ export const vehicleService = {
                 report_path,
                 scanner_report_path,
                 completed_at,
-                inspection_items (
-                    id,
-                    inspection_id,
-                    section,
-                    item_code,
-                    item_name,
-                    status,
-                    is_applicable,
-                    is_safety_critical,
-                    measurement,
-                    observation,
-                    recommended_action,
-                    estimated_cost,
-                    sort_order
-                ),
                 inspection_findings (
                     id,
                     inspection_id,
@@ -691,23 +721,11 @@ export const vehicleService = {
                 )
             `)
             .eq('vehicle_id', vehicleId)
-            .eq('inspection_status', 'COMPLETED')
+            .in('inspection_status', ['COMPLETED', 'DRAFT', 'IN_PROGRESS'])
             .order('completed_at', { ascending: false });
 
-        if (!inspError && inspections && inspections.length > 0) {
-            // Prioritize the vehicle's authoritative verification_inspection_id if set
-            inspections.sort((a, b) => {
-                if (a.id === vehicle.verification_inspection_id) return -1;
-                if (b.id === vehicle.verification_inspection_id) return 1;
-                return 0;
-            });
-
+        if (!inspError && inspections) {
             vehicle.inspections = inspections.map(insp => {
-                // Filter out unassessed PENDING items for public safety compliance
-                const filteredItems = (insp.inspection_items || []).filter(
-                    item => item.is_applicable === false || item.status !== 'PENDING'
-                );
-
                 const mappedFindings = (insp.inspection_findings || []).map(f => {
                     let severityLabel = f.rating;
                     if (f.rating === 'CRITICAL') {
@@ -734,17 +752,13 @@ export const vehicleService = {
 
                 return {
                     ...insp,
-                    inspection_items: filteredItems,
                     findings: mappedFindings
                 };
             });
-
-            // Convenience property for renderers expecting vehicle.inspection
-            vehicle.inspection = vehicle.inspections[0];
         } else {
             vehicle.inspections = [];
-            vehicle.inspection = null;
         }
 
         return vehicle;
     }
+};
