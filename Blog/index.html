@@ -1,4 +1,1574 @@
 <!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Car diagnostics and pre-purchase inspection in Lagos. Stop guessing, start with root-cause testing at Dreamland Motor Engineering Works.">
+<meta property="og:title" content="Car Diagnostics & Pre-Purchase Inspection in Lagos | Dreamland Motor Engineering Works">
+<meta property="og:description" content="We don't guess. We prove the fault first through advanced diagnostics and expert vehicle engineering in Lagos.">
+<meta property="og:image" content="images/dreamland-cover.jpg">
+<meta property="og:type" content="website">
+
+<title>Car Diagnostics & Pre-Purchase Inspection in Lagos | Dreamland Motor Engineering Works</title>
+
+<style>
+:root {
+    --primary: #0f172a;
+    --primary-light: #1e293b;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --gold: #f59e0b;
+    --gold-dark: #b45309;
+    --bg-light: #f8fafc;
+    --text-main: #334155;
+    --text-muted: #64748b;
+    --white: #ffffff;
+    --border: #e2e8f0;
+    --success: #16a34a;
+    --success-bg: #f0fdf4;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+    color: var(--text-main);
+    background-color: var(--bg-light);
+    -webkit-font-smoothing: antialiased;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Navbar */
+.navbar {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.navbar .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 76px;
+}
+
+.logo {
+    font-weight: 800;
+    font-size: 1.35rem;
+    color: var(--primary);
+    text-decoration: none;
+    letter-spacing: -0.5px;
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.menu {
+    display: flex;
+    list-style: none;
+    gap: 1.75rem;
+    align-items: center;
+}
+
+.menu a {
+    text-decoration: none;
+    color: var(--text-main);
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: color 0.2s;
+}
+
+.menu a:hover, .menu a.active {
+    color: var(--accent);
+}
+
+.nav-cta {
+    background: var(--accent);
+    color: #fff !important;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.nav-cta:hover {
+    background: var(--accent-hover);
+}
+
+.mobile-menu-btn {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--primary);
+}
+
+/* Mobile Nav */
+.mobile-nav {
+    display: none;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 20px;
+}
+
+.mobile-nav ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.mobile-nav a {
+    text-decoration: none;
+    color: var(--text-main);
+    font-weight: 600;
+    font-size: 1rem;
+    display: block;
+    padding: 6px 0;
+}
+
+/* Hero Section */
+.hero {
+    background: linear-gradient(135deg, var(--primary) 0%, #020617 100%);
+    color: #fff;
+    padding: 70px 0 90px;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 50px;
+    align-items: center;
+}
+
+@media (max-width: 900px) {
+    .hero-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(37, 99, 235, 0.15);
+    border: 1px solid rgba(37, 99, 235, 0.3);
+    color: #93c5fd;
+    padding: 6px 14px;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.hero h1 {
+    font-size: clamp(2.2rem, 3.8vw, 3.1rem);
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 0.75rem;
+    letter-spacing: -1px;
+    color: #ffffff;
+}
+
+.hero h1 span {
+    display: block;
+    color: #93c5fd;
+    font-size: clamp(1.3rem, 2.2vw, 1.8rem);
+    font-weight: 700;
+    margin-top: 8px;
+    letter-spacing: -0.5px;
+}
+
+.hero p {
+    font-size: 1.1rem;
+    color: #cbd5e1;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 2.5rem;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 26px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+}
+
+.btn-whatsapp {
+    background: #22c55e;
+    color: #fff;
+}
+
+.btn-whatsapp:hover {
+    background: #16a34a;
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+/* Conceptual Methodology Visual Box in Hero */
+.methodology-box {
+    background: rgba(30, 41, 59, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    padding: 30px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.methodology-box h3 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #93c5fd;
+    margin-bottom: 16px;
+    font-weight: 700;
+}
+
+.methodology-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.meth-step {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 14px 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.meth-step .num {
+    background: var(--accent);
+    color: #fff;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.meth-step .text-title {
+    font-weight: 600;
+    color: #fff;
+    font-size: 0.95rem;
+}
+
+.meth-step .text-desc {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.hero-proof-mini {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.85rem;
+    color: #94a3b8;
+}
+
+.hero-proof-mini .stars {
+    color: var(--gold);
+}
+
+/* Sections */
+section {
+    padding: 90px 0;
+}
+
+.section-header {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto 60px auto;
+}
+
+.section-header h2 {
+    font-size: clamp(1.9rem, 3.2vw, 2.5rem);
+    font-weight: 800;
+    color: var(--primary);
+    margin-bottom: 1rem;
+    letter-spacing: -0.5px;
+}
+
+.section-header p {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+}
+
+/* Problem Section (Editorial layout, minimal boxing) */
+.problem-section {
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+.problem-editorial-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+}
+
+@media (max-width: 850px) {
+    .problem-editorial-grid {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+}
+
+.problem-col {
+    position: relative;
+    padding-top: 15px;
+    border-top: 2px solid var(--border);
+}
+
+.problem-col .phase-tag {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #dc2626;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.problem-col h3 {
+    font-size: 1.25rem;
+    color: var(--primary);
+    margin-bottom: 12px;
+    font-weight: 700;
+}
+
+.problem-col p {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+.problem-conclusion {
+    margin-top: 60px;
+    background: #fef2f2;
+    border-left: 4px solid #dc2626;
+    padding: 30px 40px;
+    border-radius: 0 12px 12px 0;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.problem-conclusion h3 {
+    color: #991b1b;
+    font-size: 1.25rem;
+    margin-bottom: 6px;
+    font-weight: 700;
+}
+
+.problem-conclusion p {
+    color: #7f1d1d;
+    font-size: 1.05rem;
+    font-weight: 500;
+}
+
+/* Solution / Core Difference (Dark Editorial) */
+.difference-section {
+    background: var(--primary);
+    color: #fff;
+    padding: 100px 0;
+}
+
+.difference-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 60px;
+    align-items: center;
+}
+
+@media (max-width: 900px) {
+    .difference-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.difference-content h2 {
+    font-size: clamp(2rem, 3.5vw, 2.7rem);
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    color: #fff;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+}
+
+.difference-content p {
+    color: #cbd5e1;
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.7;
+}
+
+.process-steps-clean {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.process-step-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.process-step-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.process-step-row .number {
+    background: var(--accent);
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    flex-shrink: 0;
+    font-size: 0.9rem;
+    margin-top: 2px;
+}
+
+.process-step-row h4 {
+    font-size: 1.15rem;
+    color: #fff;
+    margin-bottom: 4px;
+    font-weight: 700;
+}
+
+.process-step-row p {
+    color: #94a3b8;
+    font-size: 0.92rem;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* DOCUMENTED PROOF & INSPECTION EVIDENCE SECTION */
+.proof-showcase-section {
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+.proof-showcase-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+}
+
+@media (max-width: 900px) {
+    .proof-showcase-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.proof-report-card {
+    background: var(--primary);
+    color: #fff;
+    border-radius: 16px;
+    padding: 40px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.proof-report-card::after {
+    content: "ILLUSTRATIVE EXAMPLE";
+    position: absolute;
+    top: 20px;
+    right: -35px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 4px 40px;
+    transform: rotate(45deg);
+    letter-spacing: 0.5px;
+}
+
+.report-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    padding-bottom: 20px;
+    margin-bottom: 25px;
+}
+
+.report-score-box {
+    background: var(--accent);
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.report-score-box .num {
+    font-size: 1.5rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.report-score-box .lbl {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    opacity: 0.85;
+}
+
+.report-grid-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 25px;
+}
+
+.stat-box {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px 16px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.stat-box span:first-child {
+    color: #94a3b8;
+}
+
+.stat-box span:last-child {
+    font-weight: 700;
+    color: #4ade80;
+}
+
+.report-status-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: #4ade80;
+    font-weight: 600;
+}
+
+/* Dreamland Analyzer Section (Editorial clean layout) */
+.analyzer-section {
+    background: var(--bg-light);
+    border-bottom: 1px solid var(--border);
+}
+
+.analyzer-editorial {
+    max-width: 950px;
+    margin: 0 auto;
+}
+
+.analyzer-list {
+    margin-top: 50px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 40px;
+}
+
+@media (max-width: 768px) {
+    .analyzer-list {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+}
+
+.analyzer-point {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.analyzer-point .check-icon {
+    background: var(--success-bg);
+    color: var(--success);
+    border: 1px solid #bbf7d0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.analyzer-point h4 {
+    font-size: 1.15rem;
+    color: var(--primary);
+    margin-bottom: 6px;
+    font-weight: 700;
+}
+
+.analyzer-point p {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+/* Services Gateway */
+.services-section {
+    background: var(--white);
+}
+
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 30px;
+    margin-bottom: 50px;
+}
+
+.service-card {
+    background: var(--bg-light);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 35px 30px;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.service-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.08);
+    border-color: var(--accent);
+    background: var(--white);
+}
+
+.service-card h3 {
+    font-size: 1.25rem;
+    color: var(--primary);
+    margin-bottom: 12px;
+    font-weight: 700;
+}
+
+.service-card p {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    margin-bottom: 25px;
+    line-height: 1.6;
+}
+
+.service-card .card-action {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* PPI & Verified Cars Dual Highlight */
+.feature-split-section {
+    background: var(--bg-light);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+.split-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+}
+
+@media (max-width: 900px) {
+    .split-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.split-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 45px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.split-card h3 {
+    font-size: 1.6rem;
+    color: var(--primary);
+    margin-bottom: 1rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.split-card p {
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+    line-height: 1.7;
+    font-size: 1.05rem;
+}
+
+.split-list {
+    list-style: none;
+    margin-bottom: 2.5rem;
+}
+
+.split-list li {
+    position: relative;
+    padding-left: 24px;
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+    color: var(--text-main);
+    font-weight: 500;
+}
+
+.split-list li::before {
+    content: "•";
+    color: var(--accent);
+    font-weight: bold;
+    font-size: 1.4rem;
+    position: absolute;
+    left: 0;
+    top: -4px;
+}
+
+/* Corporate Banner */
+.corporate-banner-wrapper {
+    padding: 0 20px;
+    margin: 80px auto;
+    max-width: 1200px;
+}
+
+.corporate-banner {
+    background: linear-gradient(135deg, var(--primary) 0%, #0f172a 100%);
+    color: #fff;
+    padding: 60px;
+    border-radius: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 30px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+}
+
+.corporate-banner-text h3 {
+    font-size: clamp(1.5rem, 2.8vw, 2rem);
+    margin-bottom: 0.75rem;
+    color: #fff;
+    font-weight: 800;
+}
+
+.corporate-banner-text p {
+    color: #cbd5e1;
+    margin: 0;
+    max-width: 600px;
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+
+/* Testimonials */
+.testimonials-section {
+    background: var(--white);
+}
+
+.testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+    margin-bottom: 40px;
+}
+
+.testimonial-card {
+    background: var(--bg-light);
+    border: 1px solid var(--border);
+    padding: 35px 30px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.testimonial-card .stars {
+    color: var(--gold);
+    font-size: 0.95rem;
+    margin-bottom: 15px;
+}
+
+.testimonial-card p {
+    font-size: 1rem;
+    color: var(--text-main);
+    font-style: italic;
+    margin-bottom: 25px;
+    line-height: 1.7;
+}
+
+.testimonial-card .author {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--primary);
+}
+
+.google-rating-summary {
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--primary);
+    margin-bottom: 12px;
+}
+
+.google-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.google-link:hover {
+    text-decoration: underline;
+}
+
+/* How It Works (Clean Editorial Steps) */
+.steps-section {
+    background: var(--bg-light);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+.steps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 35px;
+}
+
+.step-box {
+    background: var(--white);
+    border: 1px solid var(--border);
+    padding: 35px 30px;
+    border-radius: 12px;
+}
+
+.step-box .step-num-badge {
+    background: var(--primary);
+    color: #fff;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 20px;
+}
+
+.step-box h3 {
+    font-size: 1.2rem;
+    color: var(--primary);
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+
+.step-box p {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+/* Final CTA Section */
+.cta-section {
+    background: linear-gradient(135deg, var(--primary) 0%, #020617 100%);
+    color: #fff;
+    text-align: center;
+    padding: 100px 30px;
+    border-radius: 16px;
+    max-width: 1200px;
+    margin: 80px auto;
+}
+
+.cta-section h2 {
+    font-size: clamp(2.2rem, 3.8vw, 3rem);
+    font-weight: 800;
+    margin-bottom: 1.2rem;
+    color: #fff;
+    letter-spacing: -0.5px;
+}
+
+.cta-section p {
+    font-size: 1.15rem;
+    color: #cbd5e1;
+    max-width: 680px;
+    margin: 0 auto 3rem auto;
+    line-height: 1.6;
+}
+
+/* Footer */
+footer {
+    background: #020617;
+    color: #94a3b8;
+    text-align: center;
+    padding: 60px 20px;
+    font-size: 0.9rem;
+    border-top: 1px solid #1e293b;
+}
+
+footer a {
+    color: #cbd5e1;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+footer a:hover {
+    color: var(--gold);
+}
+
+.footer-links {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 25px;
+    margin-top: 20px;
+    margin-bottom: 30px;
+    font-weight: 500;
+}
+
+/* WhatsApp Floating Widget */
+.whatsapp-float {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    background: #22c55e;
+    color: #fff;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+    z-index: 999;
+    text-decoration: none;
+    transition: transform 0.2s;
+}
+
+.whatsapp-float:hover {
+    transform: scale(1.08);
+}
+
+@media (max-width: 768px) {
+    .menu {
+        display: none;
+    }
+    .mobile-menu-btn {
+        display: block;
+    }
+    .corporate-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 40px 25px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<!-- NAVIGATION -->
+<nav class="navbar">
+    <div class="container">
+        <a href="index.html" class="logo">Dreamland Motor</a>
+        <div class="nav-right">
+            <ul class="menu">
+                <li><a href="index.html" class="active">Home</a></li>
+                <li><a href="services.html">Services</a></li>
+                <li><a href="verified-cars.html">Verified Cars</a></li>
+                <li><a href="ppi.html">PPI</a></li>
+                <li><a href="corporate.html">Corporate FleetCare</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+            <a href="https://wa.me/2349066616152?text=Hello%20Dreamland,%20I%20need%20car%20diagnosis" class="nav-cta">Diagnose My Car</a>
+            <button class="mobile-menu-btn" id="menuToggle" aria-label="Toggle Navigation">☰</button>
+        </div>
+    </div>
+</nav>
+
+<!-- MOBILE NAVIGATION DRAWER -->
+<div class="mobile-nav" id="mobileNav">
+    <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="services.html">Services</a></li>
+        <li><a href="verified-cars.html">Verified Cars</a></li>
+        <li><a href="ppi.html">PPI</a></li>
+        <li><a href="corporate.html">Corporate FleetCare</a></li>
+        <li><a href="#contact">Contact</a></li>
+    </ul>
+</div>
+
+<!-- HERO SECTION -->
+<header class="hero">
+    <div class="container">
+        <div class="hero-grid">
+            <div>
+                <div class="badge-pill">
+                    <span>⚡</span> Diagnostic-First Automotive Service in Lagos
+                </div>
+                <h1>Is Your Car Really Fixed?
+                    <span>Or are you paying to replace parts until the problem disappears?</span>
+                </h1>
+                <p>Dreamland finds the fault, tests the cause, and tells you what actually needs to be fixed before you spend money on guesswork.</p>
+                
+                <div class="hero-actions">
+                    <a href="https://wa.me/2349066616152?text=Hello%20Dreamland,%20I%20need%20car%20diagnosis" class="btn btn-whatsapp">
+                        💬 Diagnose My Car on WhatsApp
+                    </a>
+                    <a href="ppi.html" class="btn btn-secondary">
+                        🔍 Book PPI Inspection
+                    </a>
+                </div>
+
+                <div class="hero-proof-mini">
+                    <div class="stars">⭐⭐⭐⭐⭐</div>
+                    <div>Rated 4.8+ on Google · Trusted by Lagos car owners</div>
+                </div>
+            </div>
+
+            <!-- Conceptual Methodology Visual Box in Hero -->
+            <div>
+                <div class="methodology-box">
+                    <h3>How Dreamland Diagnoses</h3>
+                    <div class="methodology-steps">
+                        <div class="meth-step">
+                            <div class="num">1</div>
+                            <div>
+                                <div class="text-title">Detect</div>
+                                <div class="text-desc">Scan and capture data streams to identify anomaly signals.</div>
+                            </div>
+                        </div>
+                        <div class="meth-step">
+                            <div class="num">2</div>
+                            <div>
+                                <div class="text-title">Test</div>
+                                <div class="text-desc">Perform targeted component verification tests.</div>
+                            </div>
+                        </div>
+                        <div class="meth-step">
+                            <div class="num">3</div>
+                            <div>
+                                <div class="text-title">Confirm</div>
+                                <div class="text-desc">Verify root-cause failure prior to any recommendation.</div>
+                            </div>
+                        </div>
+                        <div class="meth-step">
+                            <div class="num">4</div>
+                            <div>
+                                <div class="text-title">Repair</div>
+                                <div class="text-desc">Carry out the appropriate corrective repair.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- THE CUSTOMER'S PROBLEM -->
+<section class="problem-section">
+    <div class="container">
+        <div class="section-header">
+            <h2>The Problem Isn't Always the Part. It's the Diagnosis.</h2>
+            <p>Car owners in Lagos know this frustrating cycle all too well:</p>
+        </div>
+
+        <div class="problem-editorial-grid">
+            <div class="problem-col">
+                <span class="phase-tag">Phase 01</span>
+                <h3>A Warning Light Appears</h3>
+                <p>Your dashboard lights up or your engine acts strangely, signaling an underlying issue that requires attention.</p>
+            </div>
+            <div class="problem-col">
+                <span class="phase-tag">Phase 02</span>
+                <h3>The Trial-and-Error Loop</h3>
+                <p>A component is replaced based on surface assumptions. You pay for labor and new parts, but the issue persists.</p>
+            </div>
+            <div class="problem-col">
+                <span class="phase-tag">Phase 03</span>
+                <h3>More Money Spent</h3>
+                <p>Another part is swapped out. Expenses pile up while the original mechanical or electrical fault remains unaddressed.</p>
+            </div>
+        </div>
+
+        <div class="problem-conclusion">
+            <h3>Parts replacement without proper diagnosis is expensive guesswork.</h3>
+            <p>At Dreamland Motor Engineering Works, we take a different, evidence-backed approach.</p>
+        </div>
+    </div>
+</section>
+
+<!-- DREAMLAND'S CORE DIFFERENCE -->
+<section class="difference-section">
+    <div class="container">
+        <div class="difference-grid">
+            <div class="difference-content">
+                <h2>We Don't Guess. We Prove the Fault First.</h2>
+                <p>We do not simply read an OBD trouble code and immediately swap out parts. We utilize advanced diagnostics, live sensor data analysis, and rigorous system testing to confirm what is wrong before touching a wrench.</p>
+                <p>This systematic approach helps reduce unnecessary expenditure and limits parts replacement based on guesswork, giving you a clearer basis for the repair decision.</p>
+                <a href="https://wa.me/2349066616152?text=Hello%20Dreamland,%20I%20want%20to%20book%20a%20diagnostic%20check" class="btn btn-whatsapp" style="margin-top: 10px;">
+                    Start With Accurate Diagnosis
+                </a>
+            </div>
+            <div class="process-steps-clean">
+                <div class="process-step-row">
+                    <div class="number">1</div>
+                    <div>
+                        <h4>Detect</h4>
+                        <p>Scan and capture live data streams to uncover faults.</p>
+                    </div>
+                </div>
+                <div class="process-step-row">
+                    <div class="number">2</div>
+                    <div>
+                        <h4>Test</h4>
+                        <p>Perform targeted component testing to isolate the issue.</p>
+                    </div>
+                </div>
+                <div class="process-step-row">
+                    <div class="number">3</div>
+                    <div>
+                        <h4>Confirm</h4>
+                        <p>Verify system failure before recommending any replacement.</p>
+                    </div>
+                </div>
+                <div class="process-step-row">
+                    <div class="number">4</div>
+                    <div>
+                        <h4>Repair</h4>
+                        <p>Carry out the appropriate corrective repair.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- DOCUMENTED PROOF & INSPECTION EVIDENCE -->
+<section class="proof-showcase-section">
+    <div class="container">
+        <div class="proof-showcase-grid">
+            <div>
+                <span style="color: var(--accent); font-weight: 700; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Tangible Evidence</span>
+                <h2 style="font-size: clamp(1.8rem, 3vw, 2.3rem); font-weight: 800; color: var(--primary); margin: 10px 0 20px;">Don't Take Our Word For It. See What We Document.</h2>
+                <p style="color: var(--text-muted); margin-bottom: 20px; line-height: 1.7;">Our inspection process produces structured findings, condition scores and documented evidence that help you understand the vehicle's condition. We don't hand you an informal opinion; we give you a clear breakdown of component evaluations and technical findings.</p>
+                <ul class="split-list">
+                    <li>Point-to-point mechanical & electrical assessments</li>
+                    <li>Live scanner and diagnostic data logs</li>
+                    <li>Transparent estimated repair costs</li>
+                </ul>
+            </div>
+            <div>
+                <div class="proof-report-card">
+                    <div class="report-header-row">
+                        <div>
+                            <div style="font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; font-weight: 600;">Sample Inspection Report</div>
+                            <div style="font-size: 0.75rem; color: #cbd5e1; margin-top: 2px;">Illustrative example — not a customer inspection report.</div>
+                            <div style="font-size: 1.15rem; font-weight: 800; color: #fff; margin-top: 4px;">Dreamland Verified Audit</div>
+                        </div>
+                        <div class="report-score-box">
+                            <div class="num">88</div>
+                            <div class="lbl">Score / 100</div>
+                        </div>
+                    </div>
+                    <div class="report-grid-stats">
+                        <div class="stat-box">
+                            <span>Mechanical</span>
+                            <span>Satisfactory</span>
+                        </div>
+                        <div class="stat-box">
+                            <span>Electrical</span>
+                            <span>Checked</span>
+                        </div>
+                        <div class="stat-box">
+                            <span>Diagnostics</span>
+                            <span>Scanned</span>
+                        </div>
+                        <div class="stat-box">
+                            <span>Road Test</span>
+                            <span>Completed</span>
+                        </div>
+                    </div>
+                    <div class="report-status-footer">
+                        <span>● Inspection Status: COMPLETED</span>
+                        <span style="font-family: monospace; font-size: 0.8rem;">REF: DLV-SAMPLE</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- DREAMLAND ANALYZER (Editorial Clean Layout) -->
+<section class="analyzer-section">
+    <div class="container">
+        <div class="analyzer-editorial">
+            <div class="section-header" style="margin-bottom: 0;">
+                <span style="color: var(--accent); font-weight: 700; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Proprietary Methodology</span>
+                <h2>Powered by Dreamland Analyzer</h2>
+                <p style="max-width: 650px; margin: 10px auto 0;">A diagnostic framework built by automotive specialists for real-world vehicle troubleshooting in Lagos traffic and road conditions.</p>
+            </div>
+
+            <div class="analyzer-list">
+                <div class="analyzer-point">
+                    <div class="check-icon">✓</div>
+                    <div>
+                        <h4>Find Hidden Faults</h4>
+                        <p>Identify deep-seated mechanical and electronic issues that may not be explained by diagnostic trouble codes alone.</p>
+                    </div>
+                </div>
+                <div class="analyzer-point">
+                    <div class="check-icon">✓</div>
+                    <div>
+                        <h4>Stop Trial-and-Error Repairs</h4>
+                        <p>Test the system thoroughly before investing in expensive components you may not even need.</p>
+                    </div>
+                </div>
+                <div class="analyzer-point">
+                    <div class="check-icon">✓</div>
+                    <div>
+                        <h4>Narrow the Fault</h4>
+                        <p>Identify the most likely root cause through targeted testing rather than guesswork.</p>
+                    </div>
+                </div>
+                <div class="analyzer-point">
+                    <div class="check-icon">✓</div>
+                    <div>
+                        <h4>Reduce Repair Costs</h4>
+                        <p>Save money by paying only for accurate repairs that resolve your car's actual problems.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- SERVICES GATEWAY -->
+<section class="services-section">
+    <div class="container">
+        <div class="section-header">
+            <h2>What Do You Need Help With?</h2>
+            <p>Explore our specialized diagnostic and engineering solutions tailored to your vehicle's needs.</p>
+        </div>
+
+        <div class="services-grid">
+            <a href="services.html" class="service-card">
+                <div>
+                    <h3>Advanced Vehicle Diagnostics</h3>
+                    <p>Find the true root cause of complex vehicle faults before replacing any parts.</p>
+                </div>
+                <div class="card-action">Diagnose My Car →</div>
+            </a>
+
+            <a href="services.html" class="service-card">
+                <div>
+                    <h3>Engine Diagnostics & Repair</h3>
+                    <p>Professional solutions for rough idles, engine misfires, power loss, and check-engine lights.</p>
+                </div>
+                <div class="card-action">Diagnose Engine Problem →</div>
+            </a>
+
+            <a href="services.html" class="service-card">
+                <div>
+                    <h3>Electrical & ECU Diagnostics</h3>
+                    <p>Expert tracing for complex sensor, wiring, battery drain, and electronic control module faults.</p>
+                </div>
+                <div class="card-action">Get Electrical Diagnosis →</div>
+            </a>
+
+            <a href="ppi.html" class="service-card">
+                <div>
+                    <h3>Pre-Purchase Inspection</h3>
+                    <p>Understand the mechanical and structural condition of a used vehicle before committing your money.</p>
+                </div>
+                <div class="card-action">Book PPI Inspection →</div>
+            </a>
+        </div>
+
+        <div class="text-center">
+            <a href="services.html" class="btn btn-primary">Explore All Services</a>
+        </div>
+    </div>
+</section>
+
+<!-- PRE-PURCHASE INSPECTION & VERIFIED CARS SPLIT -->
+<section class="feature-split-section">
+    <div class="container">
+        <div class="split-grid">
+            
+            <!-- PPI Card -->
+            <div class="split-card">
+                <div>
+                    <div style="color: var(--accent); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; margin-bottom: 8px;">Pre-Purchase Inspection</div>
+                    <h3>Buying a Used Car? Don't Buy the Problem With It.</h3>
+                    <p>A professional inspection can save you significant repair expenses by uncovering hidden flaws before purchase.</p>
+                    <ul class="split-list">
+                        <li>Body, frame and visible accident-repair assessment</li>
+                        <li>Engine health & live diagnostic scans</li>
+                        <li>Suspension, brake, & road-test evaluations</li>
+                        <li>Comprehensive inspection scoring</li>
+                    </ul>
+                </div>
+                <div>
+                    <a href="ppi.html" class="btn btn-primary" style="width: 100%;">Book a Pre-Purchase Inspection</a>
+                </div>
+            </div>
+
+            <!-- Verified Cars Card -->
+            <div class="split-card">
+                <div>
+                    <div style="color: var(--success); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; margin-bottom: 8px;">Dreamland Verified Cars</div>
+                    <h3>Don't Just Buy a Used Car. Know What You're Buying.</h3>
+                    <p>Browse inspected vehicles with total transparency into condition scores, diagnostic reports, and verified statuses.</p>
+                    <ul class="split-list">
+                        <li>Professionally assessed multi-point checklist</li>
+                        <li>Disclosed condition and repair history</li>
+                        <li>Full inspection reports attached</li>
+                        <li>Greater confidence before you buy</li>
+                    </ul>
+                </div>
+                <div>
+                    <a href="verified-cars.html" class="btn btn-primary" style="width: 100%; background: var(--primary);">Browse Verified Cars</a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- CORPORATE FLEETCARE TEASER BANNER -->
+<div class="corporate-banner-wrapper">
+    <section class="corporate-banner">
+        <div class="corporate-banner-text">
+            <h3>Do You Operate Company Vehicles?</h3>
+            <p>Unplanned breakdowns and poor maintenance inflate operational costs. Discover our structured Corporate FleetCare maintenance plans and data-driven health reporting.</p>
+        </div>
+        <a href="corporate.html" class="btn btn-primary" style="background: var(--gold); color: var(--primary);">Explore Corporate FleetCare →</a>
+    </section>
+</div>
+
+<!-- TESTIMONIALS SECTION -->
+<section class="testimonials-section">
+    <div class="container">
+        <div class="section-header">
+            <h2>Real Results From Real Customers</h2>
+            <p>Hear from Lagos car owners who trusted Dreamland to solve their toughest vehicle problems.</p>
+        </div>
+
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <div>
+                    <div class="stars">⭐⭐⭐⭐⭐</div>
+                    <p>“Absolutely professional, honest, and keeps to time.”</p>
+                </div>
+                <div class="author">— Temi Adenuga</div>
+            </div>
+
+            <div class="testimonial-card">
+                <div>
+                    <div class="stars">⭐⭐⭐⭐⭐</div>
+                    <p>“He took time to find the root cause and fixed it properly.”</p>
+                </div>
+                <div class="author">— Olugbenga Gbadebo</div>
+            </div>
+
+            <div class="testimonial-card">
+                <div>
+                    <div class="stars">⭐⭐⭐⭐⭐</div>
+                    <p>“Very reliable, honest, and diligent. Excellent work.”</p>
+                </div>
+                <div class="author">— Bakare Samuel</div>
+            </div>
+        </div>
+
+        <div class="google-rating-summary" style="margin-top: 40px;">
+            ⭐ Rated 4.8+ on Google Reviews
+        </div>
+        <div class="text-center" style="margin-top: 10px;">
+            <a href="https://www.google.com/search?q=dreamland+motor+engineering+works+lagos" class="google-link" target="_blank" rel="noopener">See more real customer reviews →</a>
+        </div>
+    </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="steps-section">
+    <div class="container">
+        <div class="section-header">
+            <h2>How It Works</h2>
+            <p>Getting your car diagnosed and fixed correctly is simple and transparent.</p>
+        </div>
+
+        <div class="steps-grid">
+            <div class="step-box">
+                <div class="step-num-badge">1</div>
+                <h3>Tell Us What's Wrong</h3>
+                <p>Reach out to Dreamland via WhatsApp or phone to describe your vehicle symptoms.</p>
+            </div>
+            <div class="step-box">
+                <div class="step-num-badge">2</div>
+                <h3>Bring the Vehicle</h3>
+                <p>Visit our workshop in Lagos for a professional intake and preliminary assessment.</p>
+            </div>
+            <div class="step-box">
+                <div class="step-num-badge">3</div>
+                <h3>We Diagnose the Fault</h3>
+                <p>We test the system thoroughly using advanced tools to identify the underlying fault.</p>
+            </div>
+            <div class="step-box">
+                <div class="step-num-badge">4</div>
+                <h3>Get Clear Recommendations</h3>
+                <p>You receive an honest report and know what needs fixing before any parts are replaced.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FINAL CTA -->
+<div class="container">
+    <section class="cta-section" id="contact">
+        <h2>Stop Guessing. Know What's Wrong.</h2>
+        <p>Whether your car has a warning light, poor performance, an electrical problem, or an unexplained fault, start with the diagnosis.</p>
+        <div class="hero-actions" style="margin-bottom: 0; justify-content: center;">
+            <a href="https://wa.me/2349066616152?text=Hello%20Dreamland,%20I%20want%20to%20diagnose%20my%20car" class="btn btn-whatsapp">
+                💬 Chat With Dreamland on WhatsApp
+            </a>
+            <a href="ppi.html" class="btn btn-secondary">
+                🔍 Book a Pre-Purchase Inspection
+            </a>
+        </div>
+    </section>
+</div>
+
+<!-- FOOTER -->
+<footer>
+    <div class="container">
+        <p>&copy; 2026 Dreamland Motor Engineering Works. All rights reserved.</p>
+        <div class="footer-links">
+            <a href="index.html">Home</a>
+            <a href="ppi.html">PPI</a>
+            <a href="corporate.html">Corporate FleetCare</a>
+            <a href="services.html">Services</a>
+            <a href="verified-cars.html">Verified Cars</a>
+            <a href="#contact">Contact</a>
+        </div>
+        <p style="color: #64748b; font-size: 0.85rem;">Professional vehicle inspections, transparent condition grading, and verified sales in Lagos, Nigeria.</p>
+    </div>
+</footer>
+
+<!-- WHATSAPP FLOATING WIDGET -->
+<a href="https://wa.me/2349066616152?text=Hello%20Dreamland,%20I%20need%20assistance%20with%20my%20car" class="whatsapp-float" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">
+    💬
+</a>
+
+<!-- JAVASCRIPT: MOBILE MENU -->
+<script>
+    const menuToggle = document.getElementById('menuToggle');
+    const mobileNav = document.getElementById('mobileNav');
+    
+    if (menuToggle && mobileNav) {
+        menuToggle.addEventListener('click', () => {
+            const isVisible = mobileNav.style.display === 'block';
+            mobileNav.style.display = isVisible ? 'none' : 'block';
+        });
+    }
+</script>
+
+</body>
+</html><!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
