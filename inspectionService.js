@@ -333,16 +333,27 @@ export const inspectionService = {
     },
 
     /**
-     * Uploads a scanner PDF report and attaches it using the authoritative verification_inspection_id relationship.
+     * Uploads a scanner PDF report and attaches it directly to the specified active inspection ID.
      */
-    async uploadScannerPdf(vehicleId, file) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
+    async uploadScannerPdf(inspectionId, file) {
+        if (!inspectionId) throw new Error('Inspection ID is required.');
         if (!file || !(file instanceof File)) throw new Error('A valid PDF file is required.');
 
         const fileExt = file.name.split('.').pop().toLowerCase();
         if (fileExt !== 'pdf') throw new Error('Only PDF files are allowed.');
 
-        const fileName = `inspections/${vehicleId}/scanner_${crypto.randomUUID()}.pdf`;
+        // Step 2 — Verify the inspection exists and retrieve its vehicle_id
+        const { data: inspectionRecord, error: inspFetchErr } = await supabase
+            .from('inspections')
+            .select('id, vehicle_id, inspection_status')
+            .eq('id', inspectionId)
+            .single();
+
+        if (inspFetchErr || !inspectionRecord) {
+            throw new Error('Inspection not found.');
+        }
+
+        const fileName = `inspections/${inspectionRecord.vehicle_id}/scanner_${crypto.randomUUID()}.pdf`;
 
         const { error: uploadError } = await supabase.storage
             .from('vehicle-photos')
@@ -357,26 +368,14 @@ export const inspectionService = {
             .from('vehicle-photos')
             .getPublicUrl(fileName);
 
-        // Locate inspection using authoritative verification_inspection_id
-        const { data: vehicleRecord, error: vehicleErr } = await supabase
-            .from('vehicles')
-            .select('verification_inspection_id')
-            .eq('id', vehicleId)
-            .single();
-
-        if (vehicleErr || !vehicleRecord || !vehicleRecord.verification_inspection_id) {
-            await supabase.storage.from('vehicle-photos').remove([fileName]);
-            throw new Error('No authoritative verification inspection relationship exists for this vehicle.');
-        }
-
-        const inspectionId = vehicleRecord.verification_inspection_id;
-
+        // Step 6 — Attach the scanner report directly to THIS inspection ID
         const { error: updateError } = await supabase
             .from('inspections')
             .update({ scanner_report_path: publicUrl })
             .eq('id', inspectionId);
 
         if (updateError) {
+            // Step 7 — Clean up on failure
             await supabase.storage.from('vehicle-photos').remove([fileName]);
             throw new Error(`Failed to save scanner report link: ${updateError.message}`);
         }
