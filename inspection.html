@@ -632,9 +632,7 @@
 
         async function deleteFinding(findingId) {
             try {
-                // If inspectionService supports deleteFinding, or direct Supabase delete:
                 const { error } = await inspectionService.supabase ? inspectionService.supabase.from('inspection_findings').delete().eq('id', findingId) : { error: new Error('Method not supported') };
-                // Alternatively refresh inspection details
                 currentInspection = await inspectionService.getInspectionForVehicle(currentVehicleId);
                 renderFindings();
             } catch (err) {
@@ -651,7 +649,6 @@
             if (!component || !description) return;
 
             try {
-                // Insert finding via inspectionService or direct supabase table
                 const { error } = await inspectionService.supabase ? inspectionService.supabase.from('inspection_findings').insert([{
                     inspection_id: currentInspection.id,
                     area: component,
@@ -678,7 +675,7 @@
                 scannerPdfInput.disabled = true;
                 document.getElementById('scanner-upload-label').textContent = 'Uploading PDF...';
 
-                await inspectionService.uploadScannerPdf(currentVehicleId, file);
+                await inspectionService.uploadScannerPdf(currentInspection.id, file);
                 currentInspection = await inspectionService.getInspectionForVehicle(currentVehicleId);
                 renderInspectionWorkbench();
                 alert('Scanner PDF uploaded successfully!');
@@ -687,7 +684,7 @@
             } finally {
                 scannerPdfInput.disabled = false;
                 scannerPdfInput.value = '';
-                document.getElementById('scanner-upload-label').textContent = currentInspection.scanner_report_path ? 'Replace Scanner PDF' : 'Upload Scanner PDF';
+                document.getElementById('scanner-upload-label').textContent = currentInspection?.scanner_report_path ? 'Replace Scanner PDF' : 'Upload Scanner PDF';
             }
         });
 
