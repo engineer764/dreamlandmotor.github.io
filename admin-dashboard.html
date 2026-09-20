@@ -1,6 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dreamland Admin Portal — Lifecycle & Inspection Operations</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --verified-green: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--primary);
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 { margin: 0; font-size: 1.25rem; }
+        .user-info { font-size: 0.875rem; color: #94a3b8; display: flex; gap: 16px; align-items: center; }
+        .logout-btn { background: #334155; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .logout-btn:hover { background: var(--danger); }
 
-    
-  
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 16px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .card h2 { margin-top: 0; font-size: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+
+        form {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+        @media(min-width: 768px) {
+            form { grid-template-columns: repeat(4, 1fr); }
+            .full-width { grid-column: span 4; }
+        }
+
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        label { font-size: 0.8125rem; font-weight: bold; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
+        input, select, textarea {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+            box-sizing: border-box;
+            outline: none;
+        }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #1d4ed8; }
+        .btn-success { background: var(--verified-green); }
+        .btn-success:hover { background: #15803d; }
+        .btn-secondary { background: #64748b; }
+        .btn-secondary:hover { background: #475569; }
+        .btn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        /* Photo Manager Grid */
+        .photo-manager-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 16px;
+            margin-top: 8px;
+        }
+        .photo-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .photo-card img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+        .photo-card-body {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 0.75rem;
+        }
+        .photo-badge {
+            background: #dcfce7;
+            color: var(--verified-green);
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        .photo-actions {
+            display: flex;
+            gap: 4px;
+            justify-content: space-between;
+        }
+
+        /* Inventory & PPI Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 0.875rem;
+        }
+        th, td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        th { background: #f1f5f9; font-weight: bold; color: #334155; }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .badge-verified { background: #dcfce7; color: var(--verified-green); }
+        .badge-pending { background: #fef9c3; color: #a16207; }
+        .badge-rejected { background: #fee2e2; color: var(--danger); }
+        .badge-published { background: #e0f2fe; color: #0369a1; }
+        .badge-unpublished { background: #f1f5f9; color: #475569; }
+        .badge-sales { background: #f3e8ff; color: #6b21a8; }
+        .badge-reserved { background: #ffedd5; color: #c2410c; }
+        .badge-sold { background: #f1f5f9; color: #334155; }
+        .badge-archived { background: #e2e8f0; color: #64748b; }
+
+        .action-cell { display: flex; flex-wrap: wrap; gap: 6px; }
+        .action-btn { padding: 5px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: white; cursor: pointer; font-weight: 600; }
+        .action-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+        
+        .btn-inspect { color: #7c3aed; border-color: #ddd6fe; background: #faf5ff; }
+        .btn-inspect:hover { background: #f3e8ff; border-color: #c4b5fd; }
+        .btn-verify { color: var(--verified-green); border-color: #bbf7d0; }
+        .btn-reject { color: var(--danger); border-color: #fca5a5; }
+        .btn-publish { color: #0284c7; border-color: #bae6fd; }
+        .btn-reserve { color: #c2410c; border-color: #fed7aa; }
+        .btn-sold { color: #475569; border-color: #cbd5e1; }
+        .btn-archive { color: #64748b; border-color: #cbd5e1; }
+        .btn-edit { color: #2563eb; border-color: #bfdbfe; background: #eff6ff; }
+        .btn-edit:hover { background: #dbeafe; }
+        .btn-delete { color: var(--danger); border-color: #fecaca; background: #fef2f2; }
+        .btn-delete:hover { background: #fee2e2; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Dreamland Admin Portal</h1>
+    <div class="user-info">
+        <span id="userEmail">Loading session...</span>
+        <button class="logout-btn" id="logoutBtn">Logout</button>
+    </div>
+</header>
+
+<div class="container">
+    <!-- Add / Edit Vehicle Form Card -->
+    <div class="card">
+        <h2 id="formTitle">
+            <span>Register New Vehicle Draft</span>
+            <button type="button" id="cancelEditBtn" class="action-btn hidden" onclick="cancelEditMode()">Cancel Edit</button>
+        </h2>
+        <form id="vehicleForm">
+            <div class="form-group">
+                <label>Make *</label>
+                <input type="text" id="make" required placeholder="e.g. Toyota">
+            </div>
+            <div class="form-group">
+                <label>Model *</label>
+                <input type="text" id="model" required placeholder="e.g. Camry">
+            </div>
+            <div class="form-group">
+                <label>Trim</label>
+                <input type="text" id="trim" placeholder="e.g. XLE">
+            </div>
+            <div class="form-group">
+                <label>Year *</label>
+                <input type="number" id="year" required placeholder="2020" min="1990" max="2035">
+            </div>
+            <div class="form-group">
+                <label>Mileage (km) *</label>
+                <input type="number" id="mileage" required placeholder="45000">
+            </div>
+            <div class="form-group">
+                <label>Engine Spec *</label>
+                <input type="text" id="engine" required placeholder="2.5L 4-Cylinder">
+            </div>
+            <div class="form-group">
+                <label>VIN</label>
+                <input type="text" id="vin" placeholder="Vehicle Identification Number">
+            </div>
+            <div class="form-group">
+                <label>Registration Number</label>
+                <input type="text" id="registration_number" placeholder="e.g. ABC-123XY">
+            </div>
+            <div class="form-group">
+                <label>Body Type</label>
+                <select id="body_type">
+                    <option value="Sedan">Sedan</option>
+                    <option value="SUV">SUV</option>
+                    <option value="Hatchback">Hatchback</option>
+                    <option value="Coupe">Coupe</option>
+                    <option value="Pickup">Pickup</option>
+                    <option value="Van">Van</option>
+                    <option value="Crossover">Crossover</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Transmission</label>
+                <select id="transmission">
+                    <option value="Automatic">Automatic</option>
+                    <option value="Manual">Manual</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Fuel Type</label>
+                <select id="fuel_type">
+                    <option value="Petrol">Petrol</option>
+                    <option value="Diesel">Diesel</option>
+                    <option value="Hybrid">Hybrid</option>
+                    <option value="Electric">Electric</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Colour</label>
+                <input type="text" id="colour" placeholder="Midnight Black">
+            </div>
+            <div class="form-group">
+                <label>Location</label>
+                <input type="text" id="location" value="Lagos Workshop">
+            </div>
+            <div class="form-group">
+                <label>Price (₦) *</label>
+                <input type="number" id="price" required placeholder="14500000">
+            </div>
+
+            <!-- Photo Section -->
+            <div class="form-group full-width" id="photoPickerGroup">
+               <label id="photoSectionLabel">Primary Photo</label>
+                <div class="photo-picker">
+                    <button type="button" id="cameraPhotoBtn" class="action-btn" style="padding: 8px 14px; margin-right: 8px;">
+                        Camera
+                    </button>
+                    <button type="button" id="galleryPhotoBtn" class="action-btn" style="padding: 8px 14px;">
+                        Choose from Gallery
+                    </button>
+                    <input type="file" id="cameraPhotoInput" accept="image/*" capture="environment" hidden>
+                    <input type="file" id="galleryPhotoInput" accept="image/*" hidden>
+                    <div id="photoPreviewContainer" style="margin-top:12px;">
+                        <img id="photoPreview" alt="Selected vehicle photo" hidden style="max-width:100%; max-height:250px; border-radius:8px;">
+                        <div id="photoFilename" style="font-size: 0.875rem; color: #64748b; margin-top: 4px;">
+                            No photo selected
+                        </div>
+                    </div>
+                </div>
+                <!-- Existing Photos Manager in Edit Mode -->
+                <div id="existingPhotosContainer" class="hidden" style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
+                    <label style="margin-bottom: 8px; display: block;">Vehicle Photos Gallery</label>
+                    <div id="vehiclePhotosManager" class="photo-manager-grid"></div>
+                </div>
+            </div>
+
+            <!-- Inspection PDF Reports Upload Section -->
+            <div class="form-group full-width" style="border-top: 1px solid var(--border); padding-top: 16px; margin-top: 8px;">
+                <label style="margin-bottom: 8px; display: block; color: var(--accent);">Digital Inspection & Scanner Reports (PDF)</label>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                    <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+                        <label style="font-size: 0.75rem; color: #475569; display: block; margin-bottom: 4px;">Raw Scanner Health Report (PDF)</label>
+                        <input type="file" id="adminScannerPdfInput" accept=".pdf" style="width: 100%; font-size: 0.875rem;">
+                        <small style="color: #64748b; font-size: 0.7rem; display: block; margin-top: 4px;">Upload unedited OBD2 scanner health log.</small>
+                    </div>
+                    <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+                        <label style="font-size: 0.75rem; color: #475569; display: block; margin-bottom: 4px;">Main Inspection Summary Report (PDF)</label>
+                        <input type="file" id="adminMainPdfInput" accept=".pdf" style="width: 100%; font-size: 0.875rem;">
+                        <small style="color: #64748b; font-size: 0.7rem; display: block; margin-top: 4px;">Upload multi-point vehicle inspection certificate.</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group full-width">
+                <label>Initial Inspection Notes / Description</label>
+                <textarea id="description" rows="2" placeholder="Single owner, clean engine bay, awaiting full inspection..."></textarea>
+            </div>
+            <div class="form-group">
+                <button type="submit" id="submitBtn" class="btn btn-success">Save as Draft</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- PPI Request Receiver Card -->
+    <div class="card">
+        <h2>
+            <span>PPI Request Receiver</span>
+            <button type="button" class="action-btn" id="refreshPpiBtn">Refresh</button>
+        </h2>
+        
+        <!-- Status Counters -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px;" id="ppiCountersContainer">
+            <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="font-size: 0.75rem; color: #64748b; font-weight: bold; text-transform: uppercase;">New / Draft</div>
+                <div id="counterDraft" style="font-size: 1.5rem; font-weight: bold; color: #d97706; margin-top: 4px;">0</div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="font-size: 0.75rem; color: #64748b; font-weight: bold; text-transform: uppercase;">In Progress</div>
+                <div id="counterInProgress" style="font-size: 1.5rem; font-weight: bold; color: #0284c7; margin-top: 4px;">0</div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="font-size: 0.75rem; color: #64748b; font-weight: bold; text-transform: uppercase;">For Review</div>
+                <div id="counterReview" style="font-size: 1.5rem; font-weight: bold; color: #7c3aed; margin-top: 4px;">0</div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="font-size: 0.75rem; color: #64748b; font-weight: bold; text-transform: uppercase;">Changes Requested</div>
+                <div id="counterChanges" style="font-size: 1.5rem; font-weight: bold; color: #dc2626; margin-top: 4px;">0</div>
+            </div>
+        </div>
+
+        <!-- Search & Filter Controls -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
+            <div class="form-group" style="margin: 0;">
+                <label>Search Requests</label>
+                <input type="text" id="ppiSearchInput" placeholder="PPI number, customer, phone, VIN, vehicle...">
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label>Status Filter</label>
+                <select id="ppiStatusFilter">
+                    <option value="">All Statuses</option>
+                    <option value="DRAFT">DRAFT</option>
+                    <option value="IN_PROGRESS">IN_PROGRESS</option>
+                    <option value="SUBMITTED_FOR_REVIEW">SUBMITTED_FOR_REVIEW</option>
+                    <option value="CHANGES_REQUESTED">CHANGES_REQUESTED</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label>Request Type Filter</label>
+                <select id="ppiTypeFilter">
+                    <option value="">All Request Types</option>
+                    <option value="TECHNICAL_PPI">Technical PPI</option>
+                    <option value="INSURANCE_VALUATION">Insurance Valuation</option>
+                    <option value="TECHNICAL_PPI_AND_VALUATION">Technical PPI + Valuation</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- PPI Requests Table -->
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>PPI Number</th>
+                        <th>Request Type</th>
+                        <th>Customer</th>
+                        <th>Vehicle</th>
+                        <th>Seller</th>
+                        <th>Location</th>
+                        <th>Inspector</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="adminPpiTable">
+                    <tr><td colspan="10" style="text-align: center; color: #64748b;">Loading PPI requests...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Technician Management Card -->
+    <div class="card">
+        <h2>Technician / Inspector Management</h2>
+
+        <form id="technicianForm" style="margin-bottom: 24px;">
+            <div class="form-group">
+                <label>Technician Name *</label>
+                <input type="text" id="technicianName" required placeholder="Full name">
+            </div>
+            <div class="form-group">
+                <label>Login Email *</label>
+                <input type="email" id="technicianEmail" required placeholder="technician@example.com">
+            </div>
+            <div class="form-group" style="display:flex; align-items:flex-end;">
+                <button type="submit" id="addTechnicianBtn" class="btn btn-success">Add Technician</button>
+            </div>
+        </form>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:12px; flex-wrap:wrap;">
+            <div style="color:#64748b; font-size:0.875rem;">Active inspectors can be assigned to PPI requests and inspection jobs.</div>
+            <button type="button" class="action-btn" id="refreshTechniciansBtn">Refresh Technicians</button>
+        </div>
+
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Technician</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>PPI Jobs</th>
+                        <th>Inspections</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="technicianTable">
+                    <tr><td colspan="7" style="text-align:center;color:#64748b;">Loading technicians...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Inventory Management List Card -->
+    <div class="card">
+        <h2>Inventory Lifecycle Management</h2>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Vehicle</th>
+                        <th>Price</th>
+                        <th>Verification</th>
+                        <th>Inspection</th>
+                        <th>Publication</th>
+                        <th>Sales Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="adminInventoryTable">
+                    <tr><td colspan="8" style="text-align: center; color: #64748b;">Loading inventory through service layer...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- View / Edit PPI Request Modal -->
+<div id="ppiModal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box;">
+    <div style="background: white; border-radius: 12px; max-width: 800px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
+            <h3 id="ppiModalTitle" style="margin: 0; font-size: 1.25rem; color: var(--primary);">PPI Request Details</h3>
+            <button type="button" class="action-btn" onclick="closePpiModal()">Close</button>
+        </div>
+        
+        <div id="ppiModalBody" style="display: flex; flex-direction: column; gap: 16px; font-size: 0.875rem;">
+            <!-- Dynamically populated request details -->
+        </div>
+
+        <div style="border-top: 1px solid var(--border); padding-top: 16px; margin-top: 20px; display: flex; justify-content: flex-end; gap: 12px;">
+            <button type="button" class="action-btn btn-secondary" onclick="closePpiModal()">Cancel</button>
+            <button type="button" class="btn btn-success" id="savePpiChangesBtn" onclick="savePpiChanges()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { requireAuth, logoutStaff, supabase } from './supabaseClient.js';
+    import { vehicleService } from './vehicleService.js';
+    import { createPhotoPicker } from './photo.js';
+
+    let loadedVehicles = [];
+    let editingVehicleId = null;
+    let loadedPpiRequests = [];
+    let loadedTechnicians = [];
+    let currentSelectedPpiId = null;
+
+    // Helper to escape HTML and prevent XSS injection
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    async function init() {
+        const auth = await requireAuth();
+        if (!auth) return;
+
+        document.getElementById('userEmail').textContent = `${auth.profile.name || auth.profile.email} (${auth.profile.role})`;
+
+        document.getElementById('logoutBtn').addEventListener('click', logoutStaff);
+        document.getElementById('vehicleForm').addEventListener('submit', handleFormSubmit);
+        document.getElementById('technicianForm').addEventListener('submit', addTechnician);
+        document.getElementById('refreshTechniciansBtn').addEventListener('click', loadTechnicians);
+        document.getElementById('refreshPpiBtn').addEventListener('click', loadPpiRequests);
+        document.getElementById('ppiSearchInput').addEventListener('input', filterAndRenderPpiTable);
+        document.getElementById('ppiStatusFilter').addEventListener('change', filterAndRenderPpiTable);
+        document.getElementById('ppiTypeFilter').addEventListener('change', filterAndRenderPpiTable);
+
+        window.vehiclePhotoPicker = createPhotoPicker({
+            cameraButtonId: 'cameraPhotoBtn',
+            galleryButtonId: 'galleryPhotoBtn',
+            cameraInputId: 'cameraPhotoInput',
+            galleryInputId: 'galleryPhotoInput',
+            previewId: 'photoPreview',
+            filenameId: 'photoFilename'
+        });
+
+        await loadTechnicians();
+        await loadPpiRequests();
+        await loadInventory();
+    }
+
+    // =========================================================
+    // TECHNICIAN / INSPECTOR MANAGEMENT MODULE
+    // =========================================================
+    async function loadTechnicians() {
+        const tbody = document.getElementById('technicianTable');
+        if (!tbody) return;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#64748b;">Loading technicians...</td></tr>`;
+
+        try {
+            const [{ data: technicians, error: techError }, { data: ppiJobs, error: ppiError }, { data: inspections, error: inspError }] = await Promise.all([
+                supabase.from('users').select('id, name, email, role, active, created_at').eq('role', 'INSPECTOR').order('created_at', { ascending: false }),
+                supabase.from('ppi_requests').select('assigned_inspector'),
+                supabase.from('inspections').select('inspector_id')
+            ]);
+
+            if (techError) throw techError;
+            if (ppiError) throw ppiError;
+            if (inspError) throw inspError;
+
+            loadedTechnicians = technicians || [];
+            const ppiCounts = {};
+            const inspectionCounts = {};
+            (ppiJobs || []).forEach(row => {
+                if (row.assigned_inspector) ppiCounts[row.assigned_inspector] = (ppiCounts[row.assigned_inspector] || 0) + 1;
+            });
+            (inspections || []).forEach(row => {
+                if (row.inspector_id) inspectionCounts[row.inspector_id] = (inspectionCounts[row.inspector_id] || 0) + 1;
+            });
+
+            if (!loadedTechnicians.length) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#64748b;">No inspectors have been added yet.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            loadedTechnicians.forEach(tech => {
+                const statusClass = tech.active ? 'badge-verified' : 'badge-rejected';
+                const statusLabel = tech.active ? 'ACTIVE' : 'INACTIVE';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${escapeHtml(tech.name || 'Unnamed Technician')}</strong></td>
+                    <td>${escapeHtml(tech.email || '')}</td>
+                    <td><span class="badge badge-published">INSPECTOR</span></td>
+                    <td><span class="badge ${statusClass}">${statusLabel}</span></td>
+                    <td>${ppiCounts[tech.id] || 0}</td>
+                    <td>${inspectionCounts[tech.id] || 0}</td>
+                    <td><div class="action-cell">
+                        <button type="button" class="action-btn" onclick="editTechnician('${tech.id}')">Edit</button>
+                        <button type="button" class="action-btn ${tech.active ? 'btn-reject' : 'btn-verify'}" onclick="toggleTechnician('${tech.id}', ${tech.active ? 'false' : 'true'})">${tech.active ? 'Deactivate' : 'Activate'}</button>
+                    </div></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (error) {
+            tbody.innerHTML = `<tr><td colspan="7" style="color:red;text-align:center;">Failed to load technicians: ${escapeHtml(error.message)}</td></tr>`;
+        }
+    }
+
+    async function addTechnician(e) {
+        e.preventDefault();
+        const name = document.getElementById('technicianName').value.trim();
+        const email = document.getElementById('technicianEmail').value.trim().toLowerCase();
+        const button = document.getElementById('addTechnicianBtn');
+        if (!name || !email) return;
+
+        button.disabled = true;
+        button.textContent = 'Creating...';
+        try {
+            const { data: result, error: functionError } = await supabase.functions.invoke('admin-manage-technician', {
+                body: { action: 'create', name, email }
+            });
+            if (functionError) throw functionError;
+            if (!result?.success) throw new Error(result?.error || 'Failed to create technician.');
+
+            alert('Technician created successfully. An invitation has been sent to the technician email address.');
+            document.getElementById('technicianForm').reset();
+            await loadTechnicians();
+            filterAndRenderPpiTable();
+        } catch (error) {
+            alert('Failed to add technician: ' + error.message);
+        } finally {
+            button.disabled = false;
+            button.textContent = 'Add Technician';
+        }
+    }
+
+    window.editTechnician = async function(id) {
+        const tech = loadedTechnicians.find(item => item.id === id);
+        if (!tech) return;
+        const name = prompt('Technician name:', tech.name || '');
+        if (name === null) return;
+        const trimmedName = name.trim();
+        if (!trimmedName) return;
+
+        try {
+            const { error } = await supabase.from('users').update({ name: trimmedName, updated_at: new Date().toISOString() }).eq('id', id).eq('role', 'INSPECTOR');
+            if (error) throw error;
+            await loadTechnicians();
+            filterAndRenderPpiTable();
+        } catch (error) {
+            alert('Failed to update technician: ' + error.message);
+        }
+    };
+
+    window.toggleTechnician = async function(id, active) {
+        const tech = loadedTechnicians.find(item => item.id === id);
+        if (!tech) return;
+        const action = active ? 'activate' : 'deactivate';
+        if (!confirm(`${active ? 'Activate' : 'Deactivate'} ${tech.name || tech.email}?`)) return;
+
+        try {
+            const { error } = await supabase.from('users').update({ active, updated_at: new Date().toISOString() }).eq('id', id).eq('role', 'INSPECTOR');
+            if (error) throw error;
+            await loadTechnicians();
+            filterAndRenderPpiTable();
+        } catch (error) {
+            alert(`Failed to ${action} technician: ` + error.message);
+        }
+    };
+
+    // =========================================================
+    // PPI REQUEST RECEIVER MODULE
+    // =========================================================
+    async function loadPpiRequests() {
+        const tbody = document.getElementById('adminPpiTable');
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: #64748b;">Loading PPI requests...</td></tr>`;
+
+        try {
+            const { data, error } = await supabase
+                .from('ppi_requests')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            loadedPpiRequests = data || [];
+
+            updatePpiCounters(loadedPpiRequests);
+            filterAndRenderPpiTable();
+        } catch (error) {
+            console.error('Failed to load PPI requests:', error);
+            tbody.innerHTML = `<tr><td colspan="10" style="color:red; text-align:center;">Failed to load PPI requests: ${escapeHtml(error.message)}</td></tr>`;
+        }
+    }
+
+    function updatePpiCounters(requests) {
+        let draftCount = 0;
+        let inProgressCount = 0;
+        let reviewCount = 0;
+        let changesCount = 0;
+
+        requests.forEach(req => {
+            const s = (req.status || '').toUpperCase();
+            if (s === 'DRAFT') draftCount++;
+            else if (s === 'IN_PROGRESS') inProgressCount++;
+            else if (s === 'SUBMITTED_FOR_REVIEW') reviewCount++;
+            else if (s === 'CHANGES_REQUESTED') changesCount++;
+        });
+
+        document.getElementById('counterDraft').textContent = draftCount;
+        document.getElementById('counterInProgress').textContent = inProgressCount;
+        document.getElementById('counterReview').textContent = reviewCount;
+        document.getElementById('counterChanges').textContent = changesCount;
+    }
+
+    function filterAndRenderPpiTable() {
+        const searchText = (document.getElementById('ppiSearchInput').value || '').toLowerCase().trim();
+        const statusFilter = document.getElementById('ppiStatusFilter').value;
+        const typeFilter = document.getElementById('ppiTypeFilter').value;
+
+        const filtered = loadedPpiRequests.filter(req => {
+            if (statusFilter && req.status !== statusFilter) return false;
+            if (typeFilter && req.request_type !== typeFilter) return false;
+
+            if (searchText) {
+                const ppiNum = (req.ppi_number || '').toLowerCase();
+                const custName = (req.customer_name || '').toLowerCase();
+                const custPhone = (req.customer_phone || '').toLowerCase();
+                const custEmail = (req.customer_email || '').toLowerCase();
+                const make = (req.vehicle_make || '').toLowerCase();
+                const model = (req.vehicle_model || '').toLowerCase();
+                const vin = (req.vehicle_vin || '').toLowerCase();
+                const reg = (req.vehicle_registration || '').toLowerCase();
+                const seller = (req.seller_name || '').toLowerCase();
+
+                const match = ppiNum.includes(searchText) ||
+                            custName.includes(searchText) ||
+                            custPhone.includes(searchText) ||
+                            custEmail.includes(searchText) ||
+                            make.includes(searchText) ||
+                            model.includes(searchText) ||
+                            vin.includes(searchText) ||
+                            reg.includes(searchText) ||
+                            seller.includes(searchText);
+                if (!match) return false;
+            }
+            return true;
+        });
+
+        renderPpiTable(filtered);
+    }
+
+    function renderPpiTable(requests) {
+        const tbody = document.getElementById('adminPpiTable');
+
+        if (!requests || requests.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: #64748b;">No PPI requests received yet.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = '';
+        requests.forEach(req => {
+            const formattedDate = req.created_at ? new Date(req.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+            
+            let typeLabel = req.request_type || 'TECHNICAL_PPI';
+            if (typeLabel === 'TECHNICAL_PPI') typeLabel = 'Technical PPI';
+            else if (typeLabel === 'INSURANCE_VALUATION') typeLabel = 'Insurance Valuation';
+            else if (typeLabel === 'TECHNICAL_PPI_AND_VALUATION') typeLabel = 'Technical PPI + Val';
+
+            let badgeClass = 'badge-pending';
+            const s = (req.status || '').toUpperCase();
+            if (s === 'IN_PROGRESS') badgeClass = 'badge-published';
+            else if (s === 'SUBMITTED_FOR_REVIEW') badgeClass = 'badge-reserved';
+            else if (s === 'CHANGES_REQUESTED') badgeClass = 'badge-rejected';
+
+            let inspectorName = 'Not Assigned';
+            if (req.assigned_inspector) {
+                const foundInspector = loadedTechnicians.find(u => u.id === req.assigned_inspector);
+                if (foundInspector) {
+                    inspectorName = foundInspector.name || foundInspector.email;
+                } else {
+                    inspectorName = req.assigned_inspector.substring(0, 8) + '...';
+                }
+            }
+
+            const vehicleText = `${req.vehicle_year || ''} ${req.vehicle_make || ''} ${req.vehicle_model || ''}`.trim() || 'Vehicle info missing';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><code>${escapeHtml(req.ppi_number || req.id.substring(0, 8))}</code></td>
+                <td><span style="font-weight: 500; font-size: 0.8125rem;">${escapeHtml(typeLabel)}</span></td>
+                <td><strong>${escapeHtml(req.customer_name || 'Anonymous')}</strong><br><small style="color:#64748b">${escapeHtml(req.customer_phone || '')}</small></td>
+                <td><strong>${escapeHtml(vehicleText)}</strong><br><small style="color:#64748b">${escapeHtml(req.vehicle_registration || req.vehicle_vin || '')}</small></td>
+                <td>${escapeHtml(req.seller_name || 'N/A')}<br><small style="color:#64748b">${escapeHtml(req.seller_phone || '')}</small></td>
+                <td>${escapeHtml(req.vehicle_location || 'Lagos')}</td>
+                <td><span style="font-size: 0.8125rem; color: ${req.assigned_inspector ? 'var(--primary)' : '#94a3b8'}">${escapeHtml(inspectorName)}</span></td>
+                <td><span class="badge ${badgeClass}">${escapeHtml(req.status || 'DRAFT')}</span></td>
+                <td><small>${escapeHtml(formattedDate)}</small></td>
+                <td><button type="button" class="action-btn btn-edit" onclick="openPpiModal('${req.id}')">View</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    window.openPpiModal = function(requestId) {
+        const req = loadedPpiRequests.find(r => r.id === requestId);
+        if (!req) {
+            alert('PPI request not found.');
+            return;
+        }
+
+        currentSelectedPpiId = req.id;
+        document.getElementById('ppiModalTitle').textContent = `PPI Request — ${req.ppi_number || req.id.substring(0, 8)}`;
+
+        const isLinkedVehicle = !!req.vehicle_id;
+
+        let inspectorOptions = `<option value="">-- Select Inspector --</option>`;
+        loadedTechnicians.forEach(user => {
+            const label = `${user.name || user.email} (${user.role || 'INSPECTOR'})`;
+            const selected = req.assigned_inspector === user.id ? 'selected' : '';
+            inspectorOptions += `<option value="${user.id}" ${selected}>${escapeHtml(label)}</option>`;
+        });
+
+        const currentStatus = (req.status || 'DRAFT').toUpperCase();
+        let allowedStatuses = [currentStatus];
+        
+        if (currentStatus === 'DRAFT') {
+            allowedStatuses = ['DRAFT', 'IN_PROGRESS'];
+        } else if (currentStatus === 'IN_PROGRESS') {
+            allowedStatuses = ['IN_PROGRESS', 'SUBMITTED_FOR_REVIEW'];
+        } else if (currentStatus === 'CHANGES_REQUESTED') {
+            allowedStatuses = ['CHANGES_REQUESTED', 'IN_PROGRESS'];
+        } else if (currentStatus === 'SUBMITTED_FOR_REVIEW') {
+            allowedStatuses = ['SUBMITTED_FOR_REVIEW'];
+        }
+
+        let statusOptions = '';
+        allowedStatuses.forEach(st => {
+            const selected = currentStatus === st ? 'selected' : '';
+            statusOptions += `<option value="${st}" ${selected}>${st}</option>`;
+        });
+
+        const modalBody = document.getElementById('ppiModalBody');
+        modalBody.innerHTML = `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid var(--border);">
+                <div>
+                    <strong>Request Information</strong><br>
+                    <span style="color:#64748b;">Type:</span> ${escapeHtml(req.request_type || '-')}<br>
+                    <span style="color:#64748b;">Received:</span> ${req.created_at ? escapeHtml(new Date(req.created_at).toLocaleString()) : '-'}<br>
+                    <span style="color:#64748b;">Last Updated:</span> ${req.updated_at ? escapeHtml(new Date(req.updated_at).toLocaleString()) : '-'}<br>
+                </div>
+                <div>
+                    <strong>Vehicle Source</strong><br>
+                    ${isLinkedVehicle ? `<span class="badge badge-verified">Dreamland Vehicle</span><br><small style="color:#64748b">Vehicle ID: ${escapeHtml(req.vehicle_id)}</small>` : `<span class="badge badge-pending">Customer Vehicle</span>`}
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div style="background: white; padding: 14px; border-radius: 8px; border: 1px solid var(--border);">
+                    <strong style="color: var(--accent); display: block; margin-bottom: 8px;">Customer Information</strong>
+                    <div><strong>Name:</strong> ${escapeHtml(req.customer_name || 'N/A')}</div>
+                    <div><strong>Phone:</strong> ${escapeHtml(req.customer_phone || 'N/A')}</div>
+                    <div><strong>Email:</strong> ${escapeHtml(req.customer_email || 'N/A')}</div>
+                </div>
+                <div style="background: white; padding: 14px; border-radius: 8px; border: 1px solid var(--border);">
+                    <strong style="color: var(--accent); display: block; margin-bottom: 8px;">Seller Information</strong>
+                    <div><strong>Name:</strong> ${escapeHtml(req.seller_name || 'N/A')}</div>
+                    <div><strong>Phone:</strong> ${escapeHtml(req.seller_phone || 'N/A')}</div>
+                </div>
+            </div>
+
+            <div style="background: white; padding: 14px; border-radius: 8px; border: 1px solid var(--border);">
+                <strong style="color: var(--accent); display: block; margin-bottom: 8px;">Vehicle Details</strong>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                    <div><strong>Make:</strong> ${escapeHtml(req.vehicle_make || '-')}</div>
+                    <div><strong>Model:</strong> ${escapeHtml(req.vehicle_model || '-')}</div>
+                    <div><strong>Year:</strong> ${escapeHtml(req.vehicle_year || '-')}</div>
+                    <div><strong>Trim:</strong> ${escapeHtml(req.vehicle_trim || '-')}</div>
+                    <div><strong>Mileage:</strong> ${req.vehicle_mileage ? escapeHtml(req.vehicle_mileage.toLocaleString() + ' km') : '-'}</div>
+                    <div><strong>Engine:</strong> ${escapeHtml(req.vehicle_engine || '-')}</div>
+                    <div><strong>Transmission:</strong> ${escapeHtml(req.vehicle_transmission || '-')}</div>
+                    <div><strong>Fuel Type:</strong> ${escapeHtml(req.vehicle_fuel_type || '-')}</div>
+                    <div><strong>Colour:</strong> ${escapeHtml(req.vehicle_colour || '-')}</div>
+                    <div><strong>Body Type:</strong> ${escapeHtml(req.vehicle_body_type || '-')}</div>
+                    <div><strong>VIN:</strong> ${escapeHtml(req.vehicle_vin || '-')}</div>
+                    <div><strong>Registration:</strong> ${escapeHtml(req.vehicle_registration || '-')}</div>
+                    <div style="grid-column: span 3;"><strong>Location:</strong> ${escapeHtml(req.vehicle_location || '-')}</div>
+                </div>
+            </div>
+
+            <div style="background: white; padding: 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
+                <strong style="color: var(--accent);">Request Notes</strong>
+                <div><strong>Customer Notes:</strong><br><span style="color: #475569; white-space: pre-wrap;">${escapeHtml(req.customer_notes || 'None')}</span></div>
+                <div><strong>Internal Notes:</strong><br><span style="color: #475569; white-space: pre-wrap;">${escapeHtml(req.internal_notes || 'None')}</span></div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; background: #f1f5f9; padding: 16px; border-radius: 8px;">
+                <div class="form-group" style="margin: 0;">
+                    <label>Assigned Inspector</label>
+                    <select id="modalAssignedInspector" style="width: 100%;">
+                        ${inspectorOptions}
+                    </select>
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label>Request Status</label>
+                    <select id="modalRequestStatus" style="width: 100%;">
+                        ${statusOptions}
+                    </select>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('ppiModal').classList.remove('hidden');
+    };
+
+    window.closePpiModal = function() {
+        document.getElementById('ppiModal').classList.add('hidden');
+        currentSelectedPpiId = null;
+    };
+
+    window.savePpiChanges = async function() {
+        if (!currentSelectedPpiId) return;
+
+        const assignedInspector = document.getElementById('modalAssignedInspector').value || null;
+        const newStatus = document.getElementById('modalRequestStatus').value;
+        const saveBtn = document.getElementById('savePpiChangesBtn');
+
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+
+        try {
+            const updatePayload = {
+                assigned_inspector: assignedInspector,
+                status: newStatus,
+                updated_at: new Date().toISOString()
+            };
+
+            const { error } = await supabase
+                .from('ppi_requests')
+                .update(updatePayload)
+                .eq('id', currentSelectedPpiId);
+
+            if (error) throw error;
+
+            alert('Request updated successfully.');
+            closePpiModal();
+            await loadPpiRequests();
+        } catch (err) {
+            alert('Failed to update request: ' + err.message);
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Changes';
+        }
+    };
+
+    // =========================================================
+    // INVENTORY & VEHICLE MANAGEMENT MODULE
+    // =========================================================
+    async function loadInventory() {
+        const tbody = document.getElementById('adminInventoryTable');
+        
+        try {
+            loadedVehicles = await vehicleService.getAdminVehicles();
+
+            if (!loadedVehicles || loadedVehicles.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#64748b;">No vehicles in database. Use the form above to add a draft.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            loadedVehicles.forEach(car => {
+                const formattedPrice = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(car.price);
+                
+                const vBadge = car.verification_status === 'VERIFIED' ? 'badge-verified' : car.verification_status === 'REJECTED' ? 'badge-rejected' : 'badge-pending';
+                const pBadge = car.publication_status === 'PUBLISHED' ? 'badge-published' : 'badge-unpublished';
+                
+                let sBadgeClass = 'badge-sales';
+                if (car.sales_status === 'RESERVED') sBadgeClass = 'badge-reserved';
+                if (car.sales_status === 'SOLD') sBadgeClass = 'badge-sold';
+                if (car.sales_status === 'ARCHIVED') sBadgeClass = 'badge-archived';
+
+                const inspectionStatus = car.inspection_status || 'DRAFT';
+                
+                let inspBadgeClass = 'badge-pending';
+                if (inspectionStatus === 'COMPLETED') {
+                    inspBadgeClass = 'badge-verified';
+                } else if (inspectionStatus === 'IN_PROGRESS') {
+                    inspBadgeClass = 'badge-published';
+                } else if (inspectionStatus === 'CANCELLED') {
+                    inspBadgeClass = 'badge-rejected';
+                }
+
+                const inspectionBadge = `<span class="badge ${inspBadgeClass}">${inspectionStatus}</span>`;
+                const isVerified = car.verification_status === 'VERIFIED';
+                const isInspectionCompleted = inspectionStatus === 'COMPLETED';
+
+                let actionButtons = '';
+
+                if (car.sales_status === 'ARCHIVED') {
+                    actionButtons = `<span style="color:#64748b; font-size:0.75rem;">Locked (Archived)</span>`;
+                } else {
+                    if (isVerified) {
+                        const inspectionButtonLabel = isInspectionCompleted ? 'View Inspection' : 'Inspect';
+                        actionButtons += `
+                            <button
+                                class="action-btn btn-inspect"
+                                onclick="openInspection('${car.id}')">
+                                ${inspectionButtonLabel}
+                            </button>
+                        `;
+                    }
+
+                    if (!isVerified) {
+                        if (car.verification_status === 'PENDING' || car.verification_status === 'IN_REVIEW' || !car.verification_status) {
+                            actionButtons += `<button class="action-btn btn-verify" onclick="runAction('verify', '${car.id}')">Verify</button>`;
+                            actionButtons += `<button class="action-btn btn-reject" onclick="runAction('reject', '${car.id}')">Reject</button>`;
+                        } else if (car.verification_status === 'REJECTED') {
+                            actionButtons += `<button class="action-btn btn-verify" onclick="runAction('verify', '${car.id}')">Re-Verify</button>`;
+                        }
+                    }
+
+                    if (isVerified && isInspectionCompleted) {
+                        if (car.publication_status === 'PUBLISHED') {
+                            actionButtons += `<button class="action-btn" onclick="runAction('unpublish', '${car.id}')">Unpublish</button>`;
+                        } else {
+                            actionButtons += `<button class="action-btn btn-publish" onclick="runAction('publish', '${car.id}')">Publish</button>`;
+                        }
+                    }
+
+                    if (isVerified && isInspectionCompleted) {
+                        if (car.sales_status === 'AVAILABLE') {
+                            actionButtons += `<button class="action-btn btn-reserve" onclick="runAction('reserve', '${car.id}')">Reserve</button>`;
+                            actionButtons += `<button class="action-btn btn-sold" onclick="runAction('sold', '${car.id}')">Mark Sold</button>`;
+                        } else if (car.sales_status === 'RESERVED') {
+                            actionButtons += `<button class="action-btn" onclick="runAction('available', '${car.id}')">Make Available</button>`;
+                            actionButtons += `<button class="action-btn btn-sold" onclick="runAction('sold', '${car.id}')">Mark Sold</button>`;
+                        }
+                    }
+
+                    actionButtons += `<button class="action-btn btn-edit" onclick="editVehicle('${car.id}')">Edit</button>`;
+                    actionButtons += `<button class="action-btn btn-delete" onclick="deleteVehicle('${car.id}')">Delete</button>`;
+                    actionButtons += `<button class="action-btn btn-archive" onclick="runAction('archive', '${car.id}')">Archive</button>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><code>${car.vehicle_code || car.id.substring(0,8)}</code></td>
+                    <td><strong>${car.year} ${car.make} ${car.model}</strong><br><small style="color:#64748b">${car.trim || ''} • ${car.mileage.toLocaleString()} km</small></td>
+                    <td>${formattedPrice}</td>
+                    <td><span class="badge ${vBadge}">${car.verification_status}</span></td>
+                    <td>${inspectionBadge}</td>
+                    <td><span class="badge ${pBadge}">${car.publication_status}</span></td>
+                    <td><span class="badge ${sBadgeClass}">${car.sales_status}</span></td>
+                    <td><div class="action-cell">${actionButtons}</div></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (error) {
+            tbody.innerHTML = `<tr><td colspan="8" style="color:red; text-align:center;">Error loading inventory: ${error.message}</td></tr>`;
+        }
+    }
+
+    window.editVehicle = async function(vehicleId) {
+        const car = loadedVehicles.find(v => v.id === vehicleId);
+        if (!car) {
+            alert('Vehicle not found in local memory.');
+            return;
+        }
+
+        editingVehicleId = car.id;
+
+        document.getElementById('make').value = car.make || '';
+        document.getElementById('model').value = car.model || '';
+        document.getElementById('trim').value = car.trim || '';
+        document.getElementById('year').value = car.year || '';
+        document.getElementById('mileage').value = car.mileage || '';
+        document.getElementById('engine').value = car.engine || '';
+        document.getElementById('vin').value = car.vin || '';
+        document.getElementById('registration_number').value = car.registration_number || '';
+        document.getElementById('body_type').value = car.body_type || 'Sedan';
+        document.getElementById('transmission').value = car.transmission || 'Automatic';
+        document.getElementById('fuel_type').value = car.fuel_type || 'Petrol';
+        document.getElementById('colour').value = car.colour || '';
+        document.getElementById('location').value = car.location || 'Lagos Workshop';
+        document.getElementById('price').value = car.price || '';
+        document.getElementById('description').value = car.description || '';
+
+        document.getElementById('formTitle').querySelector('span').textContent = `Edit Vehicle (${car.vehicle_code || car.id.substring(0,8)})`;
+        document.getElementById('cancelEditBtn').classList.remove('hidden');
+        document.getElementById('photoSectionLabel').textContent = 'Add Another Photo';
+        
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.textContent = 'Save Changes';
+        submitBtn.className = 'btn btn-secondary';
+
+        await renderPhotoManager(editingVehicleId);
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    async function handleFormSubmit(e) {
+        e.preventDefault();
+        const submitBtn = document.getElementById('submitBtn');
+        
+        const vehicleData = {
+            make: document.getElementById('make').value.trim(),
+            model: document.getElementById('model').value.trim(),
+            trim: document.getElementById('trim').value.trim(),
+            year: parseInt(document.getElementById('year').value),
+            mileage: parseInt(document.getElementById('mileage').value),
+            engine: document.getElementById('engine').value.trim(),
+            vin: document.getElementById('vin').value.trim() || null,
+            registration_number: document.getElementById('registration_number').value.trim() || null,
+            body_type: document.getElementById('body_type').value,
+            transmission: document.getElementById('transmission').value,
+            fuel_type: document.getElementById('fuel_type').value,
+            colour: document.getElementById('colour').value.trim(),
+            location: document.getElementById('location').value.trim(),
+            price: parseFloat(document.getElementById('price').value),
+            description: document.getElementById('description').value.trim(),
+            currency: 'NGN'
+        };
+
+        const photoFile = window.vehiclePhotoPicker?.getFile() || null;
+        const scannerPdfFile = document.getElementById('adminScannerPdfInput')?.files[0] || null;
+        const mainPdfFile = document.getElementById('adminMainPdfInput')?.files[0] || null;
+
+        try {
+            let targetVehicleId = editingVehicleId;
+
+            if (editingVehicleId) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Updating Vehicle...';
+
+                await vehicleService.updateVehicle(editingVehicleId, vehicleData);
+
+                if (photoFile) {
+                    await vehicleService.addVehiclePhoto(editingVehicleId, photoFile, {
+                        category: 'EXTERIOR'
+                    });
+                    window.vehiclePhotoPicker?.clear();
+                }
+
+                alert('Vehicle updated successfully!');
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Saving Draft...';
+
+                const newCar = await vehicleService.createVehicle(vehicleData);
+                if (!newCar || !newCar.id) throw new Error('Failed to create vehicle record.');
+                targetVehicleId = newCar.id;
+
+                if (photoFile) {
+                    try {
+                        await vehicleService.addVehiclePhoto(
+                            targetVehicleId,
+                            photoFile,
+                            {
+                                category: 'EXTERIOR',
+                                is_primary: true
+                            }
+                        );
+                    } catch (photoErr) {
+                        console.warn('Vehicle created, but photo upload failed:', photoErr.message);
+                    }
+                }
+
+                alert('Vehicle draft created successfully!');
+                document.getElementById('vehicleForm').reset();
+                window.vehiclePhotoPicker?.clear();
+            }
+
+            if (targetVehicleId) {
+                if (scannerPdfFile) {
+                    try {
+                        await vehicleService.uploadInspectionReportPdf(targetVehicleId, scannerPdfFile, 'scanner');
+                    } catch (pdfErr) {
+                        console.warn('Scanner PDF upload failed:', pdfErr.message);
+                        alert('Vehicle saved, but Scanner PDF upload failed: ' + pdfErr.message);
+                    }
+                }
+
+                if (mainPdfFile) {
+                    try {
+                        await vehicleService.uploadInspectionReportPdf(targetVehicleId, mainPdfFile, 'main');
+                    } catch (pdfErr) {
+                        console.warn('Main PDF upload failed:', pdfErr.message);
+                        alert('Vehicle saved, but Main Inspection PDF upload failed: ' + pdfErr.message);
+                    }
+                }
+            }
+
+            document.getElementById('adminScannerPdfInput').value = '';
+            document.getElementById('adminMainPdfInput').value = '';
+
+            if (editingVehicleId) {
+                await editVehicle(editingVehicleId);
+            }
+
+            loadInventory();
+
+        } catch (error) {
+            alert('Operation failed: ' + error.message);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = editingVehicleId ? 'Save Changes' : 'Save as Draft';
+        }
+    }
+
+    async function renderPhotoManager(vehicleId) {
+        const container = document.getElementById('existingPhotosContainer');
+        const manager = document.getElementById('vehiclePhotosManager');
+        container.classList.remove('hidden');
+        manager.innerHTML = '<div style="color:#64748b; font-size:0.875rem;">Loading photos...</div>';
+
+        try {
+            const photos = await vehicleService.getVehiclePhotos(vehicleId);
+            if (!photos || photos.length === 0) {
+                manager.innerHTML = '<div style="color:#64748b; font-size:0.875rem; grid-column:1/-1;">No photos uploaded yet for this vehicle. Use the uploader above to add photos.</div>';
+                return;
+            }
+
+            manager.innerHTML = '';
+            photos.forEach(photo => {
+                const isPrimary = photo.is_primary;
+                const card = document.createElement('div');
+                card.className = 'photo-card';
+                card.innerHTML = `
+                    <img src="${photo.public_url}" alt="Vehicle photo">
+                    <div class="photo-card-body">
+                        ${isPrimary ? '<div class="photo-badge">Primary</div>' : '<div style="color:#64748b; text-align:center; font-weight:500;">Gallery Photo</div>'}
+                        <div class="photo-actions">
+                            ${!isPrimary ? `<button type="button" class="action-btn" style="flex:1;" onclick="setPrimaryPhoto('${photo.id}', '${vehicleId}')">Set as Main</button>` : ''}
+                            <button type="button" class="action-btn btn-delete" style="${isPrimary ? 'width:100%;' : 'flex:1;'}" onclick="removePhoto('${photo.id}', '${vehicleId}')">Delete</button>
+                        </div>
+                    </div>
+                `;
+                manager.appendChild(card);
+            });
+        } catch (err) {
+            manager.innerHTML = `<div style="color:red; font-size:0.875rem;">Error loading photos: ${err.message}</div>`;
+        }
+    }
+
+    window.setPrimaryPhoto = async function(photoId, vehicleId) {
+        try {
+            await vehicleService.setPrimaryPhoto(vehicleId, photoId);
+            await renderPhotoManager(vehicleId);
+            loadInventory();
+        } catch (err) {
             alert('Failed to set primary photo: ' + err.message);
         }
     };
