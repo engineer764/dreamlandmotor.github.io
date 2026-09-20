@@ -1,0 +1,100 @@
+
+    
+  
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dreamland Technician Account Setup</title>
+<style>
+:root{--primary:#0f172a;--accent:#2563eb;--bg:#f8fafc;--border:#e2e8f0;--muted:#64748b;--danger:#dc2626;--success:#16a34a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--primary)}
+.wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.card{width:100%;max-width:520px;background:#fff;border:1px solid var(--border);border-radius:16px;padding:32px;box-shadow:0 10px 30px rgba(15,23,42,.08)}
+.brand{text-align:center;margin-bottom:28px}.brand h1{margin:0 0 8px;font-size:1.55rem}.brand p{margin:0;color:var(--muted)}
+h2{font-size:1.2rem;margin:0 0 8px}.intro{color:var(--muted);line-height:1.6;margin-bottom:24px}
+.form-group{margin-bottom:18px}label{display:block;font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#475569;margin-bottom:7px}
+input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:9px;font-size:1rem;outline:none}input:focus{border-color:var(--accent)}
+button{width:100%;padding:13px;border:0;border-radius:9px;background:var(--accent);color:#fff;font-weight:700;font-size:1rem;cursor:pointer}button:disabled{background:#94a3b8;cursor:not-allowed}
+.message{display:none;padding:12px 14px;border-radius:9px;margin-bottom:18px;line-height:1.5}.error{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}.success{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
+.email-box{background:#f8fafc;border:1px solid var(--border);padding:12px 14px;border-radius:9px;margin-bottom:20px;color:#334155}
+.small{font-size:.82rem;color:var(--muted);margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<main class="card">
+<div class="brand"><h1>Dreamland Motor Engineering Works</h1><p>Technician Account Setup</p></div>
+<div id="loading">Verifying your invitation...</div>
+
+<section id="setup" style="display:none">
+<h2>Complete your technician account</h2>
+<p class="intro">Your Dreamland technician invitation has been accepted. Set your login password and confirm your name below.</p>
+<div class="email-box"><strong>Email:</strong> <span id="technicianEmail">-</span></div>
+<div id="errorBox" class="message error"></div>
+<form id="setupForm">
+<div class="form-group"><label for="name">Full Name</label><input id="name" type="text" autocomplete="name" required></div>
+<div class="form-group"><label for="password">Create Password</label><input id="password" type="password" minlength="8" autocomplete="new-password" required><div class="small">Minimum 8 characters.</div></div>
+<div class="form-group"><label for="confirmPassword">Confirm Password</label><input id="confirmPassword" type="password" minlength="8" autocomplete="new-password" required></div>
+<button id="submitBtn" type="submit">Complete Account Setup</button>
+</form>
+</section>
+
+<section id="success" style="display:none">
+<div class="message success" style="display:block">Your technician account has been created successfully.</div>
+<p class="intro">Your Dreamland account is now ready. You can sign in using your email address and the password you just created.</p>
+<button type="button" onclick="window.location.href='login.html'">Go to Technician Login</button>
+</section>
+</main>
+</div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const supabase = createClient(
+  'https://xvzocwcchjdiyudrqorq.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2em9jd2NjaGpkaXl1ZHJxb3JxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyOTQzOTYsImV4cCI6MjEwMTg3MDM5Nn0.2xG_Xqd0WDZEtuZAnWXJmjedlde2Omb-9JshXMVGFGs',
+  { auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true} }
+);
+
+const loading=document.getElementById('loading');
+const setup=document.getElementById('setup');
+const success=document.getElementById('success');
+const errorBox=document.getElementById('errorBox');
+const nameInput=document.getElementById('name');
+const emailEl=document.getElementById('technicianEmail');
+const form=document.getElementById('setupForm');
+const submitBtn=document.getElementById('submitBtn');
+
+function showError(message){errorBox.textContent=message;errorBox.style.display='block';}
+
+async function loadInvitation(){
+  const {data:{session}}=await supabase.auth.getSession();
+  if(!session?.user){
+    loading.textContent='This invitation is missing, expired, or has already been used. Please ask the administrator to send a new invitation.';
+    return;
+  }
+
+  const {data:profile,error}=await supabase.from('users').select('name,email,role,active').eq('id',session.user.id).single();
+  if(error||!profile){loading.textContent='Your technician profile could not be found. Please contact the administrator.';return;}
+  if(profile.role!=='INSPECTOR'){loading.textContent='This invitation is not for a technician account.';return;}
+  if(!profile.active){loading.textContent='This technician account is inactive. Please contact the administrator.';return;}
+
+  emailEl.textContent=profile.email||session.user.email||'-';
+  nameInput.value=profile.name||session.user.user_metadata?.name||'';
+  loading.style.display='none';
+  setup.style.display='block';
+}
+
+form.addEventListener('submit',async(event)=>{
+  event.preventDefault();
+  errorBox.style.display='none';
+
+  const name=nameInput.value.trim();
+  const password=document.getElementById('password').value;
+  const confirmPassword=document.getElementById('confirmPassword').value;
+
+  if(!name)return showError('Please enter your full name.');
+  if(password.length<8)return showError('Password must be at least 8 characters.');
+
