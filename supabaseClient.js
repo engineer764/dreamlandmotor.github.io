@@ -181,22 +181,28 @@ export async function requireAuth() {
         'SUPER_ADMIN'
     ];
 
-    if (!allowedRoles.includes(profile.role)) {
+    /**
+ * Ensures the authenticated user possesses ADMIN or SUPER_ADMIN privileges.
+ * Redirects unauthorized users to their appropriate portal.
+ */
+export async function requireAdminAuth() {
+    const auth = await requireAuth();
 
-        alert(
-            'Unauthorized role: ' +
-            profile.role
-        );
+    if (!auth) return null;
 
-        await supabase.auth.signOut();
+    const adminRoles = ['ADMIN', 'SUPER_ADMIN'];
 
-        window.location.href = 'login.html';
+    if (!adminRoles.includes(auth.profile.role)) {
+        if (auth.profile.role === 'INSPECTOR') {
+            window.location.replace('inspector.html');
+        } else {
+            window.location.replace('index.html');
+        }
 
         return null;
     }
 
-    return {
-        session,
-        profile
-    };
+    return auth; 
+
+    }
 }
