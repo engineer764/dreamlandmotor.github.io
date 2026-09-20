@@ -168,8 +168,8 @@
         .badge-sold { background: #f1f5f9; color: #334155; }
         .badge-archived { background: #e2e8f0; color: #64748b; }
 
-        .action-cell { display: flex; flex-wrap: wrap; gap: 6px; }
-        .action-btn { padding: 5px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: white; cursor: pointer; font-weight: 600; }
+        .action-cell { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .action-btn { padding: 5px 10px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: white; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
         .action-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
         
         .btn-inspect { color: #7c3aed; border-color: #ddd6fe; background: #faf5ff; }
@@ -184,6 +184,8 @@
         .btn-edit:hover { background: #dbeafe; }
         .btn-delete { color: var(--danger); border-color: #fecaca; background: #fef2f2; }
         .btn-delete:hover { background: #fee2e2; }
+        .btn-review { color: white; background: var(--accent); border-color: #1d4ed8; }
+        .btn-review:hover { background: #1d4ed8; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -687,6 +689,28 @@
             if (error) throw error;
             loadedPpiRequests = data || [];
 
+            // Fetch linked inspection records for active PPI requests
+            if (loadedPpiRequests.length > 0) {
+                const ppiIds = loadedPpiRequests.map(r => r.id);
+                const { data: inspectionsData, error: inspErr } = await supabase
+                    .from('inspections')
+                    .select('id, ppi_request_id, inspection_status')
+                    .in('ppi_request_id', ppiIds);
+
+                if (!inspErr && inspectionsData) {
+                    const inspMap = {};
+                    inspectionsData.forEach(insp => {
+                        inspMap[insp.ppi_request_id] = insp;
+                    });
+                    loadedPpiRequests.forEach(req => {
+                        if (inspMap[req.id]) {
+                            req.inspection_id = inspMap[req.id].id;
+                            req.inspection_status = inspMap[req.id].inspection_status;
+                        }
+                    });
+                }
+            }
+
             updatePpiCounters(loadedPpiRequests);
             filterAndRenderPpiTable();
         } catch (error) {
@@ -787,6 +811,16 @@
 
             const vehicleText = `${req.vehicle_year || ''} ${req.vehicle_make || ''} ${req.vehicle_model || ''}`.trim() || 'Vehicle info missing';
 
+            // Action Buttons construction
+            let actionButtons = `<button type="button" class="action-btn btn-edit" onclick="openPpiModal('${req.id}')">View</button>`;
+            if (req.inspection_id) {
+                if (s === 'SUBMITTED_FOR_REVIEW') {
+                    actionButtons += ` <a href="inspection.html?inspectionId=${req.inspection_id}" class="action-btn btn-review">Review Inspection</a>`;
+                } else {
+                    actionButtons += ` <a href="inspection.html?inspectionId=${req.inspection_id}" class="action-btn btn-inspect">View Inspection</a>`;
+                }
+            }
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><code>${escapeHtml(req.ppi_number || req.id.substring(0, 8))}</code></td>
@@ -798,7 +832,7 @@
                 <td><span style="font-size: 0.8125rem; color: ${req.assigned_inspector ? 'var(--primary)' : '#94a3b8'}">${escapeHtml(inspectorName)}</span></td>
                 <td><span class="badge ${badgeClass}">${escapeHtml(req.status || 'DRAFT')}</span></td>
                 <td><small>${escapeHtml(formattedDate)}</small></td>
-                <td><button type="button" class="action-btn btn-edit" onclick="openPpiModal('${req.id}')">View</button></td>
+                <td><div class="action-cell">${actionButtons}</div></td>
             `;
             tbody.appendChild(tr);
         });
@@ -833,7 +867,7 @@
         } else if (currentStatus === 'CHANGES_REQUESTED') {
             allowedStatuses = ['CHANGES_REQUESTED', 'IN_PROGRESS'];
         } else if (currentStatus === 'SUBMITTED_FOR_REVIEW') {
-            allowedStatuses = ['SUBMITTED_FOR_REVIEW'];
+            allowedStatuses = ['SUBMITTED_FOR_REVIEW', 'CHANGES_REQUESTED', 'APPROVED'];
         }
 
         let statusOptions = '';
@@ -842,8 +876,34 @@
             statusOptions += `<option value="${st}" ${selected}>${st}</option>`;
         });
 
+        let inspectionWorkbenchLinkHtml = '';
+        if (req.inspection_id) {
+            if (currentStatus === 'SUBMITTED_FOR_REVIEW') {
+                inspectionWorkbenchLinkHtml = `
+                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <strong style="color: #1e40af;">Inspection Submitted for Review</strong><br>
+                            <span style="font-size: 0.8125rem; color: #3b82f6;">Complete Master Checklist, findings, and scanner report ready for administrative review.</span>
+                        </div>
+                        <a href="inspection.html?inspectionId=${req.inspection_id}" class="action-btn btn-review" style="padding: 8px 16px; text-decoration: none;">Review Inspection Workbench</a>
+                    </div>
+                `;
+            } else {
+                inspectionWorkbenchLinkHtml = `
+                    <div style="background: #f8fafc; border: 1px solid var(--border); padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <strong>Linked Inspection Workbench</strong><br>
+                            <span style="font-size: 0.8125rem; color: #64748b;">Status: ${escapeHtml(req.inspection_status || currentStatus)}</span>
+                        </div>
+                        <a href="inspection.html?inspectionId=${req.inspection_id}" class="action-btn btn-inspect" style="padding: 6px 12px; text-decoration: none;">Open Workbench</a>
+                    </div>
+                `;
+            }
+        }
+
         const modalBody = document.getElementById('ppiModalBody');
         modalBody.innerHTML = `
+            ${inspectionWorkbenchLinkHtml}
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid var(--border);">
                 <div>
                     <strong>Request Information</strong><br>
