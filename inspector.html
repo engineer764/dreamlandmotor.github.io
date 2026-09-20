@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dreamland Inspector Portal — Assigned Work Workspace</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --verified-green: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--primary);
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 { margin: 0; font-size: 1.25rem; }
+        .user-info { font-size: 0.875rem; color: #94a3b8; display: flex; gap: 16px; align-items: center; }
+        .logout-btn { background: #334155; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .logout-btn:hover { background: var(--danger); }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 16px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .card h2 { margin-top: 0; font-size: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+
+        /* Tables & Badges */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 0.875rem;
+        }
+        th, td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        th { background: #f1f5f9; font-weight: bold; color: #334155; }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .badge-verified { background: #dcfce7; color: var(--verified-green); }
+        .badge-pending { background: #fef9c3; color: #a16207; }
+        .badge-rejected { background: #fee2e2; color: var(--danger); }
+        .badge-published { background: #e0f2fe; color: #0369a1; }
+        .badge-unpublished { background: #f1f5f9; color: #475569; }
+        .badge-reserved { background: #ffedd5; color: #c2410c; }
+        .badge-review { background: #f3e8ff; color: #7c3aed; }
+
+        .action-cell { display: flex; flex-wrap: wrap; gap: 6px; }
+        .action-btn { padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: white; cursor: pointer; font-weight: 600; }
+        .action-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+        
+        .btn-inspect { color: #7c3aed; border-color: #ddd6fe; background: #faf5ff; }
+        .btn-inspect:hover { background: #f3e8ff; border-color: #c4b5fd; }
+        .btn-submit { color: var(--verified-green); border-color: #bbf7d0; background: #f0fdf4; }
+        .btn-submit:hover { background: #dcfce7; }
+        .btn-secondary { background: #64748b; color: white; border: none; }
+        .btn-secondary:hover { background: #475569; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Dreamland Inspector Portal</h1>
+    <div class="user-info">
+        <span id="inspectorUserDisplay">Loading session...</span>
+        <button class="logout-btn" id="logoutBtn">Logout</button>
+    </div>
+</header>
+
+<div class="container">
+    <!-- Inspector Profile Summary Card -->
+    <div class="card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <h2 style="border: none; padding: 0; margin-bottom: 4px;" id="profileName">Inspector Workspace</h2>
+            <div style="font-size: 0.875rem; color: #64748b;" id="profileEmailRole">Authenticating...</div>
+        </div>
+        <div>
+            <span class="badge badge-verified" id="profileStatusBadge">ACTIVE</span>
+        </div>
+    </div>
+
+    <!-- Assigned Inspection Work Card -->
+    <div class="card">
+        <h2>
+            <span>My Assigned Inspection Work</span>
+            <button type="button" class="action-btn" id="refreshWorkBtn">Refresh Work</button>
+        </h2>
+
+        <!-- Status Counters -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px;" id="inspectorCountersContainer">
+            <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="font-size: 0.75rem; color: #64748b; font-weight: bold; text-transform: uppercase;">Assigned / New</div>
+                <div id="counterAssigned" style="font-size: 1.5rem; font-weight: bold; color: #d97706; margin-top: 4px;">0</div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="font-size: 0.75rem; color: #64748b; font-weight: bold; text-transform: uppercase;">In Progress</div>
+                <div id="counterInProgress" style="font-size: 1.5rem; font-weight: bold; color: #0284c7; margin-top: 4px;">0</div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="font-size: 0.75rem; color: #64748b; font-weight: bold; text-transform: uppercase;">Submitted</div>
+                <div id="counterSubmitted" style="font-size: 1.5rem; font-weight: bold; color: #7c3aed; margin-top: 4px;">0</div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="font-size: 0.75rem; color: #64748b; font-weight: bold; text-transform: uppercase;">Changes Requested</div>
+                <div id="counterChanges" style="font-size: 1.5rem; font-weight: bold; color: #dc2626; margin-top: 4px;">0</div>
+            </div>
+        </div>
+
+        <!-- Search & Filter Controls -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 16px;">
+            <div class="form-group" style="margin: 0; display:flex; flex-direction:column; gap:6px;">
+                <label style="font-size: 0.8125rem; font-weight: bold; color: #475569; text-transform: uppercase;">Search Work</label>
+                <input type="text" id="inspectorSearchInput" placeholder="Job ID, vehicle make/model, VIN, location..." style="padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem;">
+            </div>
+            <div class="form-group" style="margin: 0; display:flex; flex-direction:column; gap:6px;">
+                <label style="font-size: 0.8125rem; font-weight: bold; color: #475569; text-transform: uppercase;">Status Filter</label>
+                <select id="inspectorStatusFilter" style="padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; background: white;">
+                    <option value="">All Statuses</option>
+                    <option value="ASSIGNED">ASSIGNED</option>
+                    <option value="IN_PROGRESS">IN_PROGRESS</option>
+                    <option value="SUBMITTED_FOR_REVIEW">SUBMITTED_FOR_REVIEW</option>
+                    <option value="CHANGES_REQUESTED">CHANGES_REQUESTED</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Work Table -->
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Job / Ref ID</th>
+                        <th>Source</th>
+                        <th>Vehicle Details</th>
+                        <th>Inspection Type</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th>Assigned Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="inspectorWorkTableBody">
+                    <tr><td colspan="8" style="text-align: center; color: #64748b;">Loading assigned work...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Submit for Review Confirmation Modal -->
+<div id="submitModal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box;">
+    <div style="background: white; border-radius: 12px; max-width: 500px; width: 100%; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <h3 style="margin-top: 0; font-size: 1.25rem; color: var(--primary);">Submit Inspection for Review?</h3>
+        <p style="color: #475569; font-size: 0.9rem; line-height: 1.5;">
+            You are confirming that the inspection work has been completed and is ready for Admin/Super Admin review. Once submitted, you cannot continue editing unless the reviewer requests changes.
+        </p>
+        <div id="correctionFeedbackBox" class="hidden" style="background: #fef2f2; border: 1px solid #fca5a5; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 0.875rem; color: #991b1b;">
+            <strong>Reviewer Note:</strong> <span id="correctionFeedbackText"></span>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+            <button type="button" class="action-btn btn-secondary" onclick="closeSubmitModal()" style="padding: 10px 16px;">Cancel</button>
+            <button type="button" class="action-btn btn-submit" id="confirmSubmitBtn" onclick="confirmSubmitInspection()" style="padding: 10px 16px;">Submit for Review</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { requireAuth, logoutStaff, supabase } from './supabaseClient.js';
+
+    let currentInspector = null;
+    let assignedJobs = [];
+    let selectedJobToSubmit = null;
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    async function initInspectorPortal() {
+        const auth = await requireAuth();
+        if (!auth) return;
+
+        currentInspector = auth.profile;
+
+        // Security check: Role enforcement
+        if (currentInspector.role !== 'INSPECTOR') {
+            alert('Access Denied: You are not authorized to access the Inspector Portal.');
+            window.location.href = currentInspector.role === 'ADMIN' || currentInspector.role === 'SUPER_ADMIN' ? 'admin.html' : 'index.html';
+            return;
+        }
+
+        if (currentInspector.active === false) {
+            alert('Your inspector account has been deactivated. Please contact an administrator.');
+            logoutStaff();
+            return;
+        }
+
+        // Render profile details
+        document.getElementById('inspectorUserDisplay').textContent = `${currentInspector.name || currentInspector.email} (INSPECTOR)`;
+        document.getElementById('profileName').textContent = currentInspector.name || 'Inspector Workspace';
+        document.getElementById('profileEmailRole').textContent = `${currentInspector.email} • Role: INSPECTOR`;
+
+        document.getElementById('logoutBtn').addEventListener('click', logoutStaff);
+        document.getElementById('refreshWorkBtn').addEventListener('click', loadAssignedWork);
+        document.getElementById('inspectorSearchInput').addEventListener('input', filterAndRenderWorkTable);
+        document.getElementById('inspectorStatusFilter').addEventListener('change', filterAndRenderWorkTable);
+
+        await loadAssignedWork();
+    }
+
+    async function loadAssignedWork() {
+        const tbody = document.getElementById('inspectorWorkTableBody');
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #64748b;">Loading assigned work...</td></tr>`;
+
+        try {
+            // Query inspections assigned to current inspector
+            const [
+                { data: inspectionsData, error: inspError },
+                { data: ppiData, error: ppiError }
+            ] = await Promise.all([
+                supabase.from('inspections').select('*, vehicles(id, make, model, year, trim, vin, location)').eq('inspector_id', currentInspector.id).order('created_at', { ascending: false }),
+                supabase.from('ppi_requests').select('*').eq('assigned_inspector', currentInspector.id).order('created_at', { ascending: false })
+            ]);
+
+            if (inspError) console.warn('Inspections query note:', inspError.message);
+            if (ppiError) console.warn('PPI query note:', ppiError.message);
+
+            const combinedJobs = [];
+
+            // Process direct inspections
+            (inspectionsData || []).forEach(insp => {
+                combinedJobs.push({
+                    id: insp.id,
+                    ref: `INS-${insp.id.substring(0, 8)}`,
+                    source: insp.vehicle_id ? 'Dreamland Vehicle' : 'Customer Inspection',
+                    vehicleMake: insp.vehicles?.make || insp.vehicle_make || 'Vehicle',
+                    vehicleModel: insp.vehicles?.model || insp.vehicle_model || '',
+                    vehicleYear: insp.vehicles?.year || insp.vehicle_year || '',
+                    vehicleVin: insp.vehicles?.vin || insp.vehicle_vin || '',
+                    location: insp.vehicles?.location || insp.vehicle_location || 'Lagos',
+                    type: insp.inspection_type || 'Technical PPI',
+                    status: insp.status || 'ASSIGNED',
+                    date: insp.created_at,
+                    vehicleId: insp.vehicle_id,
+                    inspectionId: insp.id,
+                    reviewerNotes: insp.reviewer_notes || insp.internal_notes || ''
+                });
+            });
+
+            // Process PPI requests assigned to inspector
+            (ppiData || []).forEach(ppi => {
+                const existing = combinedJobs.find(j => j.inspectionId === ppi.inspection_id || (ppi.vehicle_id && j.vehicleId === ppi.vehicle_id));
+                if (!existing) {
+                    combinedJobs.push({
+                        id: ppi.id,
+                        ref: ppi.ppi_number || `DL-PPI-${ppi.id.substring(0, 6)}`,
+                        source: 'Customer PPI',
+                        vehicleMake: ppi.vehicle_make || 'Vehicle',
+                        vehicleModel: ppi.vehicle_model || '',
+                        vehicleYear: ppi.vehicle_year || '',
+                        vehicleVin: ppi.vehicle_vin || '',
+                        location: ppi.vehicle_location || 'Lagos',
+                        type: ppi.request_type || 'Technical PPI',
+                        status: ppi.status || 'ASSIGNED',
+                        date: ppi.created_at,
+                        vehicleId: ppi.vehicle_id,
+                        inspectionId: ppi.inspection_id || ppi.id,
+                        reviewerNotes: ppi.internal_notes || ''
+                    });
+                }
+            });
+
+            assignedJobs = combinedJobs;
+            updateCounters(assignedJobs);
+            filterAndRenderWorkTable();
+
+        } catch (error) {
+            console.error('Failed to load assigned work:', error);
+            tbody.innerHTML = `<tr><td colspan="8" style="color:red; text-align:center;">Failed to load assigned work: ${escapeHtml(error.message)}</td></tr>`;
+        }
+    }
+
+    function updateCounters(jobs) {
+        let assignedCount = 0;
+        let inProgressCount = 0;
+        let submittedCount = 0;
+        let changesCount = 0;
+
+        jobs.forEach(job => {
+            const s = (job.status || '').toUpperCase();
+            if (s === 'ASSIGNED') assignedCount++;
+            else if (s === 'IN_PROGRESS') inProgressCount++;
+            else if (s === 'SUBMITTED_FOR_REVIEW') submittedCount++;
+            else if (s === 'CHANGES_REQUESTED') changesCount++;
+        });
+
+        document.getElementById('counterAssigned').textContent = assignedCount;
+        document.getElementById('counterInProgress').textContent = inProgressCount;
+        document.getElementById('counterSubmitted').textContent = submittedCount;
+        document.getElementById('counterChanges').textContent = changesCount;
+    }
+
+    function filterAndRenderWorkTable() {
+        const searchText = (document.getElementById('inspectorSearchInput').value || '').toLowerCase().trim();
+        const statusFilter = document.getElementById('inspectorStatusFilter').value;
+
+        const filtered = assignedJobs.filter(job => {
+            if (statusFilter && job.status !== statusFilter) return false;
+            if (searchText) {
+                const ref = (job.ref || '').toLowerCase();
+                const make = (job.vehicleMake || '').toLowerCase();
+                const model = (job.vehicleModel || '').toLowerCase();
+                const vin = (job.vehicleVin || '').toLowerCase();
+                const loc = (job.location || '').toLowerCase();
+                const source = (job.source || '').toLowerCase();
+
+                const match = ref.includes(searchText) ||
+                              make.includes(searchText) ||
+                              model.includes(searchText) ||
+                              vin.includes(searchText) ||
+                              loc.includes(searchText) ||
+                              source.includes(searchText);
+                if (!match) return false;
+            }
+            return true;
+        });
+
+        renderWorkTable(filtered);
+    }
+
+    function renderWorkTable(jobs) {
+        const tbody = document.getElementById('inspectorWorkTableBody');
+
+        if (!jobs || jobs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #64748b;">No inspection jobs are currently assigned to you.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = '';
+        jobs.forEach(job => {
+            const formattedDate = job.date ? new Date(job.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+            const vehicleText = `${job.vehicleYear || ''} ${job.vehicleMake || ''} ${job.vehicleModel || ''}`.trim() || 'Vehicle info missing';
+
+            let badgeClass = 'badge-pending';
+            const s = (job.status || '').toUpperCase();
+            if (s === 'IN_PROGRESS') badgeClass = 'badge-published';
+            else if (s === 'SUBMITTED_FOR_REVIEW') badgeClass = 'badge-review';
+            else if (s === 'CHANGES_REQUESTED') badgeClass = 'badge-rejected';
+
+            let actionButtons = '';
+            if (s === 'SUBMITTED_FOR_REVIEW') {
+                actionButtons = `<span style="color: #7c3aed; font-weight: 600; font-size: 0.8125rem;">Under Review</span>`;
+            } else if (s === 'APPROVED' || s === 'REPORT_GENERATED' || s === 'DELIVERED') {
+                actionButtons = `<span style="color: var(--verified-green); font-weight: 600; font-size: 0.8125rem;">Approved</span>`;
+            } else {
+                const buttonLabel = s === 'IN_PROGRESS' || s === 'CHANGES_REQUESTED' ? 'Continue' : 'Open Inspection';
+                actionButtons = `
+                    <div class="action-cell">
+                        <button type="button" class="action-btn btn-inspect" onclick="openInspectionWorkbench('${job.vehicleId}', '${job.inspectionId}')">${buttonLabel}</button>
+                        <button type="button" class="action-btn btn-submit" onclick="promptSubmitReview('${job.inspectionId}', '${escapeHtml(job.reviewerNotes)}')">Submit for Review</button>
+                    </div>
+                `;
+            }
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><code>${escapeHtml(job.ref)}</code></td>
+                <td><span class="badge badge-published">${escapeHtml(job.source)}</span></td>
+                <td><strong>${escapeHtml(vehicleText)}</strong><br><small style="color:#64748b">${escapeHtml(job.vehicleVin || 'VIN not listed')}</small></td>
+                <td>${escapeHtml(job.type)}</td>
+                <td>${escapeHtml(job.location)}</td>
+                <td><span class="badge ${badgeClass}">${escapeHtml(job.status)}</span></td>
+                <td><small>${escapeHtml(formattedDate)}</small></td>
+                <td>${actionButtons}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    window.openInspectionWorkbench = function(vehicleId, inspectionId) {
+        if (!vehicleId && !inspectionId) {
+            alert('Vehicle or Inspection reference is missing.');
+            return;
+        }
+        const targetId = vehicleId && vehicleId !== 'null' && vehicleId !== 'undefined' ? vehicleId : inspectionId;
+        window.location.href = `inspection.html?vehicleId=${encodeURIComponent(targetId)}`;
+    };
+
+    window.promptSubmitReview = function(inspectionId, notes) {
+        selectedJobToSubmit = inspectionId;
+        const feedbackBox = document.getElementById('correctionFeedbackBox');
+        if (notes && notes.trim()) {
+            document.getElementById('correctionFeedbackText').textContent = notes;
+            feedbackBox.classList.remove('hidden');
+        } else {
+            feedbackBox.classList.add('hidden');
+        }
+        document.getElementById('submitModal').classList.remove('hidden');
+    };
+
+    window.closeSubmitModal = function() {
+        document.getElementById('submitModal').classList.add('hidden');
+        selectedJobToSubmit = null;
+    };
+
+    window.confirmSubmitInspection = async function() {
+        if (!selectedJobToSubmit) return;
+        const btn = document.getElementById('confirmSubmitBtn');
+        btn.disabled = true;
+        btn.textContent = 'Submitting...';
+
+        try {
+            const { error: inspErr } = await supabase
+                .from('inspections')
+                .update({ status: 'SUBMITTED_FOR_REVIEW', submitted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+                .eq('id', selectedJobToSubmit);
+
+            if (inspErr) {
+                await supabase
+                    .from('ppi_requests')
+                    .update({ status: 'SUBMITTED_FOR_REVIEW', updated_at: new Date().toISOString() })
+                    .eq('inspection_id', selectedJobToSubmit);
+            }
+
+            alert('Inspection successfully submitted for Admin/Super Admin review.');
+            closeSubmitModal();
+            await loadAssignedWork();
+        } catch (err) {
+            alert('Failed to submit inspection: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Submit for Review';
+        }
+    };
+
+    initInspectorPortal();
+</script>
+
+</body>
+</html>
