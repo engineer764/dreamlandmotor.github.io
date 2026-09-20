@@ -1,0 +1,11 @@
+<!-- DREAMLAND TECHNICIAN INVITATION HANDOFF -->
+<script>
+(function () {
+  const hash = window.location.hash || "";
+  const params = new URLSearchParams(hash.replace(/^#/, ""));
+  if (params.get("type") === "invite" && params.get("access_token")) {
+    window.location.replace("technician-setup.html" + hash);
+  }
+})();
+</script>
+
