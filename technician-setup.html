@@ -1,5 +1,331 @@
 
-    
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dreamland Motor — Technician Account Setup</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --verified-green: #16a34a;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 480px;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        .brand-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .brand-header h1 {
+            font-size: 1.25rem;
+            color: var(--primary);
+            margin: 0 0 8px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .brand-header p {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+        .alert-info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+        .alert-error { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
+        .alert-success { background: #f0fdf4; color: var(--verified-green); border: 1px solid #bbf7d0; }
+
+        .form-group {
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        label {
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        input {
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+        input:focus {
+            border-color: var(--accent);
+        }
+        input:disabled {
+            background: #f1f5f9;
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 8px;
+        }
+        .btn:hover { background: #1d4ed8; }
+        .btn:disabled { background: #94a3b8; cursor: not-allowed; }
+        
+        .footer-links {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.875rem;
+        }
+        .footer-links a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+        .hidden { display: none !important; }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s ease-in-out infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <div class="brand-header">
+            <h1>Dreamland Motor</h1>
+            <p>Technician Portal Setup</p>
+        </div>
+
+        <!-- Status / Loading Indicator -->
+        <div id="statusBox" class="alert alert-info">
+            Initializing secure session...
+        </div>
+
+        <!-- Setup Form -->
+        <form id="setupForm" class="hidden">
+            <div class="form-group">
+                <label>Technician Email</label>
+                <input type="email" id="emailDisplay" disabled>
+            </div>
+            <div class="form-group">
+                <label>Full Name *</label>
+                <input type="text" id="techName" required placeholder="Enter your full name">
+            </div>
+            <div class="form-group">
+                <label>New Password *</label>
+                <input type="password" id="password" required minlength="8" placeholder="At least 8 characters">
+            </div>
+            <div class="form-group">
+                <label>Confirm Password *</label>
+                <input type="password" id="confirmPassword" required minlength="8" placeholder="Confirm your password">
+            </div>
+            <button type="submit" id="submitBtn" class="btn">Complete Account Setup</button>
+        </form>
+
+        <div class="footer-links">
+            <a href="./login.html" id="loginLink">Return to Login</a>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { supabase } from './supabaseClient.js';
+
+    const statusBox = document.getElementById('statusBox');
+    const setupForm = document.getElementById('setupForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const emailDisplay = document.getElementById('emailDisplay');
+    const techNameInput = document.getElementById('techName');
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+
+    function showStatus(message, type = 'info') {
+        statusBox.textContent = message;
+        statusBox.className = `alert alert-${type}`;
+        statusBox.classList.remove('hidden');
+    }
+
+    async function initTechnicianSetup() {
+        try {
+            showStatus('Processing invitation session...', 'info');
+
+            // 1. Allow Supabase JS client to parse auth tokens from URL hash/query
+            // (Supabase automatically handles getSessionFromUrl or detects session state change)
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            
+            if (sessionError) {
+                console.warn('Session retrieval note:', sessionError.message);
+            }
+
+            // If session isn't immediately present, listen for the auth state change (common with email invite redirects)
+            let currentUser = session?.user;
+            if (!currentUser) {
+                currentUser = await new Promise((resolve) => {
+                    const timeout = setTimeout(() => resolve(null), 4000);
+                    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+                        if (currentSession?.user) {
+                            clearTimeout(timeout);
+                            subscription.unsubscribe();
+                            resolve(currentSession.user);
+                        }
+                    });
+                });
+            }
+
+            if (!currentUser) {
+                showStatus('Invitation session expired or invalid. Please request a new invitation from your administrator or proceed to login.', 'error');
+                setupForm.classList.add('hidden');
+                return;
+            }
+
+            // 2. Retrieve corresponding public.users record
+            const { data: profile, error: profileError } = await supabase
+                .from('users')
+                .select('id, name, email, role, active')
+                .eq('id', currentUser.id)
+                .single();
+
+            if (profileError || !profile) {
+                console.error('Profile fetch error:', profileError);
+                showStatus('Associated technician profile could not be verified.', 'error');
+                return;
+            }
+
+            // 3. Verify Role = INSPECTOR and Active = true
+            if (profile.role !== 'INSPECTOR' || profile.active !== true) {
+                showStatus('Access denied. This account is not authorized as an active technician inspector.', 'error');
+                return;
+            }
+
+            // 4. Session & Role verified successfully — display form
+            showStatus('Invitation verified. Complete your profile setup below.', 'success');
+            emailDisplay.value = currentUser.email || profile.email || '';
+            if (profile.name) {
+                techNameInput.value = profile.name;
+            }
+            setupForm.classList.remove('hidden');
+
+        } catch (err) {
+            console.error('Setup initialization error:', err);
+            showStatus('An unexpected error occurred while verifying your invitation.', 'error');
+        }
+    }
+
+    setupForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const name = techNameInput.value.trim();
+        const password = passwordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+
+        if (password.length < 8) {
+            alert('Password must be at least 8 characters long.');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            alert('Passwords do not match.');
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner"></span> Setting up account...';
+
+        try {
+            // Call the existing privileged Edge Function: technician-complete-profile
+            const { data, error } = await supabase.functions.invoke('technician-complete-profile', {
+                body: {
+                    name: name,
+                    password: password
+                }
+            });
+
+            if (error) {
+                throw new Error(error.message || 'Failed to complete profile via Edge Function.');
+            }
+
+            showStatus('Account setup complete! Redirecting to login...', 'success');
+            setupForm.classList.add('hidden');
+
+            // Sign out current session so technician logs in cleanly with new credentials
+            await supabase.auth.signOut();
+
+            setTimeout(() => {
+                // Redirect to existing login page
+                window.location.href = './login.html';
+            }, 2000);
+
+        } catch (err) {
+            console.error('Account completion error:', err);
+            alert('Setup failed: ' + (err.message || 'Please try again.'));
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Complete Account Setup';
+        }
+    });
+
+    // Run initialization on page load
+    initTechnicianSetup();
+</script>
+
+</body>
+</html>    
   
 <!DOCTYPE html>
 <html lang="en">
