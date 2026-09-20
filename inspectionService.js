@@ -3,16 +3,36 @@ import { MASTER_CHECKLIST } from './masterChecklist.js';
 
 export const inspectionService = {
     /**
-     * Retrieve an inspection directly by its UUID (Supports independent customer PPIs where vehicle_id may be null).
+     * Retrieve an inspection directly by its UUID using decoupled queries 
+     * to avoid PostgREST embedded relationship ambiguity with .single().
      */
     async getInspectionById(inspectionId) {
-        if (!inspectionId) throw new Error('Inspection ID is required.');
+        if (!inspectionId) {
+            throw new Error('Inspection ID is required.');
+        }
 
-        const { data: inspection, error } = await supabase
+        // 1. Load the inspection and its checklist/findings.
+        const { data: inspection, error: inspectionError } = await supabase
             .from('inspections')
             .select(`
                 *,
-                vehicles!inspections_vehicle_id_fkey (
+                inspection_items (*),
+                inspection_findings (*)
+            `)
+            .eq('id', inspectionId)
+            .single();
+
+        if (inspectionError) {
+            throw inspectionError;
+        }
+
+        // 2. Load the vehicle separately using the inspection's vehicle_id.
+        let vehicle = null;
+
+        if (inspection.vehicle_id) {
+            const { data: vehicleData, error: vehicleError } = await supabase
+                .from('vehicles')
+                .select(`
                     id,
                     make,
                     model,
@@ -22,15 +42,21 @@ export const inspectionService = {
                     registration_number,
                     location,
                     mileage
-                ),
-                inspection_items (*),
-                inspection_findings (*)
-            `)
-            .eq('id', inspectionId)
-            .single();
+                `)
+                .eq('id', inspection.vehicle_id)
+                .maybeSingle();
 
-        if (error) throw error;
-        return inspection;
+            if (vehicleError) {
+                throw vehicleError;
+            }
+
+            vehicle = vehicleData;
+        }
+
+        return {
+            ...inspection,
+            vehicles: vehicle
+        };
     },
 
     /**
@@ -72,7 +98,6 @@ export const inspectionService = {
      * Handles validation, duplicate prevention, and atomic checklist instantiation server-side.
      */
     async startNewInspection({ vehicleId = null, ppiRequestId = null, inspectorId = null, inspectionType = 'TECHNICAL_PPI', inspectionOrigin = 'CUSTOMER_PPI', mileage = 0 }) {
-        // Map master checklist dynamically into JSON payload for the RPC
         const checklistPayload = MASTER_CHECKLIST.map((item, index) => ({
             section: item.section || item.category || 'GENERAL',
             item_code: item.item_code || item.code || `ITM-${String(index + 1).padStart(4, '0')}`,
@@ -93,7 +118,6 @@ export const inspectionService = {
 
         if (error) throw error;
 
-        // Fetch and return the fully populated inspection record using the server-returned ID
         return await this.getInspectionById(data.id);
     },
 
@@ -238,7 +262,6 @@ export const inspectionService = {
             throw new Error(`Cannot submit inspection from current state: ${inspection.inspection_status}`);
         }
 
-        // Verify checklist completion (all applicable items assessed)
         const { data: items, error: itemsErr } = await supabase
             .from('inspection_items')
             .select('status, is_applicable')
