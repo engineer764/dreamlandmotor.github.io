@@ -225,7 +225,6 @@
 
         currentInspector = auth.profile;
 
-        // Security check: Role enforcement
         if (currentInspector.role !== 'INSPECTOR') {
             alert('Access Denied: You are not authorized to access the Inspector Portal.');
             window.location.href = currentInspector.role === 'ADMIN' || currentInspector.role === 'SUPER_ADMIN' ? 'admin.html' : 'index.html';
@@ -238,7 +237,6 @@
             return;
         }
 
-        // Render profile details
         document.getElementById('inspectorUserDisplay').textContent = `${currentInspector.name || currentInspector.email} (INSPECTOR)`;
         document.getElementById('profileName').textContent = currentInspector.name || 'Inspector Workspace';
         document.getElementById('profileEmailRole').textContent = `${currentInspector.email} • Role: INSPECTOR`;
@@ -256,7 +254,6 @@
         tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #64748b;">Loading assigned work...</td></tr>`;
 
         try {
-            // Query inspections assigned to current inspector
             const [
                 { data: inspectionsData, error: inspError },
                 { data: ppiData, error: ppiError }
@@ -269,31 +266,35 @@
             if (ppiError) console.warn('PPI query note:', ppiError.message);
 
             const combinedJobs = [];
+            const inspectionIdsAccounted = new Set();
 
-            // Process direct inspections
+            // 1. Process direct inspections (Dreamland Vehicles or linked inspections)
             (inspectionsData || []).forEach(insp => {
+                inspectionIdsAccounted.add(insp.id);
                 combinedJobs.push({
                     id: insp.id,
                     ref: `INS-${insp.id.substring(0, 8)}`,
-                    source: insp.vehicle_id ? 'Dreamland Vehicle' : 'Customer Inspection',
+                    source: insp.vehicle_id ? 'Dreamland Vehicle' : 'Independent Inspection',
                     vehicleMake: insp.vehicles?.make || insp.vehicle_make || 'Vehicle',
                     vehicleModel: insp.vehicles?.model || insp.vehicle_model || '',
                     vehicleYear: insp.vehicles?.year || insp.vehicle_year || '',
                     vehicleVin: insp.vehicles?.vin || insp.vehicle_vin || '',
                     location: insp.vehicles?.location || insp.vehicle_location || 'Lagos',
                     type: insp.inspection_type || 'Technical PPI',
-                    status: insp.status || 'ASSIGNED',
+                    status: insp.inspection_status || 'ASSIGNED',
                     date: insp.created_at,
-                    vehicleId: insp.vehicle_id,
+                    vehicleId: insp.vehicle_id || null,
                     inspectionId: insp.id,
-                    reviewerNotes: insp.reviewer_notes || insp.internal_notes || ''
+                    reviewerNotes: insp.review_notes || ''
                 });
             });
 
-            // Process PPI requests assigned to inspector
+            // 2. Process customer PPI requests without duplicate merging
             (ppiData || []).forEach(ppi => {
-                const existing = combinedJobs.find(j => j.inspectionId === ppi.inspection_id || (ppi.vehicle_id && j.vehicleId === ppi.vehicle_id));
-                if (!existing) {
+                const linkedInspectionId = ppi.inspection_id;
+                const isAlreadyListed = linkedInspectionId && inspectionIdsAccounted.has(linkedInspectionId);
+
+                if (!isAlreadyListed) {
                     combinedJobs.push({
                         id: ppi.id,
                         ref: ppi.ppi_number || `DL-PPI-${ppi.id.substring(0, 6)}`,
@@ -306,9 +307,9 @@
                         type: ppi.request_type || 'Technical PPI',
                         status: ppi.status || 'ASSIGNED',
                         date: ppi.created_at,
-                        vehicleId: ppi.vehicle_id,
-                        inspectionId: ppi.inspection_id || ppi.id,
-                        reviewerNotes: ppi.internal_notes || ''
+                        vehicleId: ppi.vehicle_id || null,
+                        inspectionId: ppi.inspection_id || null,
+                        reviewerNotes: ppi.review_notes || ppi.internal_notes || ''
                     });
                 }
             });
@@ -391,7 +392,9 @@
             else if (s === 'CHANGES_REQUESTED') badgeClass = 'badge-rejected';
 
             let actionButtons = '';
-            if (s === 'SUBMITTED_FOR_REVIEW') {
+            if (!job.inspectionId) {
+                actionButtons = `<span style="color: #94a3b8; font-size: 0.8125rem;">Inspection not yet initialized by Admin</span>`;
+            } else if (s === 'SUBMITTED_FOR_REVIEW') {
                 actionButtons = `<span style="color: #7c3aed; font-weight: 600; font-size: 0.8125rem;">Under Review</span>`;
             } else if (s === 'APPROVED' || s === 'REPORT_GENERATED' || s === 'DELIVERED') {
                 actionButtons = `<span style="color: var(--verified-green); font-weight: 600; font-size: 0.8125rem;">Approved</span>`;
@@ -399,7 +402,7 @@
                 const buttonLabel = s === 'IN_PROGRESS' || s === 'CHANGES_REQUESTED' ? 'Continue' : 'Open Inspection';
                 actionButtons = `
                     <div class="action-cell">
-                        <button type="button" class="action-btn btn-inspect" onclick="openInspectionWorkbench('${job.vehicleId}', '${job.inspectionId}')">${buttonLabel}</button>
+                        <button type="button" class="action-btn btn-inspect" onclick="openInspectionWorkbench('${job.vehicleId || ''}', '${job.inspectionId || ''}')">${buttonLabel}</button>
                         <button type="button" class="action-btn btn-submit" onclick="promptSubmitReview('${job.inspectionId}', '${escapeHtml(job.reviewerNotes)}')">Submit for Review</button>
                     </div>
                 `;
@@ -421,15 +424,20 @@
     }
 
     window.openInspectionWorkbench = function(vehicleId, inspectionId) {
-        if (!vehicleId && !inspectionId) {
-            alert('Vehicle or Inspection reference is missing.');
-            return;
+        if (vehicleId && vehicleId !== 'null' && vehicleId !== 'undefined') {
+            window.location.href = `inspection.html?vehicleId=${encodeURIComponent(vehicleId)}`;
+        } else if (inspectionId && inspectionId !== 'null' && inspectionId !== 'undefined') {
+            window.location.href = `inspection.html?inspectionId=${encodeURIComponent(inspectionId)}`;
+        } else {
+            alert('Inspection record reference is missing or not yet initialized.');
         }
-        const targetId = vehicleId && vehicleId !== 'null' && vehicleId !== 'undefined' ? vehicleId : inspectionId;
-        window.location.href = `inspection.html?vehicleId=${encodeURIComponent(targetId)}`;
     };
 
     window.promptSubmitReview = function(inspectionId, notes) {
+        if (!inspectionId || inspectionId === 'null' || inspectionId === 'undefined') {
+            alert('Cannot submit review: Inspection record has not been initialized yet.');
+            return;
+        }
         selectedJobToSubmit = inspectionId;
         const feedbackBox = document.getElementById('correctionFeedbackBox');
         if (notes && notes.trim()) {
@@ -455,15 +463,15 @@
         try {
             const { error: inspErr } = await supabase
                 .from('inspections')
-                .update({ status: 'SUBMITTED_FOR_REVIEW', submitted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+                .update({
+                    inspection_status: 'SUBMITTED_FOR_REVIEW',
+                    submitted_at: new Date().toISOString(),
+                    submitted_by: currentInspector.id,
+                    updated_at: new Date().toISOString()
+                })
                 .eq('id', selectedJobToSubmit);
 
-            if (inspErr) {
-                await supabase
-                    .from('ppi_requests')
-                    .update({ status: 'SUBMITTED_FOR_REVIEW', updated_at: new Date().toISOString() })
-                    .eq('inspection_id', selectedJobToSubmit);
-            }
+            if (inspErr) throw inspErr;
 
             alert('Inspection successfully submitted for Admin/Super Admin review.');
             closeSubmitModal();
