@@ -160,72 +160,7 @@ export const inspectionService = {
         if (error) throw error;
         return data;
     },
-/**
-     * Admin requests changes on a submitted inspection.
-     * Transitions status to CHANGES_REQUESTED and records review notes.
-     */
-    async requestInspectionChanges(inspectionId, reviewNotes) {
-        const { data: { user }, error: authErr } = await supabase.auth.getUser();
-        if (authErr || !user) throw new Error('Authentication required.');
 
-        const { data: adminUser, error: roleErr } = await supabase
-            .from('users')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-
-        if (roleErr || !['ADMIN', 'SUPER_ADMIN'].includes(adminUser?.role)) {
-            throw new Error('Access Denied: Administrative privileges required to request changes.');
-        }
-
-        const { error } = await supabase
-            .from('inspections')
-            .update({
-                inspection_status: 'CHANGES_REQUESTED',
-                changes_requested_by: user.id,
-                changes_requested_at: new Date().toISOString(),
-                review_notes: reviewNotes,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', inspectionId);
-
-        if (error) throw error;
-        return true;
-    },
-
-    /**
-     * Admin approves a submitted inspection.
-     * Transitions status to APPROVED and locks the inspection report.
-     */
-    async approveInspection(inspectionId) {
-        const { data: { user }, error: authErr } = await supabase.auth.getUser();
-        if (authErr || !user) throw new Error('Authentication required.');
-
-        const { data: adminUser, error: roleErr } = await supabase
-            .from('users')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-
-        if (roleErr || !['ADMIN', 'SUPER_ADMIN'].includes(adminUser?.role)) {
-            throw new Error('Access Denied: Administrative privileges required to approve inspections.');
-        }
-
-        const { error } = await supabase
-            .from('inspections')
-            .update({
-                inspection_status: 'APPROVED',
-                approved_by: user.id,
-                approved_at: new Date().toISOString(),
-                reviewer_id: user.id,
-                reviewed_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', inspectionId);
-
-        if (error) throw error;
-        return true;
-    },
     /**
      * Update an individual inspection checklist item.
      */
@@ -305,6 +240,7 @@ export const inspectionService = {
 
     /**
      * Submit inspection for review using secure server-derived auth session.
+     * Database trigger automatically synchronizes linked ppi_requests status.
      */
     async submitInspectionForReview(inspectionId) {
         const { data: { user }, error: authErr } = await supabase.auth.getUser();
@@ -312,7 +248,7 @@ export const inspectionService = {
 
         const { data: inspection, error: inspErr } = await supabase
             .from('inspections')
-            .select('id, inspector_id, inspection_status, ppi_request_id')
+            .select('id, inspector_id, inspection_status')
             .eq('id', inspectionId)
             .single();
 
@@ -327,6 +263,7 @@ export const inspectionService = {
             throw new Error(`Cannot submit inspection from current state: ${inspection.inspection_status}`);
         }
 
+        // Verify checklist completion (all applicable items assessed)
         const { data: items, error: itemsErr } = await supabase
             .from('inspection_items')
             .select('status, is_applicable')
@@ -351,13 +288,99 @@ export const inspectionService = {
 
         if (updateErr) throw updateErr;
 
-        if (inspection.ppi_request_id) {
-            await supabase
-                .from('ppi_requests')
-                .update({ status: 'SUBMITTED_FOR_REVIEW', updated_at: new Date().toISOString() })
-                .eq('id', inspection.ppi_request_id);
+        return true;
+    },
+
+    /**
+     * Admin requests changes on a submitted inspection.
+     * Enforces state guard: Inspection must be SUBMITTED_FOR_REVIEW.
+     */
+    async requestInspectionChanges(inspectionId, reviewNotes) {
+        const { data: { user }, error: authErr } = await supabase.auth.getUser();
+        if (authErr || !user) throw new Error('Authentication required.');
+
+        const { data: adminUser, error: roleErr } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        if (roleErr || !['ADMIN', 'SUPER_ADMIN'].includes(adminUser?.role)) {
+            throw new Error('Access Denied: Administrative privileges required to request changes.');
         }
 
+        // State guard: verify current inspection status
+        const { data: inspection, error: fetchErr } = await supabase
+            .from('inspections')
+            .select('inspection_status')
+            .eq('id', inspectionId)
+            .single();
+
+        if (fetchErr || !inspection) throw new Error('Inspection record not found.');
+
+        if (inspection.inspection_status !== 'SUBMITTED_FOR_REVIEW') {
+            throw new Error(`Cannot request changes: Inspection is currently in '${inspection.inspection_status}' state (must be SUBMITTED_FOR_REVIEW).`);
+        }
+
+        const { error } = await supabase
+            .from('inspections')
+            .update({
+                inspection_status: 'CHANGES_REQUESTED',
+                changes_requested_by: user.id,
+                changes_requested_at: new Date().toISOString(),
+                review_notes: reviewNotes,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', inspectionId);
+
+        if (error) throw error;
+        return true;
+    },
+
+    /**
+     * Admin approves a submitted inspection.
+     * Enforces state guard: Inspection must be SUBMITTED_FOR_REVIEW.
+     */
+    async approveInspection(inspectionId) {
+        const { data: { user }, error: authErr } = await supabase.auth.getUser();
+        if (authErr || !user) throw new Error('Authentication required.');
+
+        const { data: adminUser, error: roleErr } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        if (roleErr || !['ADMIN', 'SUPER_ADMIN'].includes(adminUser?.role)) {
+            throw new Error('Access Denied: Administrative privileges required to approve inspections.');
+        }
+
+        // State guard: verify current inspection status
+        const { data: inspection, error: fetchErr } = await supabase
+            .from('inspections')
+            .select('inspection_status')
+            .eq('id', inspectionId)
+            .single();
+
+        if (fetchErr || !inspection) throw new Error('Inspection record not found.');
+
+        if (inspection.inspection_status !== 'SUBMITTED_FOR_REVIEW') {
+            throw new Error(`Cannot approve inspection: Inspection is currently in '${inspection.inspection_status}' state (must be SUBMITTED_FOR_REVIEW).`);
+        }
+
+        const { error } = await supabase
+            .from('inspections')
+            .update({
+                inspection_status: 'APPROVED',
+                approved_by: user.id,
+                approved_at: new Date().toISOString(),
+                reviewer_id: user.id,
+                reviewed_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', inspectionId);
+
+        if (error) throw error;
         return true;
     },
 
