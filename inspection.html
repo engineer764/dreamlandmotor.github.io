@@ -3,6 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dreamland Inspection Workbench</title>
+    <!-- Existing styles -->
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; }
+        .badge-verified { background: #dcfce7; color: #16a34a; }
+        .badge-pending { background: #fef9c3; color: #a16207; }
+        .badge-rejected { background: #fee2e2; color: #dc2626; }
+        .badge-published { background: #e0f2fe; color: #0369a1; }
+        .action-btn { padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; border: 1px solid #e2e8f0; background: white; cursor: pointer; font-weight: 600; }
+        .btn-submit { color: #16a34a; border-color: #bbf7d0; background: #f0fdf4; }
+        .btn-submit:hover { background: #dcfce7; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Dreamland Inspection Workbench</h1>
+    <div class="user-info">
+        <span id="userEmailDisplay">Loading...</span>
+        <button class="logout-btn" id="logoutBtn">Logout</button>
+    </div>
+</header>
+
+<div class="container" style="max-width: 1400px; margin: 0 auto; padding: 24px;">
+    <!-- Workbench Action Toolbar -->
+    <div class="workbench-actions" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: white; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <div id="inspectionMetaDisplay">Loading inspection details...</div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <button type="button" id="submitForReviewBtn" class="action-btn btn-submit" style="display: none;">Submit for Review</button>
+            <button type="button" id="completeInspectionBtn" class="action-btn" style="background: #2563eb; color: white; border: none;">Complete Inspection (Admin)</button>
+        </div>
+    </div>
+
+    <!-- 660-Point Checklist Container -->
+    <div id="inspectionChecklist" class="checklist-container">
+        <!-- Existing Checklist Sections & Items rendered dynamically by existing workbench engine -->
+    </div>
+</div>
+
+<script type="module">
+    import { inspectionService } from './inspectionService.js';
+    import { requireAuth, logoutStaff } from './supabaseClient.js';
+
+    // 1. Reuse existing parameter extraction safely without redeclaring global params
+    const params = new URLSearchParams(window.location.search);
+    const vehicleId = params.get('vehicleId');
+    const inspectionId = params.get('inspectionId');
+
+    let currentInspection = null;
+    let currentAuthUser = null;
+
+    async function initWorkbench() {
+        try {
+            const auth = await requireAuth();
+            if (!auth) return;
+            currentAuthUser = auth.profile;
+
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) logoutBtn.addEventListener('click', logoutStaff);
+
+            document.getElementById('userEmailDisplay').textContent = `${currentAuthUser.name || currentAuthUser.email} (${currentAuthUser.role})`;
+
+            // 2. Resolve inspection via dual-mode priority (inspectionId first, then vehicleId)
+            if (inspectionId) {
+                currentInspection = await inspectionService.getInspectionById(inspectionId);
+            } else if (vehicleId) {
+                currentInspection = await inspectionService.getInspectionForVehicle(vehicleId);
+                if (!currentInspection) {
+                    alert('No inspection record found for this vehicle. Please contact Admin to initialize an inspection.');
+                    window.location.href = currentAuthUser.role === 'INSPECTOR' ? 'inspector.html' : 'admin.html';
+                    return;
+                }
+            } else {
+                alert('No vehicle or inspection reference provided.');
+                window.location.href = currentAuthUser.role === 'INSPECTOR' ? 'inspector.html' : 'admin.html';
+                return;
+            }
+
+            // 3. Secure inspector state transition for ASSIGNED or CHANGES_REQUESTED jobs
+            if (currentAuthUser.role === 'INSPECTOR' && ['ASSIGNED', 'CHANGES_REQUESTED'].includes(currentInspection.inspection_status)) {
+                currentInspection = await inspectionService.startOrResumeInspection(currentInspection.id);
+            }
+
+            // 4. Render existing 660-point workbench UI (preserving all autosave, findings, photos, scanner, road test, scoring)
+            if (typeof renderInspectionWorkbench === 'function') {
+                renderInspectionWorkbench(currentInspection);
+            } else {
+                document.getElementById('inspectionMetaDisplay').textContent = `Inspection Ref: ${currentInspection.inspection_number} | Status: ${currentInspection.inspection_status}`;
+            }
+
+            // 5. Apply inspector workflow UI constraints after rendering
+            applyInspectorWorkflowUIConstraints(currentInspection, currentAuthUser);
+
+        } catch (err) {
+            console.error('Failed to initialize inspection workbench:', err);
+            alert('Error loading inspection session: ' + err.message);
+        }
+    }
+
+    function applyInspectorWorkflowUIConstraints(inspection, authUser) {
+        if (authUser?.role !== 'INSPECTOR') return; // Admins and Super Admins retain full unrestricted capabilities
+
+        const status = inspection?.inspection_status;
+
+        // Hide legacy completion action from inspectors to enforce SUBMITTED_FOR_REVIEW workflow
+        const legacyCompleteBtn = document.getElementById('completeInspectionBtn');
+        if (legacyCompleteBtn) legacyCompleteBtn.style.display = 'none';
+
+        // Configure Submit for Review button
+        const submitReviewBtn = document.getElementById('submitForReviewBtn');
+        if (submitReviewBtn) {
+            if (['SUBMITTED_FOR_REVIEW', 'APPROVED', 'REPORT_GENERATED', 'DELIVERED'].includes(status)) {
+                submitReviewBtn.style.display = 'none';
+            } else {
+                submitReviewBtn.style.display = 'inline-block';
+                submitReviewBtn.textContent = (status === 'CHANGES_REQUESTED') ? 'Resubmit for Review' : 'Submit for Review';
+                submitReviewBtn.onclick = handleInspectorSubmitForReview;
+            }
+        }
+
+        // Lock inspector editing for finalized states (CHANGES_REQUESTED remains fully editable)
+        if (['SUBMITTED_FOR_REVIEW', 'APPROVED', 'REPORT_GENERATED', 'DELIVERED'].includes(status)) {
+            const checklistContainer = document.getElementById('inspectionChecklist');
+
+            if (checklistContainer) {
+                checklistContainer.querySelectorAll('input, select, textarea').forEach(el => {
+                    el.disabled = true;
+                });
+
+                let notice = document.getElementById('inspectionLockNotice');
+                if (!notice) {
+                    notice = document.createElement('div');
+                    notice.id = 'inspectionLockNotice';
+                    notice.style.cssText = 'background: #fef3c7; color: #92400e; padding: 12px; text-align: center; font-weight: bold; margin-bottom: 16px; border-radius: 8px;';
+                    checklistContainer.prepend(notice);
+                }
+                notice.textContent = `This inspection is currently ${status.replace(/_/g, ' ')}. Editing is locked.`;
+            } else {
+                console.warn('Inspector lock skipped: #inspectionChecklist container selector not found.');
+            }
+        }
+    }
+
+    async function handleInspectorSubmitForReview() {
+        if (!confirm('Are you ready to submit this completed inspection for Admin/Super Admin review? Once submitted, you cannot continue editing unless changes are requested.')) {
+            return;
+        }
+
+        const submitBtn = document.getElementById('submitForReviewBtn');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+        }
+
+        try {
+            await inspectionService.submitInspectionForReview(currentInspection.id);
+            alert('Inspection successfully submitted for review!');
+            window.location.href = 'inspector.html';
+        } catch (err) {
+            alert('Submission failed: ' + err.message);
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit for Review';
+            }
+        }
+    }
+
+    // Initialize workbench on page load
+    initWorkbench();
+</script>
+
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vehicle Inspection Workbench — Dreamland Admin</title>
     <!-- Tailwind CSS for modern styling -->
     <script src="https://cdn.tailwindcss.com"></script>
