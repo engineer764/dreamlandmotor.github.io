@@ -160,7 +160,72 @@ export const inspectionService = {
         if (error) throw error;
         return data;
     },
+/**
+     * Admin requests changes on a submitted inspection.
+     * Transitions status to CHANGES_REQUESTED and records review notes.
+     */
+    async requestInspectionChanges(inspectionId, reviewNotes) {
+        const { data: { user }, error: authErr } = await supabase.auth.getUser();
+        if (authErr || !user) throw new Error('Authentication required.');
 
+        const { data: adminUser, error: roleErr } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        if (roleErr || !['ADMIN', 'SUPER_ADMIN'].includes(adminUser?.role)) {
+            throw new Error('Access Denied: Administrative privileges required to request changes.');
+        }
+
+        const { error } = await supabase
+            .from('inspections')
+            .update({
+                inspection_status: 'CHANGES_REQUESTED',
+                changes_requested_by: user.id,
+                changes_requested_at: new Date().toISOString(),
+                review_notes: reviewNotes,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', inspectionId);
+
+        if (error) throw error;
+        return true;
+    },
+
+    /**
+     * Admin approves a submitted inspection.
+     * Transitions status to APPROVED and locks the inspection report.
+     */
+    async approveInspection(inspectionId) {
+        const { data: { user }, error: authErr } = await supabase.auth.getUser();
+        if (authErr || !user) throw new Error('Authentication required.');
+
+        const { data: adminUser, error: roleErr } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        if (roleErr || !['ADMIN', 'SUPER_ADMIN'].includes(adminUser?.role)) {
+            throw new Error('Access Denied: Administrative privileges required to approve inspections.');
+        }
+
+        const { error } = await supabase
+            .from('inspections')
+            .update({
+                inspection_status: 'APPROVED',
+                approved_by: user.id,
+                approved_at: new Date().toISOString(),
+                reviewer_id: user.id,
+                reviewed_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', inspectionId);
+
+        if (error) throw error;
+        return true;
+    },
     /**
      * Update an individual inspection checklist item.
      */
