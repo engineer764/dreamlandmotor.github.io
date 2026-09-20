@@ -2,16 +2,9 @@ import { supabase } from './supabaseClient.js';
 import { MASTER_CHECKLIST } from './masterChecklist.js';
 
 export const inspectionService = {
-    /**
-     * Retrieve an inspection directly by its UUID using decoupled queries 
-     * to avoid PostgREST embedded relationship ambiguity with .single().
-     */
     async getInspectionById(inspectionId) {
-        if (!inspectionId) {
-            throw new Error('Inspection ID is required.');
-        }
+        if (!inspectionId) throw new Error('Inspection ID is required.');
 
-        // 1. Load the inspection and its checklist/findings.
         const { data: inspection, error: inspectionError } = await supabase
             .from('inspections')
             .select(`
@@ -22,46 +15,23 @@ export const inspectionService = {
             .eq('id', inspectionId)
             .single();
 
-        if (inspectionError) {
-            throw inspectionError;
-        }
+        if (inspectionError) throw inspectionError;
 
-        // 2. Load the vehicle separately using the inspection's vehicle_id.
         let vehicle = null;
-
         if (inspection.vehicle_id) {
             const { data: vehicleData, error: vehicleError } = await supabase
                 .from('vehicles')
-                .select(`
-                    id,
-                    make,
-                    model,
-                    year,
-                    trim,
-                    vin,
-                    registration_number,
-                    location,
-                    mileage
-                `)
+                .select('id, make, model, year, trim, vin, registration_number, location, mileage')
                 .eq('id', inspection.vehicle_id)
                 .maybeSingle();
 
-            if (vehicleError) {
-                throw vehicleError;
-            }
-
+            if (vehicleError) throw vehicleError;
             vehicle = vehicleData;
         }
 
-        return {
-            ...inspection,
-            vehicles: vehicle
-        };
+        return { ...inspection, vehicles: vehicle };
     },
 
-    /**
-     * Retrieve inspection for a Dreamland Verified vehicle (preserves verification_inspection_id pointer logic).
-     */
     async getInspectionForVehicle(vehicleId) {
         if (!vehicleId) throw new Error('Vehicle ID is required.');
 
@@ -74,7 +44,6 @@ export const inspectionService = {
         if (vehicleError) throw vehicleError;
 
         let inspectionId = vehicle?.verification_inspection_id;
-
         if (!inspectionId) {
             const { data: inspections, error: inspError } = await supabase
                 .from('inspections')
@@ -84,19 +53,13 @@ export const inspectionService = {
                 .limit(1);
 
             if (inspError) throw inspError;
-            if (inspections && inspections.length > 0) {
-                inspectionId = inspections[0].id;
-            }
+            if (inspections && inspections.length > 0) inspectionId = inspections[0].id;
         }
 
         if (!inspectionId) return null;
         return await this.getInspectionById(inspectionId);
     },
 
-    /**
-     * Start a new inspection via atomic database RPC. 
-     * Handles validation, duplicate prevention, and atomic checklist instantiation server-side.
-     */
     async startNewInspection({ vehicleId = null, ppiRequestId = null, inspectorId = null, inspectionType = 'TECHNICAL_PPI', inspectionOrigin = 'CUSTOMER_PPI', mileage = 0 }) {
         const checklistPayload = MASTER_CHECKLIST.map((item, index) => ({
             section: item.section || item.category || 'GENERAL',
@@ -117,13 +80,9 @@ export const inspectionService = {
         });
 
         if (error) throw error;
-
         return await this.getInspectionById(data.id);
     },
 
-    /**
-     * Securely start or resume an assigned inspection (ASSIGNED or CHANGES_REQUESTED -> IN_PROGRESS).
-     */
     async startOrResumeInspection(inspectionId) {
         const { data: { user }, error: authErr } = await supabase.auth.getUser();
         if (authErr || !user) throw new Error('Authentication required.');
@@ -135,14 +94,9 @@ export const inspectionService = {
             .single();
 
         if (fetchError) throw fetchError;
+        if (inspection.inspector_id !== user.id) throw new Error('Access Denied: You are not assigned to this inspection.');
 
-        if (inspection.inspector_id !== user.id) {
-            throw new Error('Access Denied: You are not assigned to this inspection.');
-        }
-
-        if (!['ASSIGNED', 'CHANGES_REQUESTED'].includes(inspection.inspection_status)) {
-            return inspection;
-        }
+        if (!['ASSIGNED', 'CHANGES_REQUESTED'].includes(inspection.inspection_status)) return inspection;
 
         const { data, error } = await supabase
             .from('inspections')
@@ -161,46 +115,26 @@ export const inspectionService = {
         return data;
     },
 
-    /**
-     * Update an individual inspection checklist item.
-     */
     async updateInspectionItem(itemId, updateData) {
         const { error } = await supabase
             .from('inspection_items')
-            .update({
-                ...updateData,
-                updated_at: new Date().toISOString()
-            })
+            .update({ ...updateData, updated_at: new Date().toISOString() })
             .eq('id', itemId);
 
         if (error) throw error;
         return true;
     },
 
-    /**
-     * Add an inspection finding using schema-compliant rating & severity mapping.
-     */
     async addInspectionFinding(inspectionId, findingData) {
         let rawRating = (findingData.rating || findingData.severity || 'FAIR').toUpperCase();
         let severity = parseInt(findingData.severity_level || findingData.severity) || 2;
         let rating = 'FAIR';
 
-        if (rawRating === 'NOTE') {
-            rating = 'FAIR';
-            severity = 1;
-        } else if (rawRating === 'MINOR') {
-            rating = 'FAIR';
-            severity = 2;
-        } else if (rawRating === 'MODERATE') {
-            rating = 'ATTENTION';
-            severity = 3;
-        } else if (rawRating === 'MAJOR') {
-            rating = 'ATTENTION';
-            severity = 4;
-        } else if (rawRating === 'CRITICAL') {
-            rating = 'CRITICAL';
-            severity = 5;
-        }
+        if (rawRating === 'NOTE') { rating = 'FAIR'; severity = 1; }
+        else if (rawRating === 'MINOR') { rating = 'FAIR'; severity = 2; }
+        else if (rawRating === 'MODERATE') { rating = 'ATTENTION'; severity = 3; }
+        else if (rawRating === 'MAJOR') { rating = 'ATTENTION'; severity = 4; }
+        else if (rawRating === 'CRITICAL') { rating = 'CRITICAL'; severity = 5; }
 
         const payload = {
             inspection_id: inspectionId,
@@ -225,26 +159,15 @@ export const inspectionService = {
         return data;
     },
 
-    /**
-     * Delete an inspection finding.
-     */
     async deleteInspectionFinding(findingId) {
-        const { error } = await supabase
-            .from('inspection_findings')
-            .delete()
-            .eq('id', findingId);
-
+        const { error } = await supabase.from('inspection_findings').delete().eq('id', findingId);
         if (error) throw error;
         return true;
     },
 
-    /**
-     * Submit inspection for review using secure server-derived auth session.
-     * Database trigger automatically synchronizes linked ppi_requests status.
-     */
     async submitInspectionForReview(inspectionId) {
         const { data: { user }, error: authErr } = await supabase.auth.getUser();
-        if (authErr || !user) throw new Error('Authentication required to submit inspection.');
+        if (authErr || !user) throw new Error('Authentication required.');
 
         const { data: inspection, error: inspErr } = await supabase
             .from('inspections')
@@ -253,17 +176,13 @@ export const inspectionService = {
             .single();
 
         if (inspErr || !inspection) throw new Error('Inspection record not found.');
-
-        if (inspection.inspector_id !== user.id) {
-            throw new Error('Access Denied: You are not assigned as the inspector for this record.');
-        }
+        if (inspection.inspector_id !== user.id) throw new Error('Access Denied: You are not assigned as the inspector.');
 
         const allowedStates = ['ASSIGNED', 'IN_PROGRESS', 'CHANGES_REQUESTED'];
         if (!allowedStates.includes(inspection.inspection_status)) {
-            throw new Error(`Cannot submit inspection from current state: ${inspection.inspection_status}`);
+            throw new Error(`Cannot submit inspection from state: ${inspection.inspection_status}`);
         }
 
-        // Verify checklist completion (all applicable items assessed)
         const { data: items, error: itemsErr } = await supabase
             .from('inspection_items')
             .select('status, is_applicable')
@@ -287,14 +206,9 @@ export const inspectionService = {
             .eq('id', inspectionId);
 
         if (updateErr) throw updateErr;
-
         return true;
     },
 
-    /**
-     * Admin requests changes on a submitted inspection.
-     * Enforces state guard: Inspection must be SUBMITTED_FOR_REVIEW.
-     */
     async requestInspectionChanges(inspectionId, reviewNotes) {
         const { data: { user }, error: authErr } = await supabase.auth.getUser();
         if (authErr || !user) throw new Error('Authentication required.');
@@ -306,10 +220,9 @@ export const inspectionService = {
             .single();
 
         if (roleErr || !['ADMIN', 'SUPER_ADMIN'].includes(adminUser?.role)) {
-            throw new Error('Access Denied: Administrative privileges required to request changes.');
+            throw new Error('Access Denied: Administrative privileges required.');
         }
 
-        // State guard: verify current inspection status
         const { data: inspection, error: fetchErr } = await supabase
             .from('inspections')
             .select('inspection_status')
@@ -317,9 +230,8 @@ export const inspectionService = {
             .single();
 
         if (fetchErr || !inspection) throw new Error('Inspection record not found.');
-
         if (inspection.inspection_status !== 'SUBMITTED_FOR_REVIEW') {
-            throw new Error(`Cannot request changes: Inspection is currently in '${inspection.inspection_status}' state (must be SUBMITTED_FOR_REVIEW).`);
+            throw new Error(`Cannot request changes: Inspection is in '${inspection.inspection_status}' state (must be SUBMITTED_FOR_REVIEW).`);
         }
 
         const { error } = await supabase
@@ -337,10 +249,6 @@ export const inspectionService = {
         return true;
     },
 
-    /**
-     * Admin approves a submitted inspection.
-     * Enforces state guard: Inspection must be SUBMITTED_FOR_REVIEW.
-     */
     async approveInspection(inspectionId) {
         const { data: { user }, error: authErr } = await supabase.auth.getUser();
         if (authErr || !user) throw new Error('Authentication required.');
@@ -352,10 +260,9 @@ export const inspectionService = {
             .single();
 
         if (roleErr || !['ADMIN', 'SUPER_ADMIN'].includes(adminUser?.role)) {
-            throw new Error('Access Denied: Administrative privileges required to approve inspections.');
+            throw new Error('Access Denied: Administrative privileges required.');
         }
 
-        // State guard: verify current inspection status
         const { data: inspection, error: fetchErr } = await supabase
             .from('inspections')
             .select('inspection_status')
@@ -363,9 +270,8 @@ export const inspectionService = {
             .single();
 
         if (fetchErr || !inspection) throw new Error('Inspection record not found.');
-
         if (inspection.inspection_status !== 'SUBMITTED_FOR_REVIEW') {
-            throw new Error(`Cannot approve inspection: Inspection is currently in '${inspection.inspection_status}' state (must be SUBMITTED_FOR_REVIEW).`);
+            throw new Error(`Cannot approve inspection: Inspection is in '${inspection.inspection_status}' state (must be SUBMITTED_FOR_REVIEW).`);
         }
 
         const { error } = await supabase
@@ -384,9 +290,6 @@ export const inspectionService = {
         return true;
     },
 
-    /**
-     * Upload scanner PDF report.
-     */
     async uploadScannerPdf(inspectionId, file) {
         const filePath = `inspections/${inspectionId}/scanner_${Date.now()}.pdf`;
         const { error: uploadError } = await supabase.storage
