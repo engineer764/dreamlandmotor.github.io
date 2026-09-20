@@ -215,21 +215,36 @@
         </div>
     </div>
 
-    <!-- Scanner Report & Diagnostic PDF Upload Card -->
+    <!-- Scanner Report & Diagnostic PDF Section -->
     <div class="scanner-section">
         <h3>Diagnostic Scanner Report (PDF)</h3>
         <p style="font-size: 0.875rem; color: #64748b; margin-top: 4px;">Raw OBD2 scan logs or diagnostic health reports linked directly to this inspection.</p>
-        <div style="display: flex; gap: 12px; align-items: center; margin-top: 12px; flex-wrap: wrap;">
+        
+        <!-- Existing Report Viewer (Automatically displayed if scanner_report_path exists) -->
+        <div id="existingScannerContainer" class="hidden" style="margin-top: 16px; padding: 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.5rem;">📄</span>
+                <div>
+                    <strong style="color: #15803d; display: block;">Scanner report uploaded & verified</strong>
+                    <span style="font-size: 0.75rem; color: #166534;">PDF report is linked and available for review.</span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <a id="viewScannerLink" href="#" target="_blank" class="action-btn btn-primary" style="text-decoration: none; padding: 6px 14px; font-size: 0.8125rem;">View / Open PDF</a>
+                <a id="downloadScannerLink" href="#" download="Scanner_Report.pdf" class="action-btn" style="text-decoration: none; padding: 6px 14px; font-size: 0.8125rem; background: white; color: var(--primary);">Download PDF</a>
+            </div>
+        </div>
+
+        <!-- Upload Controls -->
+        <div id="scannerUploadControls" style="display: flex; gap: 12px; align-items: center; margin-top: 16px; flex-wrap: wrap;">
             <input type="file" id="scannerPdfInput" accept=".pdf" style="font-size: 0.875rem;">
-            <button type="button" class="action-btn btn-primary" id="uploadScannerBtn">Upload Scanner PDF</button>
+            <button type="button" class="action-btn btn-primary" id="uploadScannerBtn">Upload / Replace Scanner PDF</button>
             <span id="scannerStatusText" style="font-size: 0.875rem; color: var(--verified-green); font-weight: 500;"></span>
         </div>
     </div>
 
     <!-- Section Navigation Tabs -->
-    <div class="section-tabs" id="sectionTabsContainer">
-        <!-- Dynamically populated section tabs -->
-    </div>
+    <div class="section-tabs" id="sectionTabsContainer"></div>
 
     <!-- Master Checklist Container -->
     <div id="inspectionChecklist" class="checklist-container">
@@ -286,7 +301,7 @@
 
 <script type="module">
     import { inspectionService } from './inspectionService.js';
-    import { requireAuth, logoutStaff } from './supabaseClient.js';
+    import { requireAuth, logoutStaff, supabase } from './supabaseClient.js';
 
     const params = new URLSearchParams(window.location.search);
     const vehicleId = params.get('vehicleId');
@@ -306,6 +321,30 @@
             .replace(/'/g, '&#039;');
     }
 
+    function resolvePdfUrl(pathOrUrl) {
+        if (!pathOrUrl) return '#';
+        if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
+            return pathOrUrl;
+        }
+        const { data } = supabase.storage.from('vehicle-photos').getPublicUrl(pathOrUrl);
+        return data?.publicUrl || '#';
+    }
+
+    function renderScannerSection(inspection) {
+        const container = document.getElementById('existingScannerContainer');
+        const viewLink = document.getElementById('viewScannerLink');
+        const downloadLink = document.getElementById('downloadScannerLink');
+        
+        if (inspection?.scanner_report_path) {
+            const resolvedUrl = resolvePdfUrl(inspection.scanner_report_path);
+            viewLink.href = resolvedUrl;
+            downloadLink.href = resolvedUrl;
+            container.classList.remove('hidden');
+        } else {
+            container.classList.add('hidden');
+        }
+    }
+
     async function initWorkbench() {
         try {
             const auth = await requireAuth();
@@ -315,7 +354,6 @@
             document.getElementById('logoutBtn').addEventListener('click', logoutStaff);
             document.getElementById('userEmailDisplay').textContent = `${currentAuthUser.name || currentAuthUser.email} (${currentAuthUser.role})`;
 
-            // 1. Dual-mode inspection resolution
             if (inspectionId) {
                 currentInspection = await inspectionService.getInspectionById(inspectionId);
             } else if (vehicleId) {
@@ -331,7 +369,6 @@
                 return;
             }
 
-            // 2. Role security check & inspector state transition
             if (currentAuthUser.role === 'INSPECTOR') {
                 if (currentInspection.inspector_id !== currentAuthUser.id) {
                     alert('Access Denied: You are not assigned to this inspection.');
@@ -343,16 +380,14 @@
                 }
             }
 
-            // 3. Render Workbench Header & Checklist
             renderHeader(currentInspection);
+            renderScannerSection(currentInspection);
             renderChecklistWorkbench(currentInspection);
             renderFindingsList(currentInspection.inspection_findings || []);
 
-            // 4. Setup event listeners
             document.getElementById('addFindingForm').addEventListener('submit', handleAddFinding);
             document.getElementById('uploadScannerBtn').addEventListener('click', handleUploadScannerPdf);
 
-            // 5. Apply role-based workflow constraints & Admin Review Banner
             applyWorkflowConstraints(currentInspection, currentAuthUser);
 
         } catch (err) {
@@ -564,6 +599,7 @@
         try {
             const publicUrl = await inspectionService.uploadScannerPdf(currentInspection.id, file);
             currentInspection.scanner_report_path = publicUrl;
+            renderScannerSection(currentInspection);
             statusText.textContent = 'Scanner PDF uploaded successfully!';
             fileInput.value = '';
         } catch (err) {
@@ -599,7 +635,6 @@
                 backToAdminBtn.onclick = () => { window.location.href = 'admin.html'; };
             }
 
-            // Show Admin Review banner STRICTLY when work is submitted for review (not during CHANGES_REQUESTED)
             if (status === 'SUBMITTED_FOR_REVIEW') {
                 if (adminReviewBanner) {
                     adminReviewBanner.classList.remove('hidden');
@@ -612,7 +647,6 @@
             }
         }
 
-        // Lock editing for fully approved/delivered inspections
         if (['APPROVED', 'REPORT_GENERATED', 'DELIVERED'].includes(status)) {
             const checklistContainer = document.getElementById('inspectionChecklist');
             if (checklistContainer) {
@@ -649,7 +683,7 @@
 
     async function handleAdminRequestChanges() {
         const notes = prompt('Enter review notes / reasons for requesting changes:');
-        if (notes === null) return; // Cancelled
+        if (notes === null) return;
         if (!notes.trim()) {
             alert('Review notes are required when sending back for correction.');
             return;
