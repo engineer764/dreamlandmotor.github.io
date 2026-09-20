@@ -20,7 +20,7 @@ export const supabase = createClient(
 
 
 /**
- * Authenticates an administrator or staff member.
+ * Authenticates an administrator, inspector, or other staff member.
  */
 export async function loginStaff(email, password) {
 
@@ -103,7 +103,13 @@ export async function logoutStaff() {
 
 
 /**
- * Secures admin/staff pages.
+ * Secures authenticated staff pages.
+ *
+ * This confirms that the user:
+ * - has an active Supabase session
+ * - has a matching public.users profile
+ * - has an active account
+ * - has an allowed staff role
  */
 export async function requireAuth() {
 
@@ -181,28 +187,64 @@ export async function requireAuth() {
         'SUPER_ADMIN'
     ];
 
-    /**
- * Ensures the authenticated user possesses ADMIN or SUPER_ADMIN privileges.
- * Redirects unauthorized users to their appropriate portal.
+    if (!allowedRoles.includes(profile.role)) {
+
+        alert(
+            'Unauthorized role: ' + profile.role
+        );
+
+        await supabase.auth.signOut();
+
+        window.location.href = 'login.html';
+
+        return null;
+    }
+
+    return {
+        session,
+        profile
+    };
+}
+
+
+/**
+ * Secures Admin Portal pages.
+ *
+ * Only ADMIN and SUPER_ADMIN may enter.
+ *
+ * INSPECTOR users are redirected to the Inspector Portal.
+ * Other authenticated roles are redirected to the public site.
  */
 export async function requireAdminAuth() {
+
     const auth = await requireAuth();
 
-    if (!auth) return null;
+    if (!auth) {
+        return null;
+    }
 
-    const adminRoles = ['ADMIN', 'SUPER_ADMIN'];
+    const adminRoles = [
+        'ADMIN',
+        'SUPER_ADMIN'
+    ];
 
     if (!adminRoles.includes(auth.profile.role)) {
+
         if (auth.profile.role === 'INSPECTOR') {
-            window.location.replace('inspector.html');
+
+            window.location.replace(
+                'inspector.html'
+            );
+
         } else {
-            window.location.replace('index.html');
+
+            window.location.replace(
+                'index.html'
+            );
         }
 
         return null;
     }
 
-    return auth; 
-
-    }
+    return auth;
 }
