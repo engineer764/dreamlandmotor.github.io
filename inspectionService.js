@@ -1,191 +1,144 @@
 import { supabase } from './supabaseClient.js';
 import { MASTER_CHECKLIST } from './masterChecklist.js';
-import { inspectionScoring } from './inspectionScoring.js';
 
 export const inspectionService = {
-    /**
-     * Retrieves an inspection record for a given vehicle using the authoritative 
-     * verification_inspection_id relationship when available. Read-only.
-     */
+    async getInspectionById(inspectionId) {
+        if (!inspectionId) throw new Error('Inspection ID is required.');
+
+        const { data: inspection, error } = await supabase
+            .from('inspections')
+            .select(`
+                *,
+                vehicles (id, make, model, year, trim, vin, registration_number, location, mileage),
+                inspection_items (*),
+                inspection_findings (*)
+            `)
+            .eq('id', inspectionId)
+            .single();
+
+        if (error) throw error;
+        return inspection;
+    },
+
     async getInspectionForVehicle(vehicleId) {
         if (!vehicleId) throw new Error('Vehicle ID is required.');
 
-        // 1. Retrieve verification_inspection_id from the vehicle record
-        const { data: vehicle, error: vehicleErr } = await supabase
+        const { data: vehicle, error: vehicleError } = await supabase
             .from('vehicles')
             .select('verification_inspection_id')
             .eq('id', vehicleId)
             .single();
 
-        if (vehicleErr) {
-            throw new Error(`Failed to fetch vehicle inspection reference: ${vehicleErr.message}`);
-        }
+        if (vehicleError) throw vehicleError;
 
-        const inspectionId = vehicle?.verification_inspection_id;
+        let inspectionId = vehicle?.verification_inspection_id;
 
-        if (inspectionId) {
-            // Retrieve that exact inspection by its ID with full relations
-            const { data, error } = await supabase
+        if (!inspectionId) {
+            const { data: inspections, error: inspError } = await supabase
                 .from('inspections')
-                .select(`
-                    *,
-                    inspection_items(*),
-                    findings:inspection_findings(
-                        *,
-                        photos:finding_photos(*)
-                    )
-                `)
-                .eq('id', inspectionId)
-                .single();
+                .select('id')
+                .eq('vehicle_id', vehicleId)
+                .order('created_at', { ascending: false })
+                .limit(1);
 
-            if (error) throw new Error(error.message);
-            return data;
+            if (inspError) throw inspError;
+            if (inspections && inspections.length > 0) {
+                inspectionId = inspections[0].id;
+            }
         }
 
-        // If verification_inspection_id is NULL: fallback compatibility check
-        const { data: inspections, error: inspErr } = await supabase
-            .from('inspections')
-            .select(`
-                *,
-                inspection_items(*),
-                findings:inspection_findings(
-                    *,
-                    photos:finding_photos(*)
-                )
-            `)
-            .eq('vehicle_id', vehicleId);
-
-        if (inspErr) throw new Error(inspErr.message);
-
-        if (!inspections || inspections.length === 0) {
-            return null;
-        }
-
-        if (inspections.length === 1) {
-            return inspections[0];
-        }
-
-        // Multiple inspections exist without an authoritative pointer; do not guess.
-        throw new Error('Multiple inspection records exist for this vehicle, but no authoritative verification_inspection_id is assigned.');
+        if (!inspectionId) return null;
+        return await this.getInspectionById(inspectionId);
     },
 
-    /**
-     * Explicitly starts a new inspection for a vehicle.
-     * Never automatically created during read/view operations.
-     */
-    async startNewInspection(vehicleId) {
-        if (!vehicleId) throw new Error('Vehicle ID is required.');
+    async startNewInspection({ vehicleId = null, ppiRequestId = null, inspectorId = null, inspectionType = 'TECHNICAL_PPI', mileage = 0 }) {
+        const inspectionNumber = `INS-${Date.now().toString().slice(-6)}`;
 
-        // 1. Check vehicles.verification_inspection_id and mileage
-        const { data: vehicle, error: vehicleErr } = await supabase
-            .from('vehicles')
-            .select('verification_inspection_id, mileage')
-            .eq('id', vehicleId)
-            .single();
-
-        if (!vehicleErr && vehicle?.verification_inspection_id) {
-            return await this.getInspectionForVehicle(vehicleId);
-        }
-
-        const rawMileage = vehicle?.mileage;
-        const mileage = Number(rawMileage);
-        if (rawMileage === null || rawMileage === undefined || !Number.isFinite(mileage) || mileage < 0) {
-            throw new Error('Cannot start inspection: vehicle mileage is missing or invalid.');
-        }
-
-        // 2. Check existing inspections by vehicle_id to prevent duplicate creation
-        const { data: rawInspections, error: rawErr } = await supabase
-            .from('inspections')
-            .select('id')
-            .eq('vehicle_id', vehicleId);
-
-        if (rawErr) throw new Error(rawErr.message);
-
-        // 3. If exactly ONE existing inspection exists, return it
-        if (rawInspections && rawInspections.length === 1) {
-            return await this.getInspectionForVehicle(vehicleId);
-        }
-
-        // 4. If MORE THAN ONE inspection exists, throw clear error
-        if (rawInspections && rawInspections.length > 1) {
-            throw new Error('Multiple inspection records exist for this vehicle. An authoritative inspection must be assigned before continuing.');
-        }
-
-        // 5. If ZERO inspections exist: Explicit START NEW INSPECTION case
-        const inspectionNumber = `INS-${Math.floor(100000 + Math.random() * 900000)}`;
-        const today = new Date().toISOString().split('T')[0];
-
-        const insertPayload = {
+        const payload = {
             vehicle_id: vehicleId,
+            ppi_request_id: ppiRequestId,
+            inspector_id: inspectorId,
             inspection_number: inspectionNumber,
-            inspection_status: 'DRAFT',
-            inspection_date: today,
-            mileage: mileage
+            inspection_type: inspectionType,
+            inspection_status: 'ASSIGNED',
+            inspection_date: new Date().toISOString().split('T')[0],
+            mileage: mileage || 0
         };
 
-        const { data: inspection, error: inspError } = await supabase
+        const { data: newInspection, error: inspError } = await supabase
             .from('inspections')
-            .insert([insertPayload])
+            .insert([payload])
             .select()
             .single();
 
-        if (inspError) throw new Error(inspError.message);
+        if (inspError) throw inspError;
 
-        // 6. Instantiate MASTER_CHECKLIST items
-        if (MASTER_CHECKLIST && MASTER_CHECKLIST.length > 0) {
-            const itemsToInsert = MASTER_CHECKLIST.map(item => ({
-                inspection_id: inspection.id,
-                section: item.section || 'General',
-                item_code: item.item_code || '',
-                item_name: item.item_name || '',
-                status: 'PENDING',
-                is_applicable: true,
-                is_safety_critical: item.is_safety_critical || false,
-                sort_order: item.sort_order || 0
-            }));
+        // Instantiate 660-point Master Checklist using exact schema columns
+        const checklistItemsPayload = MASTER_CHECKLIST.map((item, index) => ({
+            inspection_id: newInspection.id,
+            section: item.section || item.category || 'GENERAL',
+            item_code: item.code || `ITM-${String(index + 1).padStart(4, '0')}`,
+            item_name: item.name || item.item_name || 'Inspection Item',
+            status: 'PENDING',
+            is_applicable: item.default_applicable !== false,
+            sort_order: index
+        }));
 
-            const { error: itemsError } = await supabase
-                .from('inspection_items')
-                .insert(itemsToInsert);
-
-            if (itemsError) throw new Error(itemsError.message);
-        }
-
-        // 7. Return newly created inspection with all inspection_items loaded
-        return await this.getInspectionForVehicle(vehicleId);
-    },
-
-    /**
-     * Updates an individual checklist item.
-     */
-    async updateInspectionItem(itemId, updateData) {
-        if (!itemId) throw new Error('Item ID is required.');
-
-        const { data, error } = await supabase
+        const { error: itemsError } = await supabase
             .from('inspection_items')
-            .update(updateData)
-            .eq('id', itemId)
-            .select()
-            .single();
+            .insert(checklistItemsPayload);
 
-        if (error) throw new Error(error.message);
-        return data;
+        if (itemsError) throw itemsError;
+
+        return await this.getInspectionById(newInspection.id);
     },
 
-    /**
-     * Adds a supplementary inspection finding.
-     */
+    async updateInspectionItem(itemId, updateData) {
+        const { error } = await supabase
+            .from('inspection_items')
+            .update({
+                ...updateData,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', itemId);
+
+        if (error) throw error;
+        return true;
+    },
+
     async addInspectionFinding(inspectionId, findingData) {
-        if (!inspectionId) throw new Error('Inspection ID is required.');
+        let rawRating = (findingData.rating || findingData.severity || 'FAIR').toUpperCase();
+        let severity = parseInt(findingData.severity_level || findingData.severity) || 2;
+        let rating = 'FAIR';
+
+        if (rawRating === 'NOTE') {
+            rating = 'FAIR';
+            severity = 1;
+        } else if (rawRating === 'MINOR') {
+            rating = 'FAIR';
+            severity = 2;
+        } else if (rawRating === 'MODERATE') {
+            rating = 'ATTENTION';
+            severity = 3;
+        } else if (rawRating === 'MAJOR') {
+            rating = 'ATTENTION';
+            severity = 4;
+        } else if (rawRating === 'CRITICAL') {
+            rating = 'CRITICAL';
+            severity = 5;
+        }
 
         const payload = {
             inspection_id: inspectionId,
-            area: findingData.area || findingData.component || 'General',
-            component: findingData.component || 'General',
-            rating: findingData.rating || findingData.severity || 'NOTE',
-            severity: findingData.severity || 'NOTE',
+            area: findingData.area || findingData.section || 'General',
+            component: findingData.component || findingData.item_name || 'General Component',
+            rating: rating,
+            severity: severity,
             finding: findingData.finding || findingData.description || '',
-            is_safety_critical: findingData.is_safety_critical || (findingData.severity === 'CRITICAL')
+            significance: findingData.significance || '',
+            recommended_action: findingData.recommended_action || findingData.recommendation || '',
+            estimated_cost: parseFloat(findingData.estimated_cost) || 0,
+            is_safety_critical: findingData.is_safety_critical || rating === 'CRITICAL' || severity >= 4
         };
 
         const { data, error } = await supabase
@@ -194,209 +147,87 @@ export const inspectionService = {
             .select()
             .single();
 
-        if (error) throw new Error(error.message);
+        if (error) throw error;
         return data;
     },
 
-    /**
-     * Deletes a supplementary inspection finding by its ID.
-     */
     async deleteInspectionFinding(findingId) {
-        if (!findingId) throw new Error('Finding ID is required.');
-
         const { error } = await supabase
             .from('inspection_findings')
             .delete()
             .eq('id', findingId);
 
-        if (error) throw new Error(error.message);
+        if (error) throw error;
         return true;
     },
 
-    /**
-     * Completes an inspection using calculateSectionScore, calculateOverallScore, and getRecommendation from inspectionScoring.
-     */
-    async completeInspection(inspectionId) {
-        if (!inspectionId) throw new Error('Inspection ID is required.');
+    async submitInspectionForReview(inspectionId) {
+        const { data: { user }, error: authErr } = await supabase.auth.getUser();
+        if (authErr || !user) throw new Error('Authentication required to submit inspection.');
 
-        const { data: inspection, error: fetchError } = await supabase
+        const { data: inspection, error: inspErr } = await supabase
             .from('inspections')
-            .select(`
-                *,
-                inspection_items(*)
-            `)
+            .select('id, inspector_id, inspection_status')
             .eq('id', inspectionId)
             .single();
 
-        if (fetchError || !inspection) throw new Error('Inspection not found.');
+        if (inspErr || !inspection) throw new Error('Inspection record not found.');
 
-        const items = inspection.inspection_items || [];
-
-        // Completion Validation: Applicable + PENDING = blocks completion. Non-applicable + PENDING = does not block.
-        const pendingItems = items.filter(
-            item => item.is_applicable !== false && item.status === 'PENDING'
-        );
-        if (pendingItems.length > 0) {
-            throw new Error('Cannot complete inspection: all applicable items must be assessed (no PENDING items allowed).');
+        if (inspection.inspector_id !== user.id) {
+            throw new Error('Access Denied: You are not assigned as the inspector for this record.');
         }
 
-        // Group inspection_items by section
-        const sectionsMap = {};
-        items.forEach(item => {
-            const sec = item.section || 'General';
-            if (!sectionsMap[sec]) {
-                sectionsMap[sec] = [];
-            }
-            sectionsMap[sec].push(item);
-        });
-
-        const sectionResultsMap = {};
-        let totalCriticalCount = 0;
-
-        for (const [sectionName, sectionItems] of Object.entries(sectionsMap)) {
-            const sectionResult = inspectionScoring.calculateSectionScore(sectionItems);
-            sectionResultsMap[sectionName] = sectionResult;
-            if (sectionResult.criticalCount) {
-                totalCriticalCount += sectionResult.criticalCount;
-            }
+        const allowedStates = ['ASSIGNED', 'IN_PROGRESS', 'CHANGES_REQUESTED'];
+        if (!allowedStates.includes(inspection.inspection_status)) {
+            throw new Error(`Cannot submit inspection from current state: ${inspection.inspection_status}`);
         }
 
-        const overallResult = inspectionScoring.calculateOverallScore(sectionResultsMap);
-        const overallScore = overallResult.overallScore !== undefined ? overallResult.overallScore : overallResult;
+        const { data: items, error: itemsErr } = await supabase
+            .from('inspection_items')
+            .select('status, is_applicable')
+            .eq('inspection_id', inspectionId);
 
-        // Recommendation extraction: ensure a string is stored
-        const rawRecommendation = inspectionScoring.getRecommendation 
-            ? inspectionScoring.getRecommendation(overallScore, totalCriticalCount) 
-            : { text: 'Approved for sale.', badge: 'Approved' };
+        if (itemsErr) throw itemsErr;
 
-        const recommendationText = typeof rawRecommendation === 'object' && rawRecommendation !== null 
-            ? (rawRecommendation.text || String(rawRecommendation)) 
-            : String(rawRecommendation);
-
-        // Derive overall condition based on score thresholds and critical override rules
-        let overallCondition = 'GOOD';
-        if (overallScore >= 85) {
-            overallCondition = 'EXCELLENT';
-        } else if (overallScore >= 70) {
-            overallCondition = 'GOOD';
-        } else if (overallScore >= 50) {
-            overallCondition = 'FAIR';
-        } else {
-            overallCondition = 'POOR';
-        }
-        if (totalCriticalCount > 0 && overallScore < 50) {
-            overallCondition = 'POOR';
+        const unassessed = items.filter(i => i.is_applicable && (i.status === 'PENDING' || !i.status));
+        if (unassessed.length > 0) {
+            throw new Error(`Cannot submit inspection: ${unassessed.length} required checklist items remain unassessed.`);
         }
 
-        const getSecScore = (...names) => {
-            const match = Object.keys(sectionResultsMap).find(sectionName =>
-                names.some(name =>
-                    sectionName.toLowerCase().includes(name.toLowerCase())
-                )
-            );
-
-            return match ? sectionResultsMap[match].score : null;
-        };
-
-        const mechanical_score = getSecScore('mechanical', 'engine', 'transmission') ?? 100;
-        const electrical_score = getSecScore('electrical') ?? 100;
-        const body_score = getSecScore('body', 'frame', 'exterior') ?? 100;
-        const interior_score = getSecScore('interior') ?? 100;
-        const suspension_score = getSecScore('suspension') ?? 100;
-        const brake_score = getSecScore('brake') ?? 100;
-        const diagnostic_score = getSecScore('diagnostic', 'obd') ?? 100;
-        const road_test_score = getSecScore('road test', 'road') ?? 100;
-
-        const { data, error } = await supabase
+        const { error: updateErr } = await supabase
             .from('inspections')
             .update({
-                inspection_status: 'COMPLETED',
-                completed_at: new Date().toISOString(),
-                overall_score: overallScore,
-                overall_condition: overallCondition,
-                recommendation: recommendationText,
-                mechanical_score,
-                electrical_score,
-                body_score,
-                interior_score,
-                suspension_score,
-                brake_score,
-                diagnostic_score,
-                road_test_score
+                inspection_status: 'SUBMITTED_FOR_REVIEW',
+                submitted_by: user.id,
+                submitted_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
             })
-            .eq('id', inspectionId)
-            .select()
-            .single();
+            .eq('id', inspectionId);
 
-        if (error) throw new Error(error.message);
-        return data;
+        if (updateErr) throw updateErr;
+        return true;
     },
 
-    /**
-     * Uploads a scanner PDF report and attaches it directly to the specified active inspection ID.
-     */
     async uploadScannerPdf(inspectionId, file) {
-        console.log('[Scanner Upload] inspectionId:', inspectionId);
-        console.log('[Scanner Upload] type:', typeof inspectionId);
-
-        if (!inspectionId) throw new Error('Inspection ID is required.');
-        if (!file || !(file instanceof File)) throw new Error('A valid PDF file is required.');
-
-        const fileExt = file.name.split('.').pop().toLowerCase();
-        if (fileExt !== 'pdf') throw new Error('Only PDF files are allowed.');
-
-        const { data: inspectionRecord, error: inspFetchErr } = await supabase
-            .from('inspections')
-            .select('id, vehicle_id, inspection_status')
-            .eq('id', inspectionId)
-            .maybeSingle();
-
-        console.log('[Scanner Upload] inspectionRecord:', inspectionRecord);
-        console.log('[Scanner Upload] inspFetchErr:', inspFetchErr);
-
-        if (inspFetchErr) {
-            throw new Error(`Failed to read inspection ${inspectionId}: ${inspFetchErr.message}`);
-        }
-
-        if (!inspectionRecord) {
-            throw new Error(`Inspection ${inspectionId} was not found or is not visible to the current authenticated user.`);
-        }
-
-        const fileName = `inspections/${inspectionRecord.vehicle_id}/scanner_${crypto.randomUUID()}.pdf`;
-
+        const filePath = `inspections/${inspectionId}/scanner_${Date.now()}.pdf`;
         const { error: uploadError } = await supabase.storage
             .from('vehicle-photos')
-            .upload(fileName, file, {
-                upsert: false,
-                contentType: 'application/pdf'
-            });
+            .upload(filePath, file, { upsert: true });
 
-        if (uploadError) throw new Error(`Failed to upload scanner report: ${uploadError.message}`);
+        if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
+        const { data: publicUrlData } = supabase.storage
             .from('vehicle-photos')
-            .getPublicUrl(fileName);
+            .getPublicUrl(filePath);
+
+        const publicUrl = publicUrlData.publicUrl;
 
         const { error: updateError } = await supabase
             .from('inspections')
-            .update({ scanner_report_path: publicUrl })
+            .update({ scanner_report_path: publicUrl, updated_at: new Date().toISOString() })
             .eq('id', inspectionId);
 
-        if (updateError) {
-            await supabase.storage.from('vehicle-photos').remove([fileName]);
-            throw new Error(`Failed to save scanner report link: ${updateError.message}`);
-        }
-
+        if (updateError) throw updateError;
         return publicUrl;
     }
 };
-
-export const {
-    getInspectionForVehicle,
-    startNewInspection,
-    updateInspectionItem,
-    addInspectionFinding,
-    deleteInspectionFinding,
-    completeInspection,
-    uploadScannerPdf
-} = inspectionService;
