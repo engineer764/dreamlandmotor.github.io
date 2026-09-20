@@ -12,7 +12,17 @@ export const inspectionService = {
             .from('inspections')
             .select(`
                 *,
-                vehicles (id, make, model, year, trim, vin, registration_number, location, mileage),
+                vehicles!inspections_vehicle_id_fkey (
+                    id,
+                    make,
+                    model,
+                    year,
+                    trim,
+                    vin,
+                    registration_number,
+                    location,
+                    mileage
+                ),
                 inspection_items (*),
                 inspection_findings (*)
             `)
