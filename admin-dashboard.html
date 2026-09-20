@@ -497,7 +497,11 @@
 </div>
 
 <script type="module">
-    import { requireAuth, logoutStaff, supabase } from './supabaseClient.js';
+    import {
+        requireAdminAuth,
+        logoutStaff,
+        supabase
+    } from './supabaseClient.js';
     import { vehicleService } from './vehicleService.js';
     import { createPhotoPicker } from './photo.js';
 
@@ -519,7 +523,7 @@
     }
 
     async function init() {
-        const auth = await requireAuth();
+        const auth = await requireAdminAuth();
         if (!auth) return;
 
         document.getElementById('userEmail').textContent = `${auth.profile.name || auth.profile.email} (${auth.profile.role})`;
@@ -732,14 +736,14 @@
                 const seller = (req.seller_name || '').toLowerCase();
 
                 const match = ppiNum.includes(searchText) ||
-                            custName.includes(searchText) ||
-                            custPhone.includes(searchText) ||
-                            custEmail.includes(searchText) ||
-                            make.includes(searchText) ||
-                            model.includes(searchText) ||
-                            vin.includes(searchText) ||
-                            reg.includes(searchText) ||
-                            seller.includes(searchText);
+                        custName.includes(searchText) ||
+                        custPhone.includes(searchText) ||
+                        custEmail.includes(searchText) ||
+                        make.includes(searchText) ||
+                        model.includes(searchText) ||
+                        vin.includes(searchText) ||
+                        reg.includes(searchText) ||
+                        seller.includes(searchText);
                 if (!match) return false;
             }
             return true;
