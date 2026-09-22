@@ -672,7 +672,11 @@ form.addEventListener('submit', async (event) => {
         const formData =
             new FormData(form);
 
+        const ppiRequestId = crypto.randomUUID();
+
         const payload = {
+
+            id: ppiRequestId,
 
             request_type:
                 formData.get('request_type'),
@@ -745,27 +749,28 @@ form.addEventListener('submit', async (event) => {
         };
 
 
-        const {
-            data,
-            error
-        } = await supabase
+        // Insert without .select() or .single() to avoid triggering SELECT RLS policies for unauthenticated users
+        const { error } = await supabase
             .from('ppi_requests')
-            .insert(payload)
-            .select()
-            .single();
+            .insert(payload);
 
 
         if (error) {
             throw error;
         }
 
+
+        // Invoke Edge Function to process confirmation email and retrieve generated ppi_number
+        let generatedPpiNumber = null;
+
         const {
+            data: emailData,
             error: emailError
         } = await supabase.functions.invoke(
             'send-ppi-confirmation',
             {
                 body: {
-                    ppi_request_id: data.id
+                    ppi_request_id: ppiRequestId
                 }
             }
         );
@@ -775,6 +780,8 @@ form.addEventListener('submit', async (event) => {
                 'PPI confirmation email error:',
                 emailError
             );
+        } else if (emailData && emailData.ppi_number) {
+            generatedPpiNumber = emailData.ppi_number;
         }
 
 
@@ -783,7 +790,7 @@ form.addEventListener('submit', async (event) => {
         result.style.display = 'block';
 
         ppiNumber.textContent =
-            data.ppi_number || 'Request submitted';
+            generatedPpiNumber || 'Request submitted';
 
 
     } catch (error) {
