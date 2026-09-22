@@ -656,30 +656,21 @@ form.addEventListener('submit', async (event) => {
     try {
 
         const {
-            data: {
-                user
-            },
+            data: { user },
             error: userError
         } = await supabase.auth.getUser();
 
-
+        // Login is optional for public PPI requests.
+        // A customer can submit using the contact details in the form.
         if (userError) {
-            throw userError;
-        }
-
-
-        if (!user) {
-
-            throw new Error(
-                'Please sign in to your Dreamland account before requesting a PPI.'
+            console.warn(
+                'Optional customer session lookup failed:',
+                userError.message
             );
-
         }
-
 
         const formData =
             new FormData(form);
-
 
         const payload = {
 
@@ -687,7 +678,7 @@ form.addEventListener('submit', async (event) => {
                 formData.get('request_type'),
 
             customer_id:
-                user.id,
+                user?.id || null,
 
             customer_name:
                 formData.get('customer_name'),
