@@ -759,6 +759,24 @@ form.addEventListener('submit', async (event) => {
             throw error;
         }
 
+        const {
+            error: emailError
+        } = await supabase.functions.invoke(
+            'send-ppi-confirmation',
+            {
+                body: {
+                    ppi_request_id: data.id
+                }
+            }
+        );
+
+        if (emailError) {
+            console.error(
+                'PPI confirmation email error:',
+                emailError
+            );
+        }
+
 
         form.style.display = 'none';
 
