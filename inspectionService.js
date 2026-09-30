@@ -1,3 +1,4 @@
+// inspectionService.js
 import { supabase } from './supabaseClient.js';
 import { MASTER_CHECKLIST } from './masterChecklist.js';
 
@@ -80,6 +81,36 @@ export const inspectionService = {
         });
 
         if (error) throw error;
+        return await this.getInspectionById(data.id);
+    },
+
+    async getOrCreateVerifiedVehicleInspection({ vehicleId, inspectorId = null, inspectionType = 'TECHNICAL_PPI', mileage = 0 }) {
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
+
+        const checklistPayload = MASTER_CHECKLIST.map((item, index) => ({
+            section: item.section || item.category || 'GENERAL',
+            item_code: item.item_code || item.code || `ITM-${String(index + 1).padStart(4, '0')}`,
+            item_name: item.item_name || item.name || 'Inspection Item',
+            is_applicable: item.default_applicable !== false,
+            sort_order: index
+        }));
+
+        const { data, error } = await supabase.rpc('get_or_create_verified_vehicle_inspection', {
+            p_vehicle_id: vehicleId,
+            p_inspector_id: inspectorId,
+            p_inspection_type: inspectionType,
+            p_mileage: mileage || 0,
+            p_checklist_items: checklistPayload
+        });
+
+        if (error) throw error;
+
+        if (!data?.id) {
+            throw new Error('The inspection could not be initialized.');
+        }
+
         return await this.getInspectionById(data.id);
     },
 
