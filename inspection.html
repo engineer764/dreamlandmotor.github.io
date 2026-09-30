@@ -357,11 +357,26 @@
             if (inspectionId) {
                 currentInspection = await inspectionService.getInspectionById(inspectionId);
             } else if (vehicleId) {
-                currentInspection = await inspectionService.getInspectionForVehicle(vehicleId);
+                const inspectorId = currentAuthUser?.role === 'INSPECTOR' ? currentAuthUser.id : null;
+
+                currentInspection = await inspectionService.getOrCreateVerifiedVehicleInspection({
+                    vehicleId: vehicleId,
+                    inspectorId: inspectorId,
+                    inspectionType: 'TECHNICAL_PPI',
+                    mileage: 0
+                });
+
                 if (!currentInspection) {
-                    alert('No inspection record found for this vehicle.');
-                    window.location.href = currentAuthUser.role === 'INSPECTOR' ? 'inspector.html' : 'admin.html';
-                    return;
+                    throw new Error('Unable to initialize the vehicle inspection.');
+                }
+
+                // Replace vehicleId in the URL with the exact inspection ID.
+                // This ensures refreshes/bookmarks continue with the same inspection.
+                if (currentInspection.id) {
+                    const newUrl = new URL(window.location.href);
+                    newUrl.searchParams.set('inspectionId', currentInspection.id);
+                    newUrl.searchParams.delete('vehicleId');
+                    window.history.replaceState({}, '', newUrl.toString());
                 }
             } else {
                 alert('No inspection reference provided.');
