@@ -164,6 +164,66 @@
             align-items: flex-start;
         }
 
+        .no-inspection-state {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 48px 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        
+        .no-inspection-icon {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 16px;
+            border-radius: 50%;
+            background: #fef3c7;
+            color: var(--warning);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+        
+        .no-inspection-state h2 {
+            margin: 0 0 8px;
+            color: var(--primary);
+            font-size: 1.25rem;
+        }
+        
+        .no-inspection-state p {
+            max-width: 560px;
+            margin: 0 auto 20px;
+            color: #64748b;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+        
+        .no-inspection-error {
+            max-width: 600px;
+            margin: 0 auto 16px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+            font-size: 0.8125rem;
+            text-align: left;
+        }
+        
+        .start-inspection-btn {
+            color: white;
+            background: var(--accent);
+            border-color: #1d4ed8;
+        }
+        
+        .start-inspection-btn:hover {
+            background: #1d4ed8;
+        }
+
         .hidden { display: none !important; }
     </style>
 </head>
@@ -178,6 +238,22 @@
 </header>
 
 <div class="container">
+    <div id="noInspectionState" class="no-inspection-state hidden">
+        <div class="no-inspection-icon">!</div>
+        <h2>No Inspection Found</h2>
+        <p>
+            No inspection details have been recorded for this vehicle yet.
+            Start a new inspection to load the Dreamland Master Checklist.
+        </p>
+        <div id="noInspectionError" class="no-inspection-error hidden"></div>
+        <button
+            type="button"
+            id="startInspectionBtn"
+            class="action-btn start-inspection-btn">
+            Start New Inspection
+        </button>
+    </div>
+
     <!-- Admin Review Action Banner -->
     <div id="adminReviewBanner" class="admin-review-banner hidden">
         <div>
@@ -209,8 +285,17 @@
         </div>
 
         <div class="toolbar-actions">
-            <button type="button" id="submitForReviewBtn" class="action-btn btn-submit hidden">Submit for Review</button>
-            <button type="button" id="backToAdminBtn" class="action-btn btn-primary hidden">Back to Admin Dashboard</button>
+            <button type="button" id="completeInspectionBtn" class="action-btn btn-submit hidden">
+                Complete Inspection
+            </button>
+
+            <button type="button" id="submitForReviewBtn" class="action-btn btn-submit hidden">
+                Submit for Review
+            </button>
+
+            <button type="button" id="backToAdminBtn" class="action-btn btn-primary hidden">
+                Back to Admin Dashboard
+            </button>
         </div>
     </div>
 
@@ -345,6 +430,112 @@
         }
     }
 
+    function showNoInspectionState(errorMessage = '') {
+        const state = document.getElementById('noInspectionState');
+        const errorBox = document.getElementById('noInspectionError');
+    
+        if (state) {
+            state.classList.remove('hidden');
+        }
+    
+        if (errorBox) {
+            if (errorMessage) {
+                errorBox.textContent = errorMessage;
+                errorBox.classList.remove('hidden');
+            } else {
+                errorBox.textContent = '';
+                errorBox.classList.add('hidden');
+            }
+        }
+    
+        // Hide the normal inspection workbench until an inspection exists.
+        document.getElementById('adminReviewBanner')?.classList.add('hidden');
+        document.querySelector('.workbench-header-card')?.classList.add('hidden');
+        document.querySelector('.scanner-section')?.classList.add('hidden');
+        document.getElementById('sectionTabsContainer')?.classList.add('hidden');
+        document.getElementById('inspectionChecklist')?.classList.add('hidden');
+        document.querySelector('.findings-section')?.classList.add('hidden');
+    }
+    
+    function hideNoInspectionState() {
+        document.getElementById('noInspectionState')?.classList.add('hidden');
+    
+        document.querySelector('.workbench-header-card')?.classList.remove('hidden');
+        document.querySelector('.scanner-section')?.classList.remove('hidden');
+        document.getElementById('sectionTabsContainer')?.classList.remove('hidden');
+        document.getElementById('inspectionChecklist')?.classList.remove('hidden');
+        document.querySelector('.findings-section')?.classList.remove('hidden');
+    }
+    
+    async function handleStartNewInspection() {
+        if (!vehicleId) {
+            showNoInspectionState('A vehicle reference is required before starting an inspection.');
+            return;
+        }
+    
+        const btn = document.getElementById('startInspectionBtn');
+        const errorBox = document.getElementById('noInspectionError');
+    
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Starting Inspection...';
+        }
+    
+        if (errorBox) {
+            errorBox.textContent = '';
+            errorBox.classList.add('hidden');
+        }
+    
+        try {
+            const inspectorId =
+                currentAuthUser?.role === 'INSPECTOR'
+                    ? currentAuthUser.id
+                    : null;
+    
+            currentInspection = await inspectionService.startNewInspection({
+                vehicleId: vehicleId,
+                inspectorId: inspectorId,
+                inspectionType: 'TECHNICAL_PPI',
+                inspectionOrigin: 'CUSTOMER_PPI',
+                mileage: 0
+            });
+    
+            if (!currentInspection) {
+                throw new Error('The inspection could not be created.');
+            }
+    
+            hideNoInspectionState();
+    
+            renderHeader(currentInspection);
+            renderScannerSection(currentInspection);
+            renderChecklistWorkbench(currentInspection);
+            renderFindingsList(currentInspection.inspection_findings || []);
+    
+            document.getElementById('addFindingForm')
+                ?.addEventListener('submit', handleAddFinding);
+    
+            document.getElementById('uploadScannerBtn')
+                ?.addEventListener('click', handleUploadScannerPdf);
+    
+            applyWorkflowConstraints(currentInspection, currentAuthUser);
+    
+        } catch (err) {
+            console.error('Failed to start new inspection:', err);
+    
+            if (errorBox) {
+                errorBox.textContent =
+                    'Failed to start inspection: ' + (err?.message || 'Unknown error.');
+    
+                errorBox.classList.remove('hidden');
+            }
+    
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Start New Inspection';
+            }
+        }
+    }
+
     async function initWorkbench() {
         try {
             const auth = await requireAuth();
@@ -354,24 +545,34 @@
             document.getElementById('logoutBtn').addEventListener('click', logoutStaff);
             document.getElementById('userEmailDisplay').textContent = `${currentAuthUser.name || currentAuthUser.email} (${currentAuthUser.role})`;
 
+            const startInspectionBtn = document.getElementById('startInspectionBtn');
+
+            if (startInspectionBtn) {
+                startInspectionBtn.addEventListener('click', handleStartNewInspection);
+            }
+
             if (inspectionId) {
                 currentInspection = await inspectionService.getInspectionById(inspectionId);
+
+                if (!currentInspection) {
+                    showNoInspectionState();
+                    return;
+                }
+
             } else if (vehicleId) {
-                const inspectorId = currentAuthUser?.role === 'INSPECTOR' ? currentAuthUser.id : null;
 
                 currentInspection = await inspectionService.getOrCreateVerifiedVehicleInspection({
                     vehicleId: vehicleId,
-                    inspectorId: inspectorId,
+                    inspectorId: currentAuthUser?.role === 'INSPECTOR' ? currentAuthUser.id : null,
                     inspectionType: 'TECHNICAL_PPI',
                     mileage: 0
                 });
 
                 if (!currentInspection) {
-                    throw new Error('Unable to initialize the vehicle inspection.');
+                    showNoInspectionState();
+                    return;
                 }
 
-                // Replace vehicleId in the URL with the exact inspection ID.
-                // This ensures refreshes/bookmarks continue with the same inspection.
                 if (currentInspection.id) {
                     const newUrl = new URL(window.location.href);
                     newUrl.searchParams.set('inspectionId', currentInspection.id);
@@ -379,8 +580,7 @@
                     window.history.replaceState({}, '', newUrl.toString());
                 }
             } else {
-                alert('No inspection reference provided.');
-                window.location.href = currentAuthUser.role === 'INSPECTOR' ? 'inspector.html' : 'admin.html';
+                showNoInspectionState('No vehicle or inspection reference was provided.');
                 return;
             }
 
@@ -629,8 +829,28 @@
         const isInspector = authUser?.role === 'INSPECTOR';
 
         const submitReviewBtn = document.getElementById('submitForReviewBtn');
+        const completeInspectionBtn = document.getElementById('completeInspectionBtn');
         const backToAdminBtn = document.getElementById('backToAdminBtn');
         const adminReviewBanner = document.getElementById('adminReviewBanner');
+
+        if (completeInspectionBtn) {
+            completeInspectionBtn.classList.add('hidden');
+            completeInspectionBtn.style.display = 'none';
+            completeInspectionBtn.onclick = null;
+        }
+
+        if (
+            isAdmin &&
+            inspection?.inspection_origin === 'VERIFIED_VEHICLE' &&
+            ['ASSIGNED', 'IN_PROGRESS', 'DRAFT'].includes(status)
+        ) {
+            if (completeInspectionBtn) {
+                completeInspectionBtn.classList.remove('hidden');
+                completeInspectionBtn.style.display = 'inline-block';
+                completeInspectionBtn.textContent = 'Complete Inspection';
+                completeInspectionBtn.onclick = handleAdminCompleteInspection;
+            }
+        }
 
         if (isInspector) {
             if (['SUBMITTED_FOR_REVIEW', 'APPROVED', 'REPORT_GENERATED', 'DELIVERED'].includes(status)) {
@@ -694,7 +914,7 @@
             }
         }
 
-        if (['APPROVED', 'REPORT_GENERATED', 'DELIVERED'].includes(status)) {
+        if (['APPROVED', 'REPORT_GENERATED', 'DELIVERED', 'COMPLETED'].includes(status)) {
             const checklistContainer = document.getElementById('inspectionChecklist');
             if (checklistContainer) {
                 checklistContainer.querySelectorAll('input, select, textarea').forEach(el => el.disabled = true);
@@ -706,7 +926,77 @@
                     notice.style.cssText = 'background: #dcfce7; color: #15803d; padding: 12px; text-align: center; font-weight: bold; margin-bottom: 16px; border-radius: 8px;';
                     checklistContainer.prepend(notice);
                 }
-                notice.textContent = `This inspection has been APPROVED and officially locked.`;
+                notice.textContent = `This inspection has been ${status} and officially locked.`;
+            }
+        }
+    }
+
+    async function handleAdminCompleteInspection() {
+        if (!currentInspection) {
+            alert('Inspection record not found.');
+            return;
+        }
+
+        if (!['ADMIN', 'SUPER_ADMIN'].includes(currentAuthUser?.role)) {
+            alert('Access Denied: Administrative privileges required.');
+            return;
+        }
+
+        if (currentInspection.inspection_origin !== 'VERIFIED_VEHICLE') {
+            alert('This action is only available for verified-vehicle inspections.');
+            return;
+        }
+
+        if (!['ASSIGNED', 'IN_PROGRESS', 'DRAFT'].includes(currentInspection.inspection_status)) {
+            alert(
+                `This inspection cannot be completed from its current status: ${currentInspection.inspection_status}`
+            );
+            return;
+        }
+
+        const checklistItems = currentInspection.inspection_items || [];
+
+        const unassessed = checklistItems.filter(item =>
+            item.is_applicable &&
+            (!item.status || item.status === 'PENDING')
+        );
+
+        if (unassessed.length > 0) {
+            alert(
+                `Cannot complete inspection: ${unassessed.length} required checklist item(s) remain unassessed.`
+            );
+            return;
+        }
+
+        if (!confirm(
+            'Complete this inspection?\n\n' +
+            'The inspection will be recorded as COMPLETED and you will return to the Admin Dashboard.'
+        )) {
+            return;
+        }
+
+        const btn = document.getElementById('completeInspectionBtn');
+
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Completing...';
+        }
+
+        try {
+            await inspectionService.completeInspection(currentInspection.id);
+
+            alert('Inspection completed successfully.');
+
+            window.location.href = 'admin.html';
+
+        } catch (err) {
+            console.error('Inspection completion failed:', err);
+
+            alert('Unable to complete inspection: ' + err.message);
+
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Complete Inspection';
             }
         }
     }
