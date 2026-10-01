@@ -196,6 +196,20 @@ export const inspectionService = {
         return true;
     },
 
+    async completeInspection(inspectionId) {
+        if (!inspectionId) {
+            throw new Error('Inspection ID is required.');
+        }
+
+        const { error } = await supabase.rpc('complete_inspection', {
+            p_inspection_id: inspectionId
+        });
+
+        if (error) throw error;
+
+        return true;
+    },
+
     async submitInspectionForReview(inspectionId) {
         const { data: { user }, error: authErr } = await supabase.auth.getUser();
         if (authErr || !user) throw new Error('Authentication required.');
