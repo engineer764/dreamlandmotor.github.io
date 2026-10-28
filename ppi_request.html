@@ -1,37 +1,73 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Request a PPI | Dreamland Motor</title>
+
+    <!-- Meta Pixel: ensure this Pixel is not installed elsewhere already -->
+    <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f.fbq=n;
+    n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];
+    t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}
+    (window,document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init','236227498504778');
+    fbq('track','PageView');
+    </script>
+
+    <noscript>
+        <img height="1" width="1" style="display:none"
+        src="https://www.facebook.com/tr?id=236227498504778&ev=PageView&noscript=1"
+        alt="">
+    </noscript>
+
     <link rel="stylesheet" href="style.css">
 
     <style>
         .ppi-page {
-            max-width: 900px;
-            margin: 40px auto;
-            padding: 20px;
+            max-width: 850px;
+            margin: 30px auto;
+            padding: 16px;
+            font-family: Arial, sans-serif;
         }
 
-        .ppi-header { margin-bottom: 30px; }
-        .ppi-header h1 { margin-bottom: 8px; }
-        .ppi-header p { color: #666; }
+        .ppi-header {
+            margin-bottom: 24px;
+        }
+
+        .ppi-header h1 {
+            margin-bottom: 10px;
+        }
+
+        .ppi-header p {
+            color: #555;
+            line-height: 1.6;
+        }
 
         .ppi-card {
             background: #fff;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 12px rgba(0,0,0,.08);
+            border-radius: 10px;
+            padding: 22px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.08);
         }
 
-        .ppi-card h2 { margin-top: 0; margin-bottom: 20px; }
+        .ppi-card h2 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            font-size: 20px;
+        }
 
         .ppi-grid {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 18px;
+            grid-template-columns: repeat(2,minmax(0,1fr));
+            gap: 16px;
         }
 
         .ppi-field {
@@ -41,8 +77,14 @@
             min-width: 0;
         }
 
-        .ppi-field.full { grid-column: 1 / -1; }
-        .ppi-field label { font-weight: 600; }
+        .ppi-field.full {
+            grid-column: 1 / -1;
+        }
+
+        .ppi-field label {
+            font-weight: 600;
+            line-height: 1.4;
+        }
 
         .ppi-field input,
         .ppi-field select,
@@ -53,11 +95,25 @@
             border: 1px solid #ccc;
             border-radius: 7px;
             font: inherit;
+            background: #fff;
+        }
+
+        .ppi-field input:focus,
+        .ppi-field select:focus,
+        .ppi-field textarea:focus {
+            outline: 2px solid #777;
+            outline-offset: 1px;
         }
 
         .ppi-field textarea {
-            min-height: 110px;
+            min-height: 100px;
             resize: vertical;
+        }
+
+        .ppi-note {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.6;
         }
 
         .ppi-submit {
@@ -65,18 +121,24 @@
             padding: 15px;
             border: 0;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 17px;
             font-weight: 700;
             cursor: pointer;
+            background: #173f35;
+            color: white;
         }
 
-        .ppi-submit:disabled { opacity: .6; cursor: wait; }
+        .ppi-submit:disabled {
+            opacity: .6;
+            cursor: wait;
+        }
 
         .ppi-message {
             display: none;
-            margin-bottom: 20px;
-            padding: 15px;
+            margin-bottom: 18px;
+            padding: 14px;
             border-radius: 8px;
+            line-height: 1.5;
         }
 
         .ppi-message.error {
@@ -85,183 +147,426 @@
             background: #fff0f0;
         }
 
-        .ppi-message.success {
-            display: block;
-            color: #165b2c;
-            background: #effaf1;
-        }
-
         .ppi-result {
             display: none;
             text-align: center;
         }
 
         .ppi-number {
-            font-size: clamp(22px, 5vw, 28px);
+            font-size: 25px;
             font-weight: 700;
-            margin: 20px 0;
+            margin: 18px 0;
             overflow-wrap: anywhere;
         }
 
-        .ppi-note { color: #666; font-size: 14px; }
+        @media (max-width: 600px) {
+            .ppi-page {
+                margin: 12px auto;
+                padding: 12px;
+            }
 
-        @media (max-width: 700px) {
-            .ppi-page { margin: 16px auto; padding: 16px; }
-            .ppi-grid { grid-template-columns: 1fr; }
-            .ppi-field.full { grid-column: auto; }
-            .ppi-card { padding: 20px; }
+            .ppi-card {
+                padding: 17px;
+            }
+
+            .ppi-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .ppi-field.full {
+                grid-column: auto;
+            }
         }
     </style>
 </head>
 
 <body>
+
 <main class="ppi-page">
 
     <section class="ppi-header">
         <h1>Request a Vehicle Inspection</h1>
+
         <p>
-            Get a professional Dreamland inspection before making
-            an important vehicle decision.
+            Planning to buy a used car? Dreamland Motor Engineering
+            Works can help you assess the vehicle before you commit
+            your money.
+        </p>
+
+        <p>
+            <strong>Don't know the engine type or VIN? No problem.</strong>
+            Fill in what you know. Only the fields marked with *
+            are required. You can provide additional details later.
         </p>
     </section>
 
-    <div id="ppiMessage" class="ppi-message" role="alert" aria-live="polite"></div>
+    <div id="ppiMessage"
+         class="ppi-message"
+         role="alert"
+         aria-live="polite"></div>
 
     <form id="ppiForm">
 
+        <!-- SECTION 1: SERVICE -->
+
         <section class="ppi-card">
-            <h2>1. Select Service</h2>
+            <h2>1. What service do you need?</h2>
+
             <div class="ppi-grid">
                 <div class="ppi-field full">
-                    <label for="requestType">What service do you require?</label>
-                    <select id="requestType" name="request_type" required>
-                        <option value="">Select a service</option>
-                        <option value="TECHNICAL_PPI">Technical / Pre-Purchase Inspection</option>
-                        <option value="INSURANCE_VALUATION">Insurance Valuation</option>
-                        <option value="TECHNICAL_PPI_AND_VALUATION">Technical PPI + Insurance Valuation</option>
+                    <label for="requestType">
+                        Select a service *
+                    </label>
+
+                    <select id="requestType"
+                            name="request_type"
+                            required>
+                        <option value="">Choose a service</option>
+                        <option value="TECHNICAL_PPI">
+                            Pre-Purchase Inspection
+                        </option>
+                        <option value="INSURANCE_VALUATION">
+                            Insurance Valuation
+                        </option>
+                        <option value="TECHNICAL_PPI_AND_VALUATION">
+                            Inspection and Insurance Valuation
+                        </option>
                     </select>
                 </div>
             </div>
         </section>
 
+        <!-- SECTION 2: CUSTOMER DETAILS -->
+
         <section class="ppi-card">
-            <h2>2. Your Information</h2>
+            <h2>2. Your Contact Information</h2>
+
+            <p class="ppi-note">
+                We need your contact details to respond to your request.
+            </p>
+
             <div class="ppi-grid">
+
                 <div class="ppi-field">
-                    <label for="customerName">Full Name</label>
-                    <input id="customerName" name="customer_name" type="text" required>
+                    <label for="customerName">Full Name *</label>
+                    <input id="customerName"
+                           name="customer_name"
+                           type="text"
+                           autocomplete="name"
+                           required>
                 </div>
+
                 <div class="ppi-field">
-                    <label for="customerPhone">Phone Number</label>
-                    <input id="customerPhone" name="customer_phone" type="tel" required>
+                    <label for="customerPhone">Phone Number *</label>
+                    <input id="customerPhone"
+                           name="customer_phone"
+                           type="tel"
+                           autocomplete="tel"
+                           placeholder="Your reachable phone number"
+                           required>
                 </div>
-                <div class="ppi-field">
-                    <label for="customerEmail">Email</label>
-                    <input id="customerEmail" name="customer_email" type="email" required>
+
+                <div class="ppi-field full">
+                    <label for="customerEmail">Email Address *</label>
+                    <input id="customerEmail"
+                           name="customer_email"
+                           type="email"
+                           autocomplete="email"
+                           placeholder="you@example.com"
+                           required>
                 </div>
+
             </div>
         </section>
 
+        <!-- SECTION 3: BASIC VEHICLE DETAILS -->
+
         <section class="ppi-card">
-            <h2>3. Vehicle Information</h2>
+            <h2>3. Tell Us About the Car</h2>
+
+            <p class="ppi-note">
+                You only need to know the make, model and location
+                to start. All other vehicle details are optional.
+            </p>
+
             <div class="ppi-grid">
+
                 <div class="ppi-field">
-                    <label for="vehicleMake">Make</label>
-                    <input id="vehicleMake" name="vehicle_make" type="text" placeholder="Toyota" required>
+                    <label for="vehicleMake">
+                        Car Make *
+                    </label>
+                    <input id="vehicleMake"
+                           name="vehicle_make"
+                           type="text"
+                           placeholder="e.g. Toyota, Honda, Lexus"
+                           required>
                 </div>
+
                 <div class="ppi-field">
-                    <label for="vehicleModel">Model</label>
-                    <input id="vehicleModel" name="vehicle_model" type="text" placeholder="Corolla" required>
+                    <label for="vehicleModel">
+                        Car Model *
+                    </label>
+                    <input id="vehicleModel"
+                           name="vehicle_model"
+                           type="text"
+                           placeholder="e.g. Corolla, Accord, RX 350"
+                           required>
                 </div>
+
                 <div class="ppi-field">
-                    <label for="vehicleYear">Year</label>
-                    <input id="vehicleYear" name="vehicle_year" type="number" min="1900" max="2100">
+                    <label for="vehicleYear">
+                        Year of Manufacture (optional)
+                    </label>
+                    <input id="vehicleYear"
+                           name="vehicle_year"
+                           type="number"
+                           min="1900"
+                           max="2100"
+                           placeholder="e.g. 2018">
                 </div>
+
                 <div class="ppi-field">
-                    <label for="vehicleTrim">Trim / Variant</label>
-                    <input id="vehicleTrim" name="vehicle_trim" type="text">
+                    <label for="vehicleMileage">
+                        Mileage (optional)
+                    </label>
+                    <input id="vehicleMileage"
+                           name="vehicle_mileage"
+                           type="number"
+                           min="0"
+                           placeholder="If known">
                 </div>
+
                 <div class="ppi-field">
-                    <label for="vehicleMileage">Mileage (km)</label>
-                    <input id="vehicleMileage" name="vehicle_mileage" type="number" min="0">
+                    <label for="vehicleEngine">
+                        Engine Type (optional)
+                    </label>
+                    <input id="vehicleEngine"
+                           name="vehicle_engine"
+                           type="text"
+                           placeholder="Leave blank if unknown">
                 </div>
+
                 <div class="ppi-field">
-                    <label for="vehicleEngine">Engine</label>
-                    <input id="vehicleEngine" name="vehicle_engine" type="text" placeholder="2ZR-FE">
+                    <label for="vehicleTransmission">
+                        Transmission (optional)
+                    </label>
+                    <select id="vehicleTransmission"
+                            name="vehicle_transmission">
+                        <option value="">Select if known</option>
+                        <option value="Automatic">Automatic</option>
+                        <option value="Manual">Manual</option>
+                        <option value="CVT">CVT</option>
+                        <option value="Other">Other</option>
+                        <option value="Unknown">Not sure</option>
+                    </select>
                 </div>
+
                 <div class="ppi-field">
-                    <label for="vehicleTransmission">Transmission</label>
-                    <input id="vehicleTransmission" name="vehicle_transmission" type="text" placeholder="Automatic">
-                </div>
-                <div class="ppi-field">
-                    <label for="vehicleFuel">Fuel Type</label>
-                    <select id="vehicleFuel" name="vehicle_fuel_type">
-                        <option value="">Select</option>
+                    <label for="vehicleFuel">
+                        Fuel Type (optional)
+                    </label>
+                    <select id="vehicleFuel"
+                            name="vehicle_fuel_type">
+                        <option value="">Select if known</option>
                         <option value="PETROL">Petrol</option>
                         <option value="DIESEL">Diesel</option>
                         <option value="HYBRID">Hybrid</option>
                         <option value="ELECTRIC">Electric</option>
-                        <option value="OTHER">Other</option>
+                        <option value="OTHER">Other / Not sure</option>
                     </select>
                 </div>
+
                 <div class="ppi-field">
-                    <label for="vehicleColour">Colour</label>
-                    <input id="vehicleColour" name="vehicle_colour" type="text">
+                    <label for="vehicleColour">
+                        Colour (optional)
+                    </label>
+                    <input id="vehicleColour"
+                           name="vehicle_colour"
+                           type="text"
+                           placeholder="e.g. Silver">
                 </div>
+
                 <div class="ppi-field">
-                    <label for="vehicleBody">Body Type</label>
-                    <input id="vehicleBody" name="vehicle_body_type" type="text" placeholder="Sedan">
+                    <label for="vehicleBody">
+                        Body Type (optional)
+                    </label>
+                    <input id="vehicleBody"
+                           name="vehicle_body_type"
+                           type="text"
+                           placeholder="e.g. Sedan, SUV">
                 </div>
+
                 <div class="ppi-field">
-                    <label for="vehicleVin">VIN</label>
-                    <input id="vehicleVin" name="vehicle_vin" type="text">
+                    <label for="vehicleVin">
+                        VIN / Chassis Number (optional)
+                    </label>
+                    <input id="vehicleVin"
+                           name="vehicle_vin"
+                           type="text"
+                           placeholder="Leave blank if unavailable">
                 </div>
+
                 <div class="ppi-field">
-                    <label for="vehicleRegistration">Registration Number</label>
-                    <input id="vehicleRegistration" name="vehicle_registration_number" type="text">
+                    <label for="vehicleRegistration">
+                        Registration Number (optional)
+                    </label>
+                    <input id="vehicleRegistration"
+                           name="vehicle_registration_number"
+                           type="text"
+                           placeholder="Leave blank if unavailable">
                 </div>
+
                 <div class="ppi-field full">
-                    <label for="vehicleLocation">Where is the vehicle located?</label>
-                    <input id="vehicleLocation" name="vehicle_location" type="text" placeholder="Lekki, Lagos" required>
+                    <label for="vehicleLocation">
+                        Where is the car located? *
+                    </label>
+                    <input id="vehicleLocation"
+                           name="vehicle_location"
+                           type="text"
+                           placeholder="e.g. Lekki, Ikeja, Victoria Island"
+                           required>
                 </div>
+
             </div>
         </section>
 
+        <!-- SECTION 4: PURCHASE TIMELINE -->
+
         <section class="ppi-card">
-            <h2>4. Seller Information</h2>
+            <h2>4. Your Buying Plans (Optional)</h2>
+
+            <p class="ppi-note">
+                This helps us understand how soon you may need the
+                inspection. You can skip these questions.
+            </p>
+
             <div class="ppi-grid">
+
                 <div class="ppi-field">
-                    <label for="sellerName">Seller Name</label>
-                    <input id="sellerName" name="seller_name" type="text">
+                    <label for="purchaseTimeline">
+                        When are you planning to buy?
+                    </label>
+
+                    <select id="purchaseTimeline"
+                            name="purchase_timeline">
+                        <option value="">Choose if known</option>
+                        <option value="1-3 days">Within 1–3 days</option>
+                        <option value="1 week">Within one week</option>
+                        <option value="1 month">Within one month</option>
+                        <option value="researching">Still researching</option>
+                    </select>
                 </div>
+
                 <div class="ppi-field">
-                    <label for="sellerPhone">Seller Phone</label>
-                    <input id="sellerPhone" name="seller_phone" type="tel">
+                    <label for="vehicleSelected">
+                        Have you found the car?
+                    </label>
+
+                    <select id="vehicleSelected"
+                            name="vehicle_selected">
+                        <option value="">Choose if applicable</option>
+                        <option value="yes">Yes, I have selected a car</option>
+                        <option value="comparing">
+                            I am comparing a few cars
+                        </option>
+                        <option value="not_yet">
+                            Not yet
+                        </option>
+                    </select>
                 </div>
+
             </div>
         </section>
+
+        <!-- SECTION 5: SELLER DETAILS -->
 
         <section class="ppi-card">
-            <h2>5. Additional Information</h2>
-            <div class="ppi-field">
-                <label for="customerNotes">Anything we should know?</label>
-                <textarea id="customerNotes" name="customer_notes"
-                    placeholder="For example: I am considering buying this vehicle and would like particular attention paid to the engine and transmission."></textarea>
+            <h2>5. Seller Information (Optional)</h2>
+
+            <p class="ppi-note">
+                If you do not have the seller's details yet,
+                leave these fields blank.
+            </p>
+
+            <div class="ppi-grid">
+
+                <div class="ppi-field">
+                    <label for="sellerName">
+                        Seller's Name
+                    </label>
+                    <input id="sellerName"
+                           name="seller_name"
+                           type="text">
+                </div>
+
+                <div class="ppi-field">
+                    <label for="sellerPhone">
+                        Seller's Phone Number
+                    </label>
+                    <input id="sellerPhone"
+                           name="seller_phone"
+                           type="tel">
+                </div>
+
             </div>
         </section>
 
-        <button id="submitPpi" type="submit" class="ppi-submit">
-            Submit PPI Request
+        <!-- SECTION 6: ADDITIONAL INFORMATION -->
+
+        <section class="ppi-card">
+            <h2>6. Anything Else We Should Know?</h2>
+
+            <div class="ppi-field">
+                <label for="customerNotes">
+                    Additional Information (optional)
+                </label>
+
+                <textarea id="customerNotes"
+                          name="customer_notes"
+                          placeholder="Mention any concerns or questions about the vehicle."></textarea>
+            </div>
+        </section>
+
+        <button id="submitPpi"
+                type="submit"
+                class="ppi-submit">
+            Submit Inspection Request
         </button>
+
+        <p class="ppi-note">
+            Submitting this form sends an inspection request to
+            Dreamland Motor Engineering Works. It does not by itself
+            confirm an appointment or inspection payment.
+        </p>
+
     </form>
 
-    <section id="ppiResult" class="ppi-card ppi-result" aria-live="polite">
+    <!-- SUCCESS MESSAGE -->
+
+    <section id="ppiResult"
+             class="ppi-card ppi-result"
+             aria-live="polite">
+
         <h2>Request Received</h2>
-        <p>Your Dreamland PPI request has been successfully submitted.</p>
+
+        <p>
+            Your Dreamland vehicle inspection request has been
+            successfully submitted.
+        </p>
+
         <p>Your reference number is:</p>
+
         <div id="ppiNumber" class="ppi-number"></div>
-        <p>Please keep this reference number for future communication with Dreamland Motor.</p>
-        <p class="ppi-note">Please quote this reference when contacting our team.</p>
+
+        <p>
+            Please keep this reference number when communicating
+            with Dreamland Motor Engineering Works.
+        </p>
+
+        <p id="ppiResultNote" class="ppi-note">
+            Our team can follow up regarding your request.
+        </p>
+
     </section>
 
 </main>
@@ -274,6 +579,7 @@ const submitButton = document.getElementById('submitPpi');
 const message = document.getElementById('ppiMessage');
 const result = document.getElementById('ppiResult');
 const ppiNumber = document.getElementById('ppiNumber');
+const resultNote = document.getElementById('ppiResultNote');
 
 function showError(text) {
     message.textContent = text;
@@ -285,9 +591,17 @@ function clearMessage() {
     message.className = 'ppi-message';
 }
 
+function fieldValue(formData, name) {
+    return String(formData.get(name) || '').trim();
+}
+
 form.addEventListener('submit', async (event) => {
     event.preventDefault();
     clearMessage();
+
+    if (!form.reportValidity()) {
+        return;
+    }
 
     submitButton.disabled = true;
     submitButton.textContent = 'Submitting...';
@@ -298,47 +612,86 @@ form.addEventListener('submit', async (event) => {
             error: userError
         } = await supabase.auth.getUser();
 
-        // Sign-in is optional for public PPI requests.
+        // Login is optional for public inspection requests.
         if (userError) {
-            console.warn('Optional session lookup failed:', userError.message);
+            console.warn(
+                'Optional session lookup failed:',
+                userError.message
+            );
         }
 
         const formData = new FormData(form);
         const ppiRequestId = crypto.randomUUID();
 
+        const yearValue = fieldValue(formData, 'vehicle_year');
+        const mileageValue = fieldValue(formData, 'vehicle_mileage');
+
         const payload = {
             id: ppiRequestId,
-            request_type: formData.get('request_type'),
-            customer_id: user?.id || null,
-            customer_name: formData.get('customer_name').trim(),
-            customer_phone: formData.get('customer_phone').trim(),
-            customer_email: formData.get('customer_email').trim(),
-            seller_name: formData.get('seller_name')?.trim() || null,
-            seller_phone: formData.get('seller_phone')?.trim() || null,
-            vehicle_make: formData.get('vehicle_make').trim(),
-            vehicle_model: formData.get('vehicle_model').trim(),
-            vehicle_year: formData.get('vehicle_year')
-                ? Number(formData.get('vehicle_year')) : null,
-            vehicle_trim: formData.get('vehicle_trim')?.trim() || null,
-            vehicle_mileage: formData.get('vehicle_mileage')
-                ? Number(formData.get('vehicle_mileage')) : null,
-            vehicle_engine: formData.get('vehicle_engine')?.trim() || null,
-            vehicle_transmission: formData.get('vehicle_transmission')?.trim() || null,
-            vehicle_fuel_type: formData.get('vehicle_fuel_type') || null,
-            vehicle_colour: formData.get('vehicle_colour')?.trim() || null,
-            vehicle_body_type: formData.get('vehicle_body_type')?.trim() || null,
-            vehicle_vin: formData.get('vehicle_vin')?.trim() || null,
-            vehicle_registration_number:
-                formData.get('vehicle_registration_number')?.trim() || null,
-            vehicle_location: formData.get('vehicle_location').trim(),
-            customer_notes: formData.get('customer_notes')?.trim() || null,
 
-            // A submitted public request should not remain marked as DRAFT.
+            request_type: fieldValue(formData, 'request_type'),
+            customer_id: user?.id || null,
+
+            customer_name: fieldValue(formData, 'customer_name'),
+            customer_phone: fieldValue(formData, 'customer_phone'),
+            customer_email: fieldValue(formData, 'customer_email'),
+
+            seller_name: fieldValue(formData, 'seller_name') || null,
+            seller_phone: fieldValue(formData, 'seller_phone') || null,
+
+            vehicle_make: fieldValue(formData, 'vehicle_make'),
+            vehicle_model: fieldValue(formData, 'vehicle_model'),
+
+            vehicle_year: yearValue ? Number(yearValue) : null,
+
+            vehicle_trim: null,
+
+            vehicle_mileage: mileageValue
+                ? Number(mileageValue)
+                : null,
+
+            vehicle_engine: fieldValue(formData, 'vehicle_engine') || null,
+
+            vehicle_transmission:
+                fieldValue(formData, 'vehicle_transmission') || null,
+
+            vehicle_fuel_type:
+                fieldValue(formData, 'vehicle_fuel_type') || null,
+
+            vehicle_colour:
+                fieldValue(formData, 'vehicle_colour') || null,
+
+            vehicle_body_type:
+                fieldValue(formData, 'vehicle_body_type') || null,
+
+            vehicle_vin:
+                fieldValue(formData, 'vehicle_vin') || null,
+
+            vehicle_registration_number:
+                fieldValue(
+                    formData,
+                    'vehicle_registration_number'
+                ) || null,
+
+            vehicle_location:
+                fieldValue(formData, 'vehicle_location'),
+
+            customer_notes: [
+                fieldValue(formData, 'customer_notes'),
+                fieldValue(formData, 'purchase_timeline')
+                    ? 'Purchase timeline: ' +
+                      fieldValue(formData, 'purchase_timeline')
+                    : '',
+                fieldValue(formData, 'vehicle_selected')
+                    ? 'Vehicle selection status: ' +
+                      fieldValue(formData, 'vehicle_selected')
+                    : ''
+            ].filter(Boolean).join('\n') || null,
+
             status: 'SUBMITTED_FOR_REVIEW'
         };
 
-        // Insert the request. The database trigger generates ppi_number.
-        // Do not assume that an insert succeeded until Supabase confirms it.
+        // Save the request first.
         const { error: insertError } = await supabase
             .from('ppi_requests')
             .insert(payload);
@@ -347,49 +700,70 @@ form.addEventListener('submit', async (event) => {
             throw insertError;
         }
 
+        // Count a Lead only after Supabase confirms the insert.
+        // No customer or vehicle details are sent as event parameters.
+        if (typeof window.fbq === 'function') {
+            window.fbq('track', 'Lead');
+        }
+
         let generatedPpiNumber = null;
 
-        // The existing Edge Function may return the saved reference.
+        // Request the reference number through the existing function.
         const {
             data: emailData,
             error: emailError
-        } = await supabase.functions.invoke('send-ppi-confirmation', {
-            body: { ppi_request_id: ppiRequestId }
-        });
+        } = await supabase.functions.invoke(
+            'send-ppi-confirmation',
+            {
+                body: {
+                    ppi_request_id: ppiRequestId
+                }
+            }
+        );
 
         if (emailError) {
-            console.error('PPI confirmation function error:', emailError);
+            console.error(
+                'PPI confirmation function error:',
+                emailError
+            );
         } else if (emailData?.ppi_number) {
             generatedPpiNumber = emailData.ppi_number;
         }
 
-        // Fallback: retrieve only this request's reference.
-        // This succeeds only if RLS allows the caller to read this own row.
+        // Fallback: retrieve the reference number for this request.
         if (!generatedPpiNumber) {
-            const { data: savedRequest, error: lookupError } = await supabase
+            const {
+                data: savedRequest,
+                error: lookupError
+            } = await supabase
                 .from('ppi_requests')
                 .select('ppi_number')
                 .eq('id', ppiRequestId)
                 .maybeSingle();
 
             if (lookupError) {
-                console.error('Reference lookup failed:', lookupError);
+                console.error(
+                    'Reference lookup failed:',
+                    lookupError
+                );
             } else if (savedRequest?.ppi_number) {
                 generatedPpiNumber = savedRequest.ppi_number;
             }
         }
 
+        // The request is already saved even if the reference is unavailable.
         if (!generatedPpiNumber) {
-            // The insert succeeded. Do not pretend the request failed,
-            // and do not display a fake reference number.
             form.style.display = 'none';
             result.style.display = 'block';
-            ppiNumber.textContent = 'Reference pending confirmation';
-            const note = result.querySelector('.ppi-note');
-            if (note) {
-                note.textContent =
-                    'Your request was saved, but we could not retrieve its reference number automatically. Please contact Dreamland Motor and provide your name and phone number.';
-            }
+
+            ppiNumber.textContent =
+                'Reference pending confirmation';
+
+            resultNote.textContent =
+                'Your request was saved, but the reference number ' +
+                'could not be retrieved automatically. Please contact ' +
+                'Dreamland Motor for assistance.';
+
             return;
         }
 
@@ -399,13 +773,16 @@ form.addEventListener('submit', async (event) => {
 
     } catch (error) {
         console.error('PPI request error:', error);
+
         showError(
-            error?.message ||
-            'Unable to submit your PPI request. Please try again.'
+            'We could not submit your request. Please check your ' +
+            'details and internet connection, then try again. ' +
+            'If the problem continues, contact Dreamland Motor.'
         );
+
     } finally {
         submitButton.disabled = false;
-        submitButton.textContent = 'Submit PPI Request';
+        submitButton.textContent = 'Submit Inspection Request';
     }
 });
 </script>
