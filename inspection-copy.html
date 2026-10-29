@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dreamland Inspection Workbench — Review & Execution</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --verified-green: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--primary); margin: 0; padding: 0; }
+        header { background: var(--primary); color: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+        header h1 { margin: 0; font-size: 1.25rem; }
+        .user-info { font-size: 0.875rem; color: #94a3b8; display: flex; gap: 16px; align-items: center; }
+        .logout-btn { background: #334155; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .logout-btn:hover { background: var(--danger); }
+        
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px 16px; }
+        
+        .workbench-header-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        @media(min-width: 768px) {
+            .workbench-header-card { flex-direction: row; justify-content: space-between; align-items: center; }
+        }
+        
+        .meta-info h2 { margin: 0 0 6px 0; font-size: 1.25rem; color: var(--primary); }
+        .meta-info p { margin: 0; font-size: 0.875rem; color: #64748b; }
+        
+        .progress-dashboard {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            background: #f8fafc;
+            padding: 12px 18px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        .progress-stat { text-align: center; }
+        .progress-stat .val { font-size: 1.25rem; font-weight: bold; color: var(--accent); }
+        .progress-stat .lbl { font-size: 0.7rem; font-weight: bold; color: #64748b; text-transform: uppercase; }
+
+        .toolbar-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .action-btn { padding: 10px 18px; font-size: 0.875rem; border-radius: 8px; border: 1px solid var(--border); background: white; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+        .action-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+        .btn-submit { color: white; background: var(--verified-green); border-color: #15803d; }
+        .btn-submit:hover { background: #15803d; }
+        .btn-primary { color: white; background: var(--accent); border-color: #1d4ed8; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-danger { color: white; background: var(--danger); border-color: #b91c1c; }
+        .btn-danger:hover { background: #b91c1c; }
+
+        /* Admin Review Banner */
+        .admin-review-banner {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .section-tabs {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+        }
+        .section-tab {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            color: #475569;
+        }
+        .section-tab.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .checklist-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .checklist-card h3 { margin-top: 0; font-size: 1.125rem; border-bottom: 1px solid var(--border); padding-bottom: 12px; color: var(--primary); display: flex; justify-content: space-between; align-items: center; }
+
+        .checklist-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 0.875rem;
+        }
+        .checklist-table th, .checklist-table td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        .checklist-table th { background: #f1f5f9; font-weight: bold; color: #334155; }
+        
+        select, input[type="text"], input[type="number"], textarea {
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            background: white;
+            outline: none;
+            box-sizing: border-box;
+        }
+        select:focus, input:focus, textarea:focus { border-color: var(--accent); }
+
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; }
+        .badge-good { background: #dcfce7; color: #16a34a; }
+        .badge-fair { background: #e0f2fe; color: #0369a1; }
+        .badge-attention { background: #fef9c3; color: #a16207; }
+        .badge-critical { background: #fee2e2; color: #dc2626; }
+        .badge-pending { background: #f1f5f9; color: #64748b; }
+
+        .findings-section, .scanner-section {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .finding-item {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .no-inspection-state {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 48px 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        
+        .no-inspection-icon {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 16px;
+            border-radius: 50%;
+            background: #fef3c7;
+            color: var(--warning);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+        
+        .no-inspection-state h2 {
+            margin: 0 0 8px;
+            color: var(--primary);
+            font-size: 1.25rem;
+        }
+        
+        .no-inspection-state p {
+            max-width: 560px;
+            margin: 0 auto 20px;
+            color: #64748b;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+        
+        .no-inspection-error {
+            max-width: 600px;
+            margin: 0 auto 16px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+            font-size: 0.8125rem;
+            text-align: left;
+        }
+        
+        .start-inspection-btn {
+            color: white;
+            background: var(--accent);
+            border-color: #1d4ed8;
+        }
+        
+        .start-inspection-btn:hover {
+            background: #1d4ed8;
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Dreamland Inspection Workbench</h1>
+    <div class="user-info">
+        <span id="userEmailDisplay">Loading session...</span>
+        <button class="logout-btn" id="logoutBtn">Logout</button>
+    </div>
+</header>
+
+<div class="container">
+    <div id="noInspectionState" class="no-inspection-state hidden">
+        <div class="no-inspection-icon">!</div>
+        <h2>No Inspection Found</h2>
+        <p>
+            No inspection details have been recorded for this vehicle yet.
+            Start a new inspection to load the Dreamland Master Checklist.
+        </p>
+        <div id="noInspectionError" class="no-inspection-error hidden"></div>
+        <button
+            type="button"
+            id="startInspectionBtn"
+            class="action-btn start-inspection-btn">
+            Start New Inspection
+        </button>
+    </div>
+
+    <!-- Admin Review Action Banner -->
+    <div id="adminReviewBanner" class="admin-review-banner hidden">
+        <div>
+            <h3 style="margin: 0 0 4px 0; color: #1e40af; font-size: 1rem;">Administrative Review Mode</h3>
+            <p id="adminReviewSubtitle" style="margin: 0; font-size: 0.875rem; color: #3b82f6;">Reviewing inspector findings, observations, and checklist items.</p>
+        </div>
+        <div style="display: flex; gap: 12px;">
+            <button type="button" id="adminRequestChangesBtn" class="action-btn btn-danger">Send Back for Correction</button>
+            <button type="button" id="adminApproveBtn" class="action-btn btn-submit">Approve Inspection</button>
+        </div>
+    </div>
+
+    <!-- Workbench Header & Progress Dashboard Toolbar -->
+    <div class="workbench-header-card">
+        <div class="meta-info">
+            <h2 id="inspectionTitle">Loading Inspection...</h2>
+            <p id="inspectionSubtitle">Retrieving vehicle and inspector records...</p>
+        </div>
+        
+        <div class="progress-dashboard" id="progressDashboard">
+            <div class="progress-stat">
+                <div class="val" id="statAssessed">0 / 0</div>
+                <div class="lbl">Assessed Items</div>
+            </div>
+            <div class="progress-stat">
+                <div class="val" id="statPercent">0%</div>
+                <div class="lbl">Progress</div>
+            </div>
+        </div>
+
+        <div class="toolbar-actions">
+            <button type="button" id="completeInspectionBtn" class="action-btn btn-submit hidden">
+                Complete Inspection
+            </button>
+
+            <button type="button" id="submitForReviewBtn" class="action-btn btn-submit hidden">
+                Submit for Review
+            </button>
+
+            <button type="button" id="backToAdminBtn" class="action-btn btn-primary hidden">
+                Back to Admin Dashboard
+            </button>
+        </div>
+    </div>
+
+    <!-- Scanner Report & Diagnostic PDF Section -->
+    <div class="scanner-section">
+        <h3>Diagnostic Scanner Report (PDF)</h3>
+        <p style="font-size: 0.875rem; color: #64748b; margin-top: 4px;">Raw OBD2 scan logs or diagnostic health reports linked directly to this inspection.</p>
+        
+        <!-- Existing Report Viewer -->
+        <div id="existingScannerContainer" class="hidden" style="margin-top: 16px; padding: 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.5rem;">📄</span>
+                <div>
+                    <strong style="color: #15803d; display: block;">Scanner report uploaded & verified</strong>
+                    <span style="font-size: 0.75rem; color: #166534;">PDF report is linked and available for review.</span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <a id="viewScannerLink" href="#" target="_blank" class="action-btn btn-primary" style="text-decoration: none; padding: 6px 14px; font-size: 0.8125rem;">View / Open PDF</a>
+                <a id="downloadScannerLink" href="#" download="Scanner_Report.pdf" class="action-btn" style="text-decoration: none; padding: 6px 14px; font-size: 0.8125rem; background: white; color: var(--primary);">Download PDF</a>
+            </div>
+        </div>
+
+        <!-- Upload Controls -->
+        <div id="scannerUploadControls" style="display: flex; gap: 12px; align-items: center; margin-top: 16px; flex-wrap: wrap;">
+            <input type="file" id="scannerPdfInput" accept=".pdf" style="font-size: 0.875rem;">
+            <button type="button" class="action-btn btn-primary" id="uploadScannerBtn">Upload / Replace Scanner PDF</button>
+            <span id="scannerStatusText" style="font-size: 0.875rem; color: var(--verified-green); font-weight: 500;"></span>
+        </div>
+    </div>
+
+    <!-- Section Navigation Tabs -->
+    <div class="section-tabs" id="sectionTabsContainer"></div>
+
+    <!-- Master Checklist Container -->
+    <div id="inspectionChecklist" class="checklist-container">
+        <div style="background: white; padding: 32px; text-align: center; border-radius: 12px; border: 1px solid var(--border); color: #64748b;">
+            Loading Master Checklist items...
+        </div>
+    </div>
+
+    <!-- Findings Management Card -->
+    <div class="findings-section">
+        <h3>Inspection Findings & Defect Log</h3>
+        <p style="font-size: 0.875rem; color: #64748b; margin-top: 4px;">Record specific mechanical defects, component ratings, estimated repair costs, and safety-critical tags.</p>
+        
+        <div id="findingsListContainer" style="margin-top: 16px;">
+            <div style="color: #64748b; font-size: 0.875rem;">No findings added yet.</div>
+        </div>
+
+        <!-- Add Finding Form -->
+        <form id="addFindingForm" style="margin-top: 20px; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid var(--border); display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label style="font-size: 0.75rem; font-weight: bold; color: #475569;">System Area</label>
+                <input type="text" id="findingArea" required placeholder="e.g. Braking System">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label style="font-size: 0.75rem; font-weight: bold; color: #475569;">Component</label>
+                <input type="text" id="findingComponent" required placeholder="e.g. Front Brake Pads">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label style="font-size: 0.75rem; font-weight: bold; color: #475569;">Severity Rating</label>
+                <select id="findingRating">
+                    <option value="FAIR">Fair (Minor Note)</option>
+                    <option value="ATTENTION">Attention Required</option>
+                    <option value="CRITICAL">Critical Safety Hazard</option>
+                </select>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px; grid-column: span 2;">
+                <label style="font-size: 0.75rem; font-weight: bold; color: #475569;">Observation / Finding Details</label>
+                <input type="text" id="findingDescription" required placeholder="Friction material worn below limit...">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px; grid-column: span 2;">
+                <label style="font-size: 0.75rem; font-weight: bold; color: #475569;">Recommended Corrective Action</label>
+                <input type="text" id="findingRecommendation" required placeholder="Replace front brake pads...">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label style="font-size: 0.75rem; font-weight: bold; color: #475569;">Estimated Cost (₦)</label>
+                <input type="number" id="findingCost" placeholder="45000">
+            </div>
+            <div style="display: flex; align-items: flex-end;">
+                <button type="submit" id="addFindingBtn" class="action-btn btn-primary" style="width: 100%;">Add Finding</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script type="module">
+    import { inspectionService } from './inspectionService.js';
+    import { inspectionReportService } from './inspection_report.js';
+    import { requireAuth, logoutStaff, supabase } from './supabaseClient.js';
+
+    const params = new URLSearchParams(window.location.search);
+    const vehicleId = params.get('vehicleId');
+    const inspectionId = params.get('inspectionId');
+
+    let currentInspection = null;
+    let currentAuthUser = null;
+    let activeSectionName = null;
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function resolvePdfUrl(pathOrUrl) {
+        if (!pathOrUrl) return '#';
+        if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
+            return pathOrUrl;
+        }
+        const { data } = supabase.storage.from('vehicle-photos').getPublicUrl(pathOrUrl);
+        return data?.publicUrl || '#';
+    }
+
+    function renderScannerSection(inspection) {
+        const container = document.getElementById('existingScannerContainer');
+        const viewLink = document.getElementById('viewScannerLink');
+        const downloadLink = document.getElementById('downloadScannerLink');
+        
+        if (inspection?.scanner_report_path) {
+            const resolvedUrl = resolvePdfUrl(inspection.scanner_report_path);
+            viewLink.href = resolvedUrl;
+            downloadLink.href = resolvedUrl;
+            container.classList.remove('hidden');
+        } else {
+            container.classList.add('hidden');
+        }
+    }
+
+    function showNoInspectionState(errorMessage = '') {
+        const state = document.getElementById('noInspectionState');
+        const errorBox = document.getElementById('noInspectionError');
+    
+        if (state) {
+            state.classList.remove('hidden');
+        }
+    
+        if (errorBox) {
+            if (errorMessage) {
+                errorBox.textContent = errorMessage;
+                errorBox.classList.remove('hidden');
+            } else {
+                errorBox.textContent = '';
+                errorBox.classList.add('hidden');
+            }
+        }
+    
+        // Hide the normal inspection workbench until an inspection exists.
+        document.getElementById('adminReviewBanner')?.classList.add('hidden');
+        document.querySelector('.workbench-header-card')?.classList.add('hidden');
+        document.querySelector('.scanner-section')?.classList.add('hidden');
+        document.getElementById('sectionTabsContainer')?.classList.add('hidden');
+        document.getElementById('inspectionChecklist')?.classList.add('hidden');
+        document.querySelector('.findings-section')?.classList.add('hidden');
+    }
+    
+    function hideNoInspectionState() {
+        document.getElementById('noInspectionState')?.classList.add('hidden');
+    
+        document.querySelector('.workbench-header-card')?.classList.remove('hidden');
+        document.querySelector('.scanner-section')?.classList.remove('hidden');
+        document.getElementById('sectionTabsContainer')?.classList.remove('hidden');
+        document.getElementById('inspectionChecklist')?.classList.remove('hidden');
+        document.querySelector('.findings-section')?.classList.remove('hidden');
+    }
+    
+    async function handleStartNewInspection() {
+        if (!vehicleId) {
+            showNoInspectionState('A vehicle reference is required before starting an inspection.');
+            return;
+        }
+    
+        const btn = document.getElementById('startInspectionBtn');
+        const errorBox = document.getElementById('noInspectionError');
+    
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Starting Inspection...';
+        }
+    
+        if (errorBox) {
+            errorBox.textContent = '';
+            errorBox.classList.add('hidden');
+        }
+    
+        try {
+            const inspectorId =
+                currentAuthUser?.role === 'INSPECTOR'
+                    ? currentAuthUser.id
+                    : null;
+    
+            currentInspection = await inspectionService.startNewInspection({
+                vehicleId: vehicleId,
+                inspectorId: inspectorId,
+                inspectionType: 'TECHNICAL_PPI',
+                inspectionOrigin: 'CUSTOMER_PPI',
+                mileage: 0
+            });
+    
+            if (!currentInspection) {
+                throw new Error('The inspection could not be created.');
+            }
+    
+            hideNoInspectionState();
+    
+            renderHeader(currentInspection);
+            renderScannerSection(currentInspection);
+            renderChecklistWorkbench(currentInspection);
+            renderFindingsList(currentInspection.inspection_findings || []);
+    
+            document.getElementById('addFindingForm')
+                ?.addEventListener('submit', handleAddFinding);
+    
+            document.getElementById('uploadScannerBtn')
+                ?.addEventListener('click', handleUploadScannerPdf);
+    
+            applyWorkflowConstraints(currentInspection, currentAuthUser);
+    
+        } catch (err) {
+            console.error('Failed to start new inspection:', err);
+    
+            if (errorBox) {
+                errorBox.textContent =
+                    'Failed to start inspection: ' + (err?.message || 'Unknown error.');
+    
+                errorBox.classList.remove('hidden');
+            }
+    
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Start New Inspection';
+            }
+        }
+    }
+
+    async function initWorkbench() {
+        try {
+            const auth = await requireAuth();
+            if (!auth) return;
+            currentAuthUser = auth.profile;
+
+            document.getElementById('logoutBtn').addEventListener('click', logoutStaff);
+            document.getElementById('userEmailDisplay').textContent = `${currentAuthUser.name || currentAuthUser.email} (${currentAuthUser.role})`;
+
+            const startInspectionBtn = document.getElementById('startInspectionBtn');
+
+            if (startInspectionBtn) {
+                startInspectionBtn.addEventListener('click', handleStartNewInspection);
+            }
+
+            if (inspectionId) {
+                currentInspection = await inspectionService.getInspectionById(inspectionId);
+
+                if (!currentInspection) {
+                    showNoInspectionState();
+                    return;
+                }
+
+            } else if (vehicleId) {
+
+                currentInspection = await inspectionService.getOrCreateVerifiedVehicleInspection({
+                    vehicleId: vehicleId,
+                    inspectorId: currentAuthUser?.role === 'INSPECTOR' ? currentAuthUser.id : null,
+                    inspectionType: 'TECHNICAL_PPI',
+                    mileage: 0
+                });
+
+                if (!currentInspection) {
+                    showNoInspectionState();
+                    return;
+                }
+
+                if (currentInspection.id) {
+                    const newUrl = new URL(window.location.href);
+                    newUrl.searchParams.set('inspectionId', currentInspection.id);
+                    newUrl.searchParams.delete('vehicleId');
+                    window.history.replaceState({}, '', newUrl.toString());
+                }
+            } else {
+                showNoInspectionState('No vehicle or inspection reference was provided.');
+                return;
+            }
+
+            if (currentAuthUser.role === 'INSPECTOR') {
+                if (currentInspection.inspector_id !== currentAuthUser.id) {
+                    alert('Access Denied: You are not assigned to this inspection.');
+                    window.location.href = 'inspector.html';
+                    return;
+                }
+                if (['ASSIGNED', 'CHANGES_REQUESTED'].includes(currentInspection.inspection_status)) {
+                    currentInspection = await inspectionService.startOrResumeInspection(currentInspection.id);
+                }
+            }
+
+            renderHeader(currentInspection);
+            renderScannerSection(currentInspection);
+            renderChecklistWorkbench(currentInspection);
+            renderFindingsList(currentInspection.inspection_findings || []);
+
+            document.getElementById('addFindingForm').addEventListener('submit', handleAddFinding);
+            document.getElementById('uploadScannerBtn').addEventListener('click', handleUploadScannerPdf);
+
+            applyWorkflowConstraints(currentInspection, currentAuthUser);
+
+        } catch (err) {
+            console.error('Failed to initialize workbench:', err);
+            alert('Error loading inspection session: ' + err.message);
+        }
+    }
+
+    function renderHeader(inspection) {
+        const vehicle = inspection.vehicles || {};
+        const vehicleText = vehicle.make ? `${vehicle.year || ''} ${vehicle.make} ${vehicle.model} (${vehicle.registration_number || vehicle.vin || 'No Reg'})` : `Inspection #${inspection.inspection_number}`;
+        
+        document.getElementById('inspectionTitle').textContent = vehicleText;
+        document.getElementById('inspectionSubtitle').textContent = `Ref: ${inspection.inspection_number} | Origin: ${inspection.inspection_origin} | Status: ${inspection.inspection_status}`;
+
+        updateProgressStats(inspection.inspection_items || []);
+    }
+
+    function updateProgressStats(items) {
+        const applicableItems = items.filter(i => i.is_applicable !== false);
+        const assessedCount = applicableItems.filter(i => i.status && i.status !== 'PENDING').length;
+        const totalApplicable = applicableItems.length;
+        const percent = totalApplicable > 0 ? Math.round((assessedCount / totalApplicable) * 100) : 0;
+
+        document.getElementById('statAssessed').textContent = `${assessedCount} / ${totalApplicable}`;
+        document.getElementById('statPercent').textContent = `${percent}%`;
+    }
+
+    function renderChecklistWorkbench(inspection) {
+        const items = inspection.inspection_items || [];
+        if (!items.length) {
+            document.getElementById('inspectionChecklist').innerHTML = `<div style="padding: 24px; text-align: center; color: #64748b;">No checklist items found for this inspection.</div>`;
+            return;
+        }
+
+        const sectionsMap = {};
+        items.forEach(item => {
+            const sec = item.section || 'GENERAL';
+            if (!sectionsMap[sec]) sectionsMap[sec] = [];
+            sectionsMap[sec].push(item);
+        });
+
+        const sections = Object.keys(sectionsMap);
+        if (!activeSectionName || !sectionsMap[activeSectionName]) {
+            activeSectionName = sections[0];
+        }
+
+        const tabsContainer = document.getElementById('sectionTabsContainer');
+        tabsContainer.innerHTML = '';
+        sections.forEach(sec => {
+            const tab = document.createElement('button');
+            tab.type = 'button';
+            tab.className = `section-tab ${sec === activeSectionName ? 'active' : ''}`;
+            tab.textContent = sec;
+            tab.onclick = () => {
+                activeSectionName = sec;
+                renderChecklistWorkbench(currentInspection);
+            };
+            tabsContainer.appendChild(tab);
+        });
+
+        const checklistContainer = document.getElementById('inspectionChecklist');
+        const activeItems = sectionsMap[activeSectionName] || [];
+
+        let rowsHtml = '';
+        activeItems.forEach(item => {
+            rowsHtml += `
+                <tr data-item-id="${item.id}">
+                    <td><code>${escapeHtml(item.item_code)}</code></td>
+                    <td><strong>${escapeHtml(item.item_name)}</strong></td>
+                    <td>
+                        <select class="item-status-select" onchange="window.updateItemField('${item.id}', 'status', this.value)">
+                            <option value="PENDING" ${item.status === 'PENDING' ? 'selected' : ''}>PENDING</option>
+                            <option value="GOOD" ${item.status === 'GOOD' ? 'selected' : ''}>GOOD</option>
+                            <option value="FAIR" ${item.status === 'FAIR' ? 'selected' : ''}>FAIR</option>
+                            <option value="ATTENTION" ${item.status === 'ATTENTION' ? 'selected' : ''}>ATTENTION</option>
+                            <option value="CRITICAL" ${item.status === 'CRITICAL' ? 'selected' : ''}>CRITICAL</option>
+                            <option value="N/A" ${item.status === 'N/A' ? 'selected' : ''}>N/A</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="text" value="${escapeHtml(item.observation || '')}" placeholder="Add observation..." onchange="window.updateItemField('${item.id}', 'observation', this.value)" style="width: 100%;">
+                    </td>
+                    <td>
+                        <input type="text" value="${escapeHtml(item.recommended_action || '')}" placeholder="Corrective action..." onchange="window.updateItemField('${item.id}', 'recommended_action', this.value)" style="width: 100%;">
+                    </td>
+                    <td>
+                        <input type="number" value="${item.estimated_cost || ''}" placeholder="₦ Cost" onchange="window.updateItemField('${item.id}', 'estimated_cost', parseFloat(this.value) || 0)" style="width: 100px;">
+                    </td>
+                </tr>
+            `;
+        });
+
+        checklistContainer.innerHTML = `
+            <div class="checklist-card">
+                <h3><span>${escapeHtml(activeSectionName)}</span> <span style="font-size: 0.8125rem; color: #64748b;">${activeItems.length} Items</span></h3>
+                <div style="overflow-x: auto;">
+                    <table class="checklist-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 100px;">Code</th>
+                                <th style="width: 250px;">Item Name</th>
+                                <th style="width: 130px;">Status</th>
+                                <th>Observation</th>
+                                <th>Recommended Action</th>
+                                <th style="width: 120px;">Est. Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    window.updateItemField = async function(itemId, field, value) {
+        try {
+            await inspectionService.updateInspectionItem(itemId, { [field]: value });
+            const item = currentInspection.inspection_items.find(i => i.id === itemId);
+            if (item) item[field] = value;
+            updateProgressStats(currentInspection.inspection_items);
+        } catch (err) {
+            alert('Failed to save update: ' + err.message);
+        }
+    };
+
+    function renderFindingsList(findings) {
+        const container = document.getElementById('findingsListContainer');
+        if (!findings || findings.length === 0) {
+            container.innerHTML = `<div style="color: #64748b; font-size: 0.875rem;">No findings recorded.</div>`;
+            return;
+        }
+
+        container.innerHTML = '';
+        findings.forEach(f => {
+            const badgeClass = f.rating === 'CRITICAL' ? 'badge-critical' : f.rating === 'ATTENTION' ? 'badge-attention' : 'badge-fair';
+            const costFormatted = f.estimated_cost ? new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(f.estimated_cost) : '₦0';
+            
+            const div = document.createElement('div');
+            div.className = 'finding-item';
+            div.innerHTML = `
+                <div>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
+                        <span class="badge ${badgeClass}">${escapeHtml(f.rating)}</span>
+                        <strong>${escapeHtml(f.area)} &rsaquo; ${escapeHtml(f.component)}</strong>
+                    </div>
+                    <div style="font-size: 0.875rem; color: #334155; margin-bottom: 4px;">${escapeHtml(f.finding)}</div>
+                    <div style="font-size: 0.8125rem; color: #64748b;"><strong>Action:</strong> ${escapeHtml(f.recommended_action || 'None')} | <strong>Cost:</strong> ${costFormatted}</div>
+                </div>
+                <button type="button" class="action-btn" style="color: var(--danger); border-color: #fca5a5;" onclick="window.removeFinding('${f.id}')">Delete</button>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    async function handleAddFinding(e) {
+        e.preventDefault();
+        const btn = document.getElementById('addFindingBtn');
+        btn.disabled = true;
+        btn.textContent = 'Adding...';
+
+        const payload = {
+            area: document.getElementById('findingArea').value.trim(),
+            component: document.getElementById('findingComponent').value.trim(),
+            rating: document.getElementById('findingRating').value,
+            finding: document.getElementById('findingDescription').value.trim(),
+            recommended_action: document.getElementById('findingRecommendation').value.trim(),
+            estimated_cost: parseFloat(document.getElementById('findingCost').value) || 0
+        };
+
+        try {
+            const newFinding = await inspectionService.addInspectionFinding(currentInspection.id, payload);
+            if (!currentInspection.inspection_findings) currentInspection.inspection_findings = [];
+            currentInspection.inspection_findings.push(newFinding);
+            renderFindingsList(currentInspection.inspection_findings);
+            document.getElementById('addFindingForm').reset();
+        } catch (err) {
+            alert('Failed to add finding: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Add Finding';
+        }
+    }
+
+    window.removeFinding = async function(findingId) {
+        if (!confirm('Delete this finding permanently?')) return;
+        try {
+            await inspectionService.deleteInspectionFinding(findingId);
+            currentInspection.inspection_findings = currentInspection.inspection_findings.filter(f => f.id !== findingId);
+            renderFindingsList(currentInspection.inspection_findings);
+        } catch (err) {
+            alert('Failed to delete finding: ' + err.message);
+        }
+    };
+
+    async function handleUploadScannerPdf() {
+        const fileInput = document.getElementById('scannerPdfInput');
+        const file = fileInput.files[0];
+        if (!file) {
+            alert('Please select a scanner PDF report first.');
+            return;
+        }
+
+        const statusText = document.getElementById('scannerStatusText');
+        statusText.textContent = 'Uploading...';
+
+        try {
+            const publicUrl = await inspectionService.uploadScannerPdf(currentInspection.id, file);
+            currentInspection.scanner_report_path = publicUrl;
+            renderScannerSection(currentInspection);
+            statusText.textContent = 'Scanner PDF uploaded successfully!';
+            fileInput.value = '';
+        } catch (err) {
+            statusText.textContent = '';
+            alert('Failed to upload scanner PDF: ' + err.message);
+        }
+    }
+
+    function applyWorkflowConstraints(inspection, authUser) {
+        const status = inspection?.inspection_status;
+        const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(authUser?.role);
+        const isInspector = authUser?.role === 'INSPECTOR';
+
+        const submitReviewBtn = document.getElementById('submitForReviewBtn');
+        const completeInspectionBtn = document.getElementById('completeInspectionBtn');
+        const backToAdminBtn = document.getElementById('backToAdminBtn');
+        const adminReviewBanner = document.getElementById('adminReviewBanner');
+
+        if (completeInspectionBtn) {
+            completeInspectionBtn.classList.add('hidden');
+            completeInspectionBtn.style.display = 'none';
+            completeInspectionBtn.onclick = null;
+        }
+
+        if (
+            isAdmin &&
+            inspection?.inspection_origin === 'VERIFIED_VEHICLE' &&
+            ['ASSIGNED', 'IN_PROGRESS', 'DRAFT'].includes(status)
+        ) {
+            if (completeInspectionBtn) {
+                completeInspectionBtn.classList.remove('hidden');
+                completeInspectionBtn.style.display = 'inline-block';
+                completeInspectionBtn.textContent = 'Complete Inspection';
+                completeInspectionBtn.onclick = handleAdminCompleteInspection;
+            }
+        }
+
+        if (isInspector) {
+            if (['SUBMITTED_FOR_REVIEW', 'APPROVED', 'REPORT_GENERATED', 'DELIVERED'].includes(status)) {
+                if (submitReviewBtn) submitReviewBtn.style.display = 'none';
+            } else {
+                if (submitReviewBtn) {
+                    submitReviewBtn.style.display = 'inline-block';
+                    submitReviewBtn.textContent = status === 'CHANGES_REQUESTED' ? 'Resubmit for Review' : 'Submit for Review';
+                    submitReviewBtn.onclick = handleInspectorSubmitForReview;
+                }
+            }
+        }
+
+        if (isAdmin) {
+            if (backToAdminBtn) {
+                backToAdminBtn.style.display = 'inline-block';
+                backToAdminBtn.onclick = () => { window.location.href = 'admin.html'; };
+            }
+
+            const toolbarActions = document.querySelector('.toolbar-actions');
+
+            if (status === 'SUBMITTED_FOR_REVIEW') {
+                if (adminReviewBanner) {
+                    adminReviewBanner.classList.remove('hidden');
+                    document.getElementById('adminReviewSubtitle').textContent = 'Reviewing submitted inspector checklist, observations, and findings.';
+                    document.getElementById('adminRequestChangesBtn').onclick = handleAdminRequestChanges;
+                    document.getElementById('adminApproveBtn').onclick = handleAdminApprove;
+                }
+            } else if (status === 'APPROVED') {
+                if (adminReviewBanner) adminReviewBanner.classList.add('hidden');
+                
+                let generateReportBtn = document.getElementById('generateReportBtn');
+                if (!generateReportBtn) {
+                    generateReportBtn = document.createElement('button');
+                    generateReportBtn.id = 'generateReportBtn';
+                    generateReportBtn.className = 'action-btn btn-primary';
+                    generateReportBtn.textContent = 'Generate Official PPI Report';
+                    generateReportBtn.onclick = handleGenerateOfficialReport;
+                    toolbarActions.appendChild(generateReportBtn);
+                }
+            } else if (['REPORT_GENERATED', 'DELIVERED'].includes(status)) {
+                if (adminReviewBanner) adminReviewBanner.classList.add('hidden');
+                
+                const genBtn = document.getElementById('generateReportBtn');
+                if (genBtn) genBtn.remove();
+
+                let viewReportBtn = document.getElementById('viewReportBtn');
+                if (!viewReportBtn && inspection.report_path) {
+                    viewReportBtn = document.createElement('button');
+                    viewReportBtn.id = 'viewReportBtn';
+                    viewReportBtn.className = 'action-btn btn-primary';
+                    viewReportBtn.textContent = 'View Official Report (PDF)';
+                    viewReportBtn.onclick = async () => {
+                        const url = await inspectionReportService.getOfficialReportUrl(inspection.report_path);
+                        window.open(url, '_blank');
+                    };
+                    toolbarActions.appendChild(viewReportBtn);
+                }
+            } else {
+                if (adminReviewBanner) adminReviewBanner.classList.add('hidden');
+            }
+        }
+
+        if (['APPROVED', 'REPORT_GENERATED', 'DELIVERED', 'COMPLETED'].includes(status)) {
+            const checklistContainer = document.getElementById('inspectionChecklist');
+            if (checklistContainer) {
+                checklistContainer.querySelectorAll('input, select, textarea').forEach(el => el.disabled = true);
+                
+                let notice = document.getElementById('inspectionLockNotice');
+                if (!notice) {
+                    notice = document.createElement('div');
+                    notice.id = 'inspectionLockNotice';
+                    notice.style.cssText = 'background: #dcfce7; color: #15803d; padding: 12px; text-align: center; font-weight: bold; margin-bottom: 16px; border-radius: 8px;';
+                    checklistContainer.prepend(notice);
+                }
+                notice.textContent = `This inspection has been ${status} and officially locked.`;
+            }
+        }
+    }
+
+    async function handleAdminCompleteInspection() {
+        if (!currentInspection) {
+            alert('Inspection record not found.');
+            return;
+        }
+
+        if (!['ADMIN', 'SUPER_ADMIN'].includes(currentAuthUser?.role)) {
+            alert('Access Denied: Administrative privileges required.');
+            return;
+        }
+
+        if (currentInspection.inspection_origin !== 'VERIFIED_VEHICLE') {
+            alert('This action is only available for verified-vehicle inspections.');
+            return;
+        }
+
+        if (!['ASSIGNED', 'IN_PROGRESS', 'DRAFT'].includes(currentInspection.inspection_status)) {
+            alert(
+                `This inspection cannot be completed from its current status: ${currentInspection.inspection_status}`
+            );
+            return;
+        }
+
+        const checklistItems = currentInspection.inspection_items || [];
+
+        const unassessed = checklistItems.filter(item =>
+            item.is_applicable &&
+            (!item.status || item.status === 'PENDING')
+        );
+
+        if (unassessed.length > 0) {
+            alert(
+                `Cannot complete inspection: ${unassessed.length} required checklist item(s) remain unassessed.`
+            );
+            return;
+        }
+
+        if (!confirm(
+            'Complete this inspection?\n\n' +
+            'The inspection will be recorded as COMPLETED and you will return to the Admin Dashboard.'
+        )) {
+            return;
+        }
+
+        const btn = document.getElementById('completeInspectionBtn');
+
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Completing...';
+        }
+
+        try {
+            await inspectionService.completeInspection(currentInspection.id);
+
+            alert('Inspection completed successfully.');
+
+            window.location.href = 'admin.html';
+
+        } catch (err) {
+            console.error('Inspection completion failed:', err);
+
+            alert('Unable to complete inspection: ' + err.message);
+
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Complete Inspection';
+            }
+        }
+    }
+
+    async function handleInspectorSubmitForReview() {
+        if (!confirm('Submit this inspection for Admin review?')) return;
+        const btn = document.getElementById('submitForReviewBtn');
+        btn.disabled = true;
+        btn.textContent = 'Submitting...';
+
+        try {
+            await inspectionService.submitInspectionForReview(currentInspection.id);
+            alert('Inspection successfully submitted for review!');
+            window.location.href = 'inspector.html';
+        } catch (err) {
+            alert('Submission failed: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = 'Submit for Review';
+        }
+    }
+
+    async function handleAdminRequestChanges() {
+        const notes = prompt('Enter review notes / reasons for requesting changes:');
+        if (notes === null) return;
+        if (!notes.trim()) {
+            alert('Review notes are required when sending back for correction.');
+            return;
+        }
+
+        try {
+            await inspectionService.requestInspectionChanges(currentInspection.id, notes.trim());
+            alert('Inspection sent back to the inspector with change requests.');
+            window.location.href = 'admin.html';
+        } catch (err) {
+            alert('Action failed: ' + err.message);
+        }
+    }
+
+    async function handleAdminApprove() {
+        if (!confirm('Approve this inspection? This will lock the inspection records.')) return;
+
+        try {
+            await inspectionService.approveInspection(currentInspection.id);
+            alert('Inspection successfully approved!');
+            window.location.reload();
+        } catch (err) {
+            alert('Approval failed: ' + err.message);
+        }
+    }
+
+    async function handleGenerateOfficialReport() {
+        if (!confirm('Generate the official customer PPI report via Python ReportLab? This compiles the approved database state into an immutable PDF document.')) return;
+        const btn = document.getElementById('generateReportBtn');
+        btn.disabled = true;
+        btn.textContent = 'Generating PDF...';
+
+        try {
+            await inspectionReportService.generateOfficialReport(currentInspection.id);
+            alert('Official PPI Report successfully generated!');
+            window.location.reload();
+        } catch (err) {
+            alert('Report generation failed: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = 'Generate Official PPI Report';
+        }
+    }
+
+    initWorkbench();
+</script>
+
+</body>
+</html>
