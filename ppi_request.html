@@ -743,6 +743,11 @@ form.addEventListener('submit', async (event) => {
             throw insertError;
         }
 
+        // Track a lead only after the PPI request is saved successfully.
+if (typeof window.trackPpiLead === "function") {
+    window.trackPpiLead();
+}
+
         // Count a Lead only after Supabase confirms the insert.
         // No customer or vehicle details are sent as event parameters.
         if (typeof window.fbq === 'function') {
