@@ -45,6 +45,7 @@ export const inspectionService = {
         if (vehicleError) throw vehicleError;
 
         let inspectionId = vehicle?.verification_inspection_id;
+
         if (!inspectionId) {
             const { data: inspections, error: inspError } = await supabase
                 .from('inspections')
@@ -54,56 +55,81 @@ export const inspectionService = {
                 .limit(1);
 
             if (inspError) throw inspError;
-            if (inspections && inspections.length > 0) inspectionId = inspections[0].id;
+
+            if (inspections && inspections.length > 0) {
+                inspectionId = inspections[0].id;
+            }
         }
 
         if (!inspectionId) return null;
+
         return await this.getInspectionById(inspectionId);
     },
 
-    async startNewInspection({ vehicleId = null, ppiRequestId = null, inspectorId = null, inspectionType = 'TECHNICAL_PPI', inspectionOrigin = 'CUSTOMER_PPI', mileage = 0 }) {
+    async startNewInspection({
+        vehicleId = null,
+        ppiRequestId = null,
+        inspectorId = null,
+        inspectionType = 'TECHNICAL_PPI',
+        inspectionOrigin = 'CUSTOMER_PPI',
+        mileage = 0
+    }) {
         const checklistPayload = MASTER_CHECKLIST.map((item, index) => ({
             section: item.section || item.category || 'GENERAL',
-            item_code: item.item_code || item.code || `ITM-${String(index + 1).padStart(4, '0')}`,
+            item_code: item.item_code || item.code ||
+                `ITM-${String(index + 1).padStart(4, '0')}`,
             item_name: item.item_name || item.name || 'Inspection Item',
             is_applicable: item.default_applicable !== false,
             sort_order: index
         }));
 
-        const { data, error } = await supabase.rpc('create_inspection_with_checklist', {
-            p_vehicle_id: vehicleId,
-            p_ppi_request_id: ppiRequestId,
-            p_inspector_id: inspectorId,
-            p_inspection_type: inspectionType,
-            p_inspection_origin: inspectionOrigin,
-            p_mileage: mileage || 0,
-            p_checklist_items: checklistPayload
-        });
+        const { data, error } = await supabase.rpc(
+            'create_inspection_with_checklist',
+            {
+                p_vehicle_id: vehicleId,
+                p_ppi_request_id: ppiRequestId,
+                p_inspector_id: inspectorId,
+                p_inspection_type: inspectionType,
+                p_inspection_origin: inspectionOrigin,
+                p_mileage: mileage || 0,
+                p_checklist_items: checklistPayload
+            }
+        );
 
         if (error) throw error;
+
         return await this.getInspectionById(data.id);
     },
 
-    async getOrCreateVerifiedVehicleInspection({ vehicleId, inspectorId = null, inspectionType = 'TECHNICAL_PPI', mileage = 0 }) {
+    async getOrCreateVerifiedVehicleInspection({
+        vehicleId,
+        inspectorId = null,
+        inspectionType = 'TECHNICAL_PPI',
+        mileage = 0
+    }) {
         if (!vehicleId) {
             throw new Error('Vehicle ID is required.');
         }
 
         const checklistPayload = MASTER_CHECKLIST.map((item, index) => ({
             section: item.section || item.category || 'GENERAL',
-            item_code: item.item_code || item.code || `ITM-${String(index + 1).padStart(4, '0')}`,
+            item_code: item.item_code || item.code ||
+                `ITM-${String(index + 1).padStart(4, '0')}`,
             item_name: item.item_name || item.name || 'Inspection Item',
             is_applicable: item.default_applicable !== false,
             sort_order: index
         }));
 
-        const { data, error } = await supabase.rpc('get_or_create_verified_vehicle_inspection', {
-            p_vehicle_id: vehicleId,
-            p_inspector_id: inspectorId,
-            p_inspection_type: inspectionType,
-            p_mileage: mileage || 0,
-            p_checklist_items: checklistPayload
-        });
+        const { data, error } = await supabase.rpc(
+            'get_or_create_verified_vehicle_inspection',
+            {
+                p_vehicle_id: vehicleId,
+                p_inspector_id: inspectorId,
+                p_inspection_type: inspectionType,
+                p_mileage: mileage || 0,
+                p_checklist_items: checklistPayload
+            }
+        );
 
         if (error) throw error;
 
@@ -115,8 +141,14 @@ export const inspectionService = {
     },
 
     async startOrResumeInspection(inspectionId) {
-        const { data: { user }, error: authErr } = await supabase.auth.getUser();
-        if (authErr || !user) throw new Error('Authentication required.');
+        const {
+            data: { user },
+            error: authErr
+        } = await supabase.auth.getUser();
+
+        if (authErr || !user) {
+            throw new Error('Authentication required.');
+        }
 
         const { data: inspection, error: fetchError } = await supabase
             .from('inspections')
@@ -125,9 +157,18 @@ export const inspectionService = {
             .single();
 
         if (fetchError) throw fetchError;
-        if (inspection.inspector_id !== user.id) throw new Error('Access Denied: You are not assigned to this inspection.');
 
-        if (!['ASSIGNED', 'CHANGES_REQUESTED'].includes(inspection.inspection_status)) return inspection;
+        if (inspection.inspector_id !== user.id) {
+            throw new Error(
+                'Access Denied: You are not assigned to this inspection.'
+            );
+        }
+
+        if (!['ASSIGNED', 'CHANGES_REQUESTED'].includes(
+            inspection.inspection_status
+        )) {
+            return inspection;
+        }
 
         const { data, error } = await supabase
             .from('inspections')
@@ -143,41 +184,77 @@ export const inspectionService = {
             .single();
 
         if (error) throw error;
+
         return data;
     },
 
     async updateInspectionItem(itemId, updateData) {
         const { error } = await supabase
             .from('inspection_items')
-            .update({ ...updateData, updated_at: new Date().toISOString() })
+            .update({
+                ...updateData,
+                updated_at: new Date().toISOString()
+            })
             .eq('id', itemId);
 
         if (error) throw error;
+
         return true;
     },
 
     async addInspectionFinding(inspectionId, findingData) {
-        let rawRating = (findingData.rating || findingData.severity || 'FAIR').toUpperCase();
-        let severity = parseInt(findingData.severity_level || findingData.severity) || 2;
+        const rawRating = (
+            findingData.rating ||
+            findingData.severity ||
+            'FAIR'
+        ).toUpperCase();
+
+        let severity =
+            parseInt(
+                findingData.severity_level || findingData.severity
+            ) || 2;
+
         let rating = 'FAIR';
 
-        if (rawRating === 'NOTE') { rating = 'FAIR'; severity = 1; }
-        else if (rawRating === 'MINOR') { rating = 'FAIR'; severity = 2; }
-        else if (rawRating === 'MODERATE') { rating = 'ATTENTION'; severity = 3; }
-        else if (rawRating === 'MAJOR') { rating = 'ATTENTION'; severity = 4; }
-        else if (rawRating === 'CRITICAL') { rating = 'CRITICAL'; severity = 5; }
+        if (rawRating === 'NOTE') {
+            rating = 'FAIR';
+            severity = 1;
+        } else if (rawRating === 'MINOR') {
+            rating = 'FAIR';
+            severity = 2;
+        } else if (rawRating === 'MODERATE') {
+            rating = 'ATTENTION';
+            severity = 3;
+        } else if (rawRating === 'MAJOR') {
+            rating = 'ATTENTION';
+            severity = 4;
+        } else if (rawRating === 'CRITICAL') {
+            rating = 'CRITICAL';
+            severity = 5;
+        }
 
         const payload = {
             inspection_id: inspectionId,
-            area: findingData.area || findingData.section || 'General',
-            component: findingData.component || findingData.item_name || 'General Component',
-            rating: rating,
-            severity: severity,
-            finding: findingData.finding || findingData.description || '',
+            area: findingData.area ||
+                findingData.section ||
+                'General',
+            component: findingData.component ||
+                findingData.item_name ||
+                'General Component',
+            rating,
+            severity,
+            finding: findingData.finding ||
+                findingData.description ||
+                '',
             significance: findingData.significance || '',
-            recommended_action: findingData.recommended_action || findingData.recommendation || '',
+            recommended_action: findingData.recommended_action ||
+                findingData.recommendation ||
+                '',
             estimated_cost: parseFloat(findingData.estimated_cost) || 0,
-            is_safety_critical: findingData.is_safety_critical || rating === 'CRITICAL' || severity >= 4
+            is_safety_critical:
+                findingData.is_safety_critical ||
+                rating === 'CRITICAL' ||
+                severity >= 4
         };
 
         const { data, error } = await supabase
@@ -187,12 +264,18 @@ export const inspectionService = {
             .single();
 
         if (error) throw error;
+
         return data;
     },
 
     async deleteInspectionFinding(findingId) {
-        const { error } = await supabase.from('inspection_findings').delete().eq('id', findingId);
+        const { error } = await supabase
+            .from('inspection_findings')
+            .delete()
+            .eq('id', findingId);
+
         if (error) throw error;
+
         return true;
     },
 
@@ -211,8 +294,14 @@ export const inspectionService = {
     },
 
     async submitInspectionForReview(inspectionId) {
-        const { data: { user }, error: authErr } = await supabase.auth.getUser();
-        if (authErr || !user) throw new Error('Authentication required.');
+        const {
+            data: { user },
+            error: authErr
+        } = await supabase.auth.getUser();
+
+        if (authErr || !user) {
+            throw new Error('Authentication required.');
+        }
 
         const { data: inspection, error: inspErr } = await supabase
             .from('inspections')
@@ -220,12 +309,26 @@ export const inspectionService = {
             .eq('id', inspectionId)
             .single();
 
-        if (inspErr || !inspection) throw new Error('Inspection record not found.');
-        if (inspection.inspector_id !== user.id) throw new Error('Access Denied: You are not assigned as the inspector.');
+        if (inspErr || !inspection) {
+            throw new Error('Inspection record not found.');
+        }
 
-        const allowedStates = ['ASSIGNED', 'IN_PROGRESS', 'CHANGES_REQUESTED'];
+        if (inspection.inspector_id !== user.id) {
+            throw new Error(
+                'Access Denied: You are not assigned as the inspector.'
+            );
+        }
+
+        const allowedStates = [
+            'ASSIGNED',
+            'IN_PROGRESS',
+            'CHANGES_REQUESTED'
+        ];
+
         if (!allowedStates.includes(inspection.inspection_status)) {
-            throw new Error(`Cannot submit inspection from state: ${inspection.inspection_status}`);
+            throw new Error(
+                `Cannot submit inspection from state: ${inspection.inspection_status}`
+            );
         }
 
         const { data: items, error: itemsErr } = await supabase
@@ -235,9 +338,15 @@ export const inspectionService = {
 
         if (itemsErr) throw itemsErr;
 
-        const unassessed = items.filter(i => i.is_applicable && (i.status === 'PENDING' || !i.status));
+        const unassessed = items.filter(item =>
+            item.is_applicable &&
+            (item.status === 'PENDING' || !item.status)
+        );
+
         if (unassessed.length > 0) {
-            throw new Error(`Cannot submit inspection: ${unassessed.length} required checklist items remain unassessed.`);
+            throw new Error(
+                `Cannot submit inspection: ${unassessed.length} required checklist items remain unassessed.`
+            );
         }
 
         const { error: updateErr } = await supabase
@@ -251,12 +360,19 @@ export const inspectionService = {
             .eq('id', inspectionId);
 
         if (updateErr) throw updateErr;
+
         return true;
     },
 
     async requestInspectionChanges(inspectionId, reviewNotes) {
-        const { data: { user }, error: authErr } = await supabase.auth.getUser();
-        if (authErr || !user) throw new Error('Authentication required.');
+        const {
+            data: { user },
+            error: authErr
+        } = await supabase.auth.getUser();
+
+        if (authErr || !user) {
+            throw new Error('Authentication required.');
+        }
 
         const { data: adminUser, error: roleErr } = await supabase
             .from('users')
@@ -264,8 +380,13 @@ export const inspectionService = {
             .eq('id', user.id)
             .single();
 
-        if (roleErr || !['ADMIN', 'SUPER_ADMIN'].includes(adminUser?.role)) {
-            throw new Error('Access Denied: Administrative privileges required.');
+        if (
+            roleErr ||
+            !['ADMIN', 'SUPER_ADMIN'].includes(adminUser?.role)
+        ) {
+            throw new Error(
+                'Access Denied: Administrative privileges required.'
+            );
         }
 
         const { data: inspection, error: fetchErr } = await supabase
@@ -274,9 +395,14 @@ export const inspectionService = {
             .eq('id', inspectionId)
             .single();
 
-        if (fetchErr || !inspection) throw new Error('Inspection record not found.');
+        if (fetchErr || !inspection) {
+            throw new Error('Inspection record not found.');
+        }
+
         if (inspection.inspection_status !== 'SUBMITTED_FOR_REVIEW') {
-            throw new Error(`Cannot request changes: Inspection is in '${inspection.inspection_status}' state (must be SUBMITTED_FOR_REVIEW).`);
+            throw new Error(
+                `Cannot request changes: Inspection is in '${inspection.inspection_status}' state (must be SUBMITTED_FOR_REVIEW).`
+            );
         }
 
         const { error } = await supabase
@@ -291,12 +417,19 @@ export const inspectionService = {
             .eq('id', inspectionId);
 
         if (error) throw error;
+
         return true;
     },
 
     async approveInspection(inspectionId) {
-        const { data: { user }, error: authErr } = await supabase.auth.getUser();
-        if (authErr || !user) throw new Error('Authentication required.');
+        const {
+            data: { user },
+            error: authErr
+        } = await supabase.auth.getUser();
+
+        if (authErr || !user) {
+            throw new Error('Authentication required.');
+        }
 
         const { data: adminUser, error: roleErr } = await supabase
             .from('users')
@@ -304,8 +437,13 @@ export const inspectionService = {
             .eq('id', user.id)
             .single();
 
-        if (roleErr || !['ADMIN', 'SUPER_ADMIN'].includes(adminUser?.role)) {
-            throw new Error('Access Denied: Administrative privileges required.');
+        if (
+            roleErr ||
+            !['ADMIN', 'SUPER_ADMIN'].includes(adminUser?.role)
+        ) {
+            throw new Error(
+                'Access Denied: Administrative privileges required.'
+            );
         }
 
         const { data: inspection, error: fetchErr } = await supabase
@@ -314,9 +452,14 @@ export const inspectionService = {
             .eq('id', inspectionId)
             .single();
 
-        if (fetchErr || !inspection) throw new Error('Inspection record not found.');
+        if (fetchErr || !inspection) {
+            throw new Error('Inspection record not found.');
+        }
+
         if (inspection.inspection_status !== 'SUBMITTED_FOR_REVIEW') {
-            throw new Error(`Cannot approve inspection: Inspection is in '${inspection.inspection_status}' state (must be SUBMITTED_FOR_REVIEW).`);
+            throw new Error(
+                `Cannot approve inspection: Inspection is in '${inspection.inspection_status}' state (must be SUBMITTED_FOR_REVIEW).`
+            );
         }
 
         const { error } = await supabase
@@ -332,29 +475,66 @@ export const inspectionService = {
             .eq('id', inspectionId);
 
         if (error) throw error;
+
         return true;
     },
 
     async uploadScannerPdf(inspectionId, file) {
-        const filePath = `inspections/${inspectionId}/scanner_${Date.now()}.pdf`;
+        if (!inspectionId) {
+            throw new Error('Inspection ID is required.');
+        }
+
+        if (!file) {
+            throw new Error('Choose a scanner PDF before uploading.');
+        }
+
+        if (
+            file.type !== 'application/pdf' &&
+            !file.name?.toLowerCase().endsWith('.pdf')
+        ) {
+            throw new Error('Only PDF scanner reports are accepted.');
+        }
+
+        const maxBytes = 15 * 1024 * 1024;
+
+        if (file.size > maxBytes) {
+            throw new Error('Scanner PDF must be 15 MB or smaller.');
+        }
+
+        // Store the object path rather than a hard-coded public URL.
+        const filePath =
+            `inspections/${inspectionId}/scanner_${Date.now()}.pdf`;
+
         const { error: uploadError } = await supabase.storage
             .from('vehicle-photos')
-            .upload(filePath, file, { upsert: true });
+            .upload(filePath, file, {
+                upsert: false,
+                contentType: 'application/pdf',
+                cacheControl: '0'
+            });
 
         if (uploadError) throw uploadError;
 
-        const { data: publicUrlData } = supabase.storage
+        const { error: updateError } = await supabase
+            .from('inspections')
+            .update({
+                scanner_report_path: filePath,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', inspectionId);
+
+        if (updateError) {
+            await supabase.storage
+                .from('vehicle-photos')
+                .remove([filePath]);
+
+            throw updateError;
+        }
+
+        const { data } = supabase.storage
             .from('vehicle-photos')
             .getPublicUrl(filePath);
 
-        const publicUrl = publicUrlData.publicUrl;
-
-        const { error: updateError } = await supabase
-            .from('inspections')
-            .update({ scanner_report_path: publicUrl, updated_at: new Date().toISOString() })
-            .eq('id', inspectionId);
-
-        if (updateError) throw updateError;
-        return publicUrl;
+        return data?.publicUrl || filePath;
     }
 };
