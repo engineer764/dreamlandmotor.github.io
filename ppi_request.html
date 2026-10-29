@@ -5,6 +5,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Request a PPI | Dreamland Motor</title>
 
+<script>
+(function (w, d, s, u) {
+  if (w.oaiq) return;
+
+  var q = function () {
+    q.q.push(arguments);
+  };
+  q.q = [];
+  w.oaiq = q;
+
+  var js = d.createElement(s);
+  js.async = true;
+  js.src = u;
+
+  var f = d.getElementsByTagName(s)[0];
+  f.parentNode.insertBefore(js, f);
+})(
+  window,
+  document,
+  "script",
+  "https://bzrcdn.openai.com/sdk/oaiq.min.js"
+);
+
+// Initialize Dreamland's ChatGPT Ads Pixel
+oaiq("init", {
+  pixelId: "6uToGAYdUw4Tak2DHwpUQ2"
+});
+
+// Record the PPI request page view
+oaiq("measure", "page_viewed", {
+  type: "contents",
+  contents: [{
+    id: "request_ppi",
+    name: "PPI Request Page",
+    content_type: "page"
+  }]
+});
+
+// Call this function ONLY after the PPI request
+// has been successfully accepted by your website.
+window.trackPpiLead = function () {
+  oaiq("measure", "lead_created", {
+    type: "customer_action"
+  });
+};
+</script>
+
    <!-- Meta Pixel Code -->
 <script>
 !function(f,b,e,v,n,t,s)
