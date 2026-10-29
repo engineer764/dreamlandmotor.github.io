@@ -145,7 +145,7 @@
         .badge-critical { background: #fee2e2; color: #dc2626; }
         .badge-pending { background: #f1f5f9; color: #64748b; }
 
-        .findings-section, .scanner-section {
+        .findings-section, .scanner-section, .offline-report-section {
             background: white;
             border: 1px solid var(--border);
             border-radius: 12px;
@@ -219,6 +219,7 @@
             background: var(--accent);
             border-color: #1d4ed8;
         }
+        
         .start-inspection-btn:hover {
             background: #1d4ed8;
         }
@@ -295,6 +296,33 @@
             <button type="button" id="backToAdminBtn" class="action-btn btn-primary hidden">
                 Back to Admin Dashboard
             </button>
+        </div>
+    </div>
+
+    <!-- Offline Inspection Report Section -->
+    <div class="offline-report-section">
+        <h3>Offline Inspection Report</h3>
+        <p style="font-size: 0.875rem; color: #64748b; margin-top: 4px;">Upload, view, or replace the signed offline PDF inspection report for this record.</p>
+        
+        <!-- Existing Offline Report Status / Viewer -->
+        <div id="existingOfflineReportContainer" class="hidden" style="margin-top: 16px; padding: 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.5rem;">📋</span>
+                <div>
+                    <strong style="color: #15803d; display: block;">Offline inspection report attached</strong>
+                    <span id="offlineReportMetaText" style="font-size: 0.75rem; color: #166534;">Uploaded successfully</span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" id="viewOfflineReportBtn" class="action-btn btn-primary" style="padding: 6px 14px; font-size: 0.8125rem;">View / Download PDF</button>
+            </div>
+        </div>
+
+        <!-- Offline Report Upload Controls -->
+        <div id="offlineReportUploadControls" style="display: flex; gap: 12px; align-items: center; margin-top: 16px; flex-wrap: wrap;">
+            <input type="file" id="offlineReportPdfInput" accept=".pdf" style="font-size: 0.875rem;">
+            <button type="button" class="action-btn btn-primary" id="uploadOfflineReportBtn">Upload Offline Report</button>
+            <span id="offlineReportStatusText" style="font-size: 0.875rem; color: var(--verified-green); font-weight: 500;"></span>
         </div>
     </div>
 
@@ -382,7 +410,7 @@
     </div>
 </div>
 
-    <script type="module">
+<script type="module">
     import { inspectionService } from './inspectionService.js';
     import { inspectionReportService } from './inspection_report.js';
     import { requireAuth, logoutStaff, supabase } from './supabaseClient.js';
@@ -405,29 +433,22 @@
             .replace(/'/g, '&#039;');
     }
 
-    async function resolvePdfUrl(pathOrUrl) {
+    function resolvePdfUrl(pathOrUrl) {
         if (!pathOrUrl) return '#';
-        if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
-
-        // Uses private storage bucket signed URL via inspectionService
-        try {
-            if (typeof inspectionService.getScannerReportSignedUrl === 'function') {
-                return await inspectionService.getScannerReportSignedUrl(pathOrUrl);
-            }
-        } catch (e) {
-            console.error('Failed to generate signed URL:', e);
+        if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
+            return pathOrUrl;
         }
-        return '#';
+        const { data } = supabase.storage.from('vehicle-photos').getPublicUrl(pathOrUrl);
+        return data?.publicUrl || '#';
     }
 
-    async function renderScannerSection(inspection) {
+    function renderScannerSection(inspection) {
         const container = document.getElementById('existingScannerContainer');
         const viewLink = document.getElementById('viewScannerLink');
         const downloadLink = document.getElementById('downloadScannerLink');
-
+        
         if (inspection?.scanner_report_path) {
-            const resolvedUrl = await resolvePdfUrl(inspection.scanner_report_path);
-
+            const resolvedUrl = resolvePdfUrl(inspection.scanner_report_path);
             viewLink.href = resolvedUrl;
             downloadLink.href = resolvedUrl;
             container.classList.remove('hidden');
@@ -436,14 +457,42 @@
         }
     }
 
+    function renderOfflineReportSection(inspection) {
+        const container = document.getElementById('existingOfflineReportContainer');
+        const metaText = document.getElementById('offlineReportMetaText');
+        const viewBtn = document.getElementById('viewOfflineReportBtn');
+
+        if (inspection?.offline_report_path) {
+            const uploadDate = inspection.offline_report_uploaded_at 
+                ? new Date(inspection.offline_report_uploaded_at).toLocaleString() 
+                : 'Recently uploaded';
+            metaText.textContent = `Uploaded on ${uploadDate}`;
+            container.classList.remove('hidden');
+
+            viewBtn.onclick = async () => {
+                try {
+                    viewBtn.disabled = true;
+                    viewBtn.textContent = 'Generating secure link...';
+                    const signedUrl = await inspectionService.getOfflineReportSignedUrl(inspection.id);
+                    window.open(signedUrl, '_blank');
+                } catch (err) {
+                    alert('Failed to retrieve offline report: ' + err.message);
+                } finally {
+                    viewBtn.disabled = false;
+                    viewBtn.textContent = 'View / Download PDF';
+                }
+            };
+        } else {
+            container.classList.add('hidden');
+        }
+    }
+
     function showNoInspectionState(errorMessage = '') {
         const state = document.getElementById('noInspectionState');
         const errorBox = document.getElementById('noInspectionError');
-
-        if (state) {
-            state.classList.remove('hidden');
-        }
-
+    
+        if (state) state.classList.remove('hidden');
+    
         if (errorBox) {
             if (errorMessage) {
                 errorBox.textContent = errorMessage;
@@ -453,90 +502,78 @@
                 errorBox.classList.add('hidden');
             }
         }
-
+    
         document.getElementById('adminReviewBanner')?.classList.add('hidden');
         document.querySelector('.workbench-header-card')?.classList.add('hidden');
         document.querySelector('.scanner-section')?.classList.add('hidden');
+        document.querySelector('.offline-report-section')?.classList.add('hidden');
         document.getElementById('sectionTabsContainer')?.classList.add('hidden');
         document.getElementById('inspectionChecklist')?.classList.add('hidden');
         document.querySelector('.findings-section')?.classList.add('hidden');
     }
-
+    
     function hideNoInspectionState() {
         document.getElementById('noInspectionState')?.classList.add('hidden');
+    
         document.querySelector('.workbench-header-card')?.classList.remove('hidden');
         document.querySelector('.scanner-section')?.classList.remove('hidden');
+        document.querySelector('.offline-report-section')?.classList.remove('hidden');
         document.getElementById('sectionTabsContainer')?.classList.remove('hidden');
         document.getElementById('inspectionChecklist')?.classList.remove('hidden');
         document.querySelector('.findings-section')?.classList.remove('hidden');
     }
-
+    
     async function handleStartNewInspection() {
         if (!vehicleId) {
-            showNoInspectionState(
-                'A vehicle reference is required before starting an inspection.'
-            );
+            showNoInspectionState('A vehicle reference is required before starting an inspection.');
             return;
         }
-
+    
         const btn = document.getElementById('startInspectionBtn');
         const errorBox = document.getElementById('noInspectionError');
-
+    
         if (btn) {
             btn.disabled = true;
             btn.textContent = 'Starting Inspection...';
         }
-
+    
         if (errorBox) {
             errorBox.textContent = '';
             errorBox.classList.add('hidden');
         }
-
+    
         try {
-            const inspectorId =
-                currentAuthUser?.role === 'INSPECTOR'
-                    ? currentAuthUser.id
-                    : null;
-
-            // This workbench is for Dreamland Verified Cars only.
-            // Customer-requested PPI continues through ppi_request.html and its own workflow.
-            currentInspection = await inspectionService.getOrCreateVerifiedVehicleInspection({
+            const inspectorId = currentAuthUser?.role === 'INSPECTOR' ? currentAuthUser.id : null;
+    
+            currentInspection = await inspectionService.startNewInspection({
                 vehicleId: vehicleId,
                 inspectorId: inspectorId,
                 inspectionType: 'TECHNICAL_PPI',
+                inspectionOrigin: 'CUSTOMER_PPI',
                 mileage: 0
             });
-
+    
             if (!currentInspection) {
                 throw new Error('The inspection could not be created.');
             }
-
+    
             hideNoInspectionState();
-
+    
             renderHeader(currentInspection);
-            await renderScannerSection(currentInspection);
+            renderScannerSection(currentInspection);
+            renderOfflineReportSection(currentInspection);
             renderChecklistWorkbench(currentInspection);
             renderFindingsList(currentInspection.inspection_findings || []);
-
-            document.getElementById('addFindingForm')
-                ?.addEventListener('submit', handleAddFinding);
-
-            document.getElementById('uploadScannerBtn')
-                ?.addEventListener('click', handleUploadScannerPdf);
-
+    
             applyWorkflowConstraints(currentInspection, currentAuthUser);
-
+    
         } catch (err) {
             console.error('Failed to start new inspection:', err);
-
             if (errorBox) {
-                errorBox.textContent =
-                    'Failed to start inspection: ' +
-                    (err?.message || 'Unknown error.');
-
+                errorBox.textContent = 'Failed to start inspection: ' + (err?.message || 'Unknown error.');
                 errorBox.classList.remove('hidden');
             }
-
+        } finally {
             if (btn) {
                 btn.disabled = false;
                 btn.textContent = 'Start New Inspection';
@@ -544,50 +581,85 @@
         }
     }
 
+    async function handleUploadScannerPdf() {
+        if (!currentInspection?.id) return;
+        const fileInput = document.getElementById('scannerPdfInput');
+        const file = fileInput.files[0];
+        if (!file) {
+            alert('Please select a scanner PDF report first.');
+            return;
+        }
+
+        const statusText = document.getElementById('scannerStatusText');
+        statusText.textContent = 'Uploading...';
+
+        try {
+            currentInspection = await inspectionService.uploadScannerPdf(currentInspection.id, file);
+            renderScannerSection(currentInspection);
+            statusText.textContent = 'Scanner PDF uploaded successfully!';
+            fileInput.value = '';
+        } catch (err) {
+            statusText.textContent = '';
+            alert('Failed to upload scanner PDF: ' + err.message);
+        }
+    }
+
+    async function handleUploadOfflineReport() {
+        if (!currentInspection?.id) return;
+        const fileInput = document.getElementById('offlineReportPdfInput');
+        const file = fileInput.files[0];
+        if (!file) {
+            alert('Please select an offline report PDF file first.');
+            return;
+        }
+
+        const statusText = document.getElementById('offlineReportStatusText');
+        statusText.textContent = 'Uploading offline report...';
+
+        try {
+            currentInspection = await inspectionService.uploadOfflineReport(currentInspection.id, file);
+            renderOfflineReportSection(currentInspection);
+            statusText.textContent = 'Offline report uploaded successfully!';
+            fileInput.value = '';
+        } catch (err) {
+            statusText.textContent = '';
+            alert('Failed to upload offline report: ' + err.message);
+        }
+    }
+
     async function initWorkbench() {
         try {
             const auth = await requireAuth();
             if (!auth) return;
-
             currentAuthUser = auth.profile;
 
-            document.getElementById('logoutBtn')
-                .addEventListener('click', logoutStaff);
+            document.getElementById('logoutBtn').addEventListener('click', logoutStaff);
+            document.getElementById('userEmailDisplay').textContent = `${currentAuthUser.name || currentAuthUser.email} (${currentAuthUser.role})`;
 
-            document.getElementById('userEmailDisplay').textContent =
-                `${currentAuthUser.name || currentAuthUser.email} (${currentAuthUser.role})`;
-
-            const startInspectionBtn =
-                document.getElementById('startInspectionBtn');
-
+            const startInspectionBtn = document.getElementById('startInspectionBtn');
             if (startInspectionBtn) {
-                startInspectionBtn.addEventListener(
-                    'click',
-                    handleStartNewInspection
-                );
+                startInspectionBtn.onclick = handleStartNewInspection;
             }
 
-            if (inspectionId) {
-                currentInspection =
-                    await inspectionService.getInspectionById(inspectionId);
+            const uploadScannerBtn = document.getElementById('uploadScannerBtn');
+            if (uploadScannerBtn) uploadScannerBtn.onclick = handleUploadScannerPdf;
 
+            const uploadOfflineReportBtn = document.getElementById('uploadOfflineReportBtn');
+            if (uploadOfflineReportBtn) uploadOfflineReportBtn.onclick = handleUploadOfflineReport;
+
+            if (inspectionId) {
+                currentInspection = await inspectionService.getInspectionById(inspectionId);
                 if (!currentInspection) {
                     showNoInspectionState();
                     return;
                 }
-
             } else if (vehicleId) {
-
-                currentInspection =
-                    await inspectionService.getOrCreateVerifiedVehicleInspection({
-                        vehicleId: vehicleId,
-                        inspectorId:
-                            currentAuthUser?.role === 'INSPECTOR'
-                                ? currentAuthUser.id
-                                : null,
-                        inspectionType: 'TECHNICAL_PPI',
-                        mileage: 0
-                    });
+                currentInspection = await inspectionService.getOrCreateVerifiedVehicleInspection({
+                    vehicleId: vehicleId,
+                    inspectorId: currentAuthUser?.role === 'INSPECTOR' ? currentAuthUser.id : null,
+                    inspectionType: 'TECHNICAL_PPI',
+                    mileage: 0
+                });
 
                 if (!currentInspection) {
                     showNoInspectionState();
@@ -596,60 +668,35 @@
 
                 if (currentInspection.id) {
                     const newUrl = new URL(window.location.href);
-
-                    newUrl.searchParams.set(
-                        'inspectionId',
-                        currentInspection.id
-                    );
-
+                    newUrl.searchParams.set('inspectionId', currentInspection.id);
                     newUrl.searchParams.delete('vehicleId');
-
-                    window.history.replaceState(
-                        {},
-                        '',
-                        newUrl.toString()
-                    );
+                    window.history.replaceState({}, '', newUrl.toString());
                 }
-
             } else {
-                showNoInspectionState(
-                    'No vehicle or inspection reference was provided.'
-                );
+                showNoInspectionState('No vehicle or inspection reference was provided.');
                 return;
             }
 
             if (currentAuthUser.role === 'INSPECTOR') {
                 if (currentInspection.inspector_id !== currentAuthUser.id) {
-                    alert(
-                        'Access Denied: You are not assigned to this inspection.'
-                    );
-
+                    alert('Access Denied: You are not assigned to this inspection.');
                     window.location.href = 'inspector.html';
                     return;
                 }
-
-                if (
-                    ['ASSIGNED', 'CHANGES_REQUESTED'].includes(
-                        currentInspection.inspection_status
-                    )
-                ) {
-                    currentInspection =
-                        await inspectionService.startOrResumeInspection(
-                            currentInspection.id
-                        );
+                if (['ASSIGNED', 'CHANGES_REQUESTED'].includes(currentInspection.inspection_status)) {
+                    currentInspection = await inspectionService.startOrResumeInspection(currentInspection.id);
                 }
             }
 
+            hideNoInspectionState();
             renderHeader(currentInspection);
-            await renderScannerSection(currentInspection);
+            renderScannerSection(currentInspection);
+            renderOfflineReportSection(currentInspection);
             renderChecklistWorkbench(currentInspection);
             renderFindingsList(currentInspection.inspection_findings || []);
 
-            document.getElementById('addFindingForm')
-                ?.addEventListener('submit', handleAddFinding);
-
-            document.getElementById('uploadScannerBtn')
-                ?.addEventListener('click', handleUploadScannerPdf);
+            const addFindingForm = document.getElementById('addFindingForm');
+            if (addFindingForm) addFindingForm.onsubmit = handleAddFinding;
 
             applyWorkflowConstraints(currentInspection, currentAuthUser);
 
@@ -661,273 +708,422 @@
 
     function renderHeader(inspection) {
         const vehicle = inspection.vehicles || {};
-
-        const vehicleText = vehicle.make
-            ? `${vehicle.year || ''} ${vehicle.make} ${vehicle.model} (${vehicle.registration_number || vehicle.vin || 'No Reg'})`
-            : `Inspection #${inspection.inspection_number}`;
-
+        const vehicleText = vehicle.make ? `${vehicle.year || ''} ${vehicle.make} ${vehicle.model} (${vehicle.registration_number || vehicle.vin || 'No Reg'})` : `Inspection #${inspection.inspection_number}`;
+        
         document.getElementById('inspectionTitle').textContent = vehicleText;
-
-        document.getElementById('inspectionSubtitle').textContent =
-            `Ref: ${inspection.inspection_number} | Origin: ${inspection.inspection_origin} | Status: ${inspection.inspection_status}`;
+        document.getElementById('inspectionSubtitle').textContent = `Ref: ${inspection.inspection_number} | Origin: ${inspection.inspection_origin} | Status: ${inspection.inspection_status}`;
 
         updateProgressStats(inspection.inspection_items || []);
     }
 
     function updateProgressStats(items) {
         const applicableItems = items.filter(i => i.is_applicable !== false);
-        const assessedCount = applicableItems.filter(
-            i => i.status && i.status !== 'PENDING'
-        ).length;
-
+        const assessedCount = applicableItems.filter(i => i.status && i.status !== 'PENDING').length;
         const totalApplicable = applicableItems.length;
+        const percent = totalApplicable > 0 ? Math.round((assessedCount / totalApplicable) * 100) : 0;
 
-        const percent = totalApplicable > 0
-            ? Math.round((assessedCount / totalApplicable) * 100)
-            : 0;
-
-        document.getElementById('statAssessed').textContent =
-            `${assessedCount} / ${totalApplicable}`;
-
+        document.getElementById('statAssessed').textContent = `${assessedCount} / ${totalApplicable}`;
         document.getElementById('statPercent').textContent = `${percent}%`;
     }
 
     function renderChecklistWorkbench(inspection) {
         const items = inspection.inspection_items || [];
-
         if (!items.length) {
-            document.getElementById('inspectionChecklist').innerHTML =
-                `<div style="padding: 24px; text-align: center; color: #64748b;">No checklist items found for this inspection.</div>`;
+            document.getElementById('inspectionChecklist').innerHTML = `<div style="padding: 24px; text-align: center; color: #64748b;">No checklist items found for this inspection.</div>`;
             return;
         }
 
         const sectionsMap = {};
-
         items.forEach(item => {
             const sec = item.section || 'GENERAL';
-
             if (!sectionsMap[sec]) sectionsMap[sec] = [];
             sectionsMap[sec].push(item);
         });
 
-        const sectionNames = Object.keys(sectionsMap);
+        const sections = Object.keys(sectionsMap);
         if (!activeSectionName || !sectionsMap[activeSectionName]) {
-            activeSectionName = sectionNames[0];
+            activeSectionName = sections[0];
         }
 
-        // Render Tabs
         const tabsContainer = document.getElementById('sectionTabsContainer');
-        tabsContainer.innerHTML = sectionNames.map(sec => `
-            <button type="button" class="section-tab ${sec === activeSectionName ? 'active' : ''}" data-section="${sec}">
-                ${sec.replace(/_/g, ' ')} (${sectionsMap[sec].filter(i => i.status && i.status !== 'PENDING').length}/${sectionsMap[sec].length})
-            </button>
-        `).join('');
-
-        tabsContainer.querySelectorAll('.section-tab').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                activeSectionName = e.target.getAttribute('data-section');
+        tabsContainer.innerHTML = '';
+        sections.forEach(sec => {
+            const tab = document.createElement('button');
+            tab.type = 'button';
+            tab.className = `section-tab ${sec === activeSectionName ? 'active' : ''}`;
+            tab.textContent = sec;
+            tab.onclick = () => {
+                activeSectionName = sec;
                 renderChecklistWorkbench(currentInspection);
-            });
+            };
+            tabsContainer.appendChild(tab);
         });
 
-        // Render Active Section Checklist Table
-        const currentItems = sectionsMap[activeSectionName] || [];
-        const checklistDiv = document.getElementById('inspectionChecklist');
+        const checklistContainer = document.getElementById('inspectionChecklist');
+        const activeItems = sectionsMap[activeSectionName] || [];
 
-        checklistDiv.innerHTML = `
+        let rowsHtml = '';
+        activeItems.forEach(item => {
+            rowsHtml += `
+                <tr data-item-id="${item.id}">
+                    <td><code>${escapeHtml(item.item_code)}</code></td>
+                    <td><strong>${escapeHtml(item.item_name)}</strong></td>
+                    <td>
+                        <select class="item-status-select" onchange="window.updateItemField('${item.id}', 'status', this.value)">
+                            <option value="PENDING" ${item.status === 'PENDING' ? 'selected' : ''}>PENDING</option>
+                            <option value="GOOD" ${item.status === 'GOOD' ? 'selected' : ''}>GOOD</option>
+                            <option value="FAIR" ${item.status === 'FAIR' ? 'selected' : ''}>FAIR</option>
+                            <option value="ATTENTION" ${item.status === 'ATTENTION' ? 'selected' : ''}>ATTENTION</option>
+                            <option value="CRITICAL" ${item.status === 'CRITICAL' ? 'selected' : ''}>CRITICAL</option>
+                            <option value="N/A" ${item.status === 'N/A' ? 'selected' : ''}>N/A</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="text" value="${escapeHtml(item.observation || '')}" placeholder="Add observation..." onchange="window.updateItemField('${item.id}', 'observation', this.value)" style="width: 100%;">
+                    </td>
+                    <td>
+                        <input type="text" value="${escapeHtml(item.recommended_action || '')}" placeholder="Corrective action..." onchange="window.updateItemField('${item.id}', 'recommended_action', this.value)" style="width: 100%;">
+                    </td>
+                    <td>
+                        <input type="number" value="${item.estimated_cost || ''}" placeholder="₦ Cost" onchange="window.updateItemField('${item.id}', 'estimated_cost', parseFloat(this.value) || 0)" style="width: 100px;">
+                    </td>
+                </tr>
+            `;
+        });
+
+        checklistContainer.innerHTML = `
             <div class="checklist-card">
-                <h3>
-                    <span>${activeSectionName.replace(/_/g, ' ')}</span>
-                    <span style="font-size: 0.75rem; color: #64748b; font-weight: normal;">Section Progress: ${currentItems.filter(i => i.status && i.status !== 'PENDING').length} / ${currentItems.length}</span>
-                </h3>
-                <table class="checklist-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 35%;">Component / Check</th>
-                            <th style="width: 20%;">Status</th>
-                            <th style="width: 45%;">Inspector Notes / Observations</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${currentItems.map(item => `
+                <h3><span>${escapeHtml(activeSectionName)}</span> <span style="font-size: 0.8125rem; color: #64748b;">${activeItems.length} Items</span></h3>
+                <div style="overflow-x: auto;">
+                    <table class="checklist-table">
+                        <thead>
                             <tr>
-                                <td>
-                                    <strong>${escapeHtml(item.component_name)}</strong>
-                                    ${item.description ? `<div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">${escapeHtml(item.description)}</div>` : ''}
-                                </td>
-                                <td>
-                                    <select class="item-status-select" data-item-id="${item.id}">
-                                        <option value="PENDING" ${item.status === 'PENDING' ? 'selected' : ''}>Pending</option>
-                                        <option value="GOOD" ${item.status === 'GOOD' ? 'selected' : ''}>Good / Pass</option>
-                                        <option value="FAIR" ${item.status === 'FAIR' ? 'selected' : ''}>Fair (Note)</option>
-                                        <option value="ATTENTION" ${item.status === 'ATTENTION' ? 'selected' : ''}>Attention</option>
-                                        <option value="CRITICAL" ${item.status === 'CRITICAL' ? 'selected' : ''}>Critical</option>
-                                        <option value="NA" ${item.status === 'NA' ? 'selected' : ''}>N/A</option>
-                                    </select>
-                                </td>
-                                <td>
-                                    <input type="text" class="item-notes-input" data-item-id="${item.id}" value="${escapeHtml(item.notes || '')}" placeholder="Add observation notes..." style="width: 100%;">
-                                </td>
+                                <th style="width: 100px;">Code</th>
+                                <th style="width: 250px;">Item Name</th>
+                                <th style="width: 130px;">Status</th>
+                                <th>Observation</th>
+                                <th>Recommended Action</th>
+                                <th style="width: 120px;">Est. Cost</th>
                             </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         `;
-
-        // Bind change handlers for items
-        checklistDiv.querySelectorAll('.item-status-select, .item-notes-input').forEach(el => {
-            el.addEventListener('change', handleItemFieldChange);
-            if (el.tagName === 'INPUT') {
-                el.addEventListener('blur', handleItemFieldChange);
-            }
-        });
     }
 
-    async function handleItemFieldChange(e) {
-        const itemId = e.target.getAttribute('data-item-id');
-        const row = e.target.closest('tr');
-        const statusSelect = row.querySelector('.item-status-select');
-        const notesInput = row.querySelector('.item-notes-input');
-
+    window.updateItemField = async function(itemId, field, value) {
         try {
-            await inspectionService.updateInspectionItem(itemId, {
-                status: statusSelect.value,
-                notes: notesInput.value
-            });
-
-            const item = (currentInspection.inspection_items || []).find(i => i.id === itemId);
-            if (item) {
-                item.status = statusSelect.value;
-                item.notes = notesInput.value;
-            }
-
-            updateProgressStats(currentInspection.inspection_items || []);
+            await inspectionService.updateInspectionItem(itemId, { [field]: value });
+            const item = currentInspection.inspection_items.find(i => i.id === itemId);
+            if (item) item[field] = value;
+            updateProgressStats(currentInspection.inspection_items);
         } catch (err) {
-            console.error('Failed to update checklist item:', err);
+            alert('Failed to save update: ' + err.message);
         }
+    };
+
+    function renderFindingsList(findings) {
+        const container = document.getElementById('findingsListContainer');
+        if (!findings || findings.length === 0) {
+            container.innerHTML = `<div style="color: #64748b; font-size: 0.875rem;">No findings recorded.</div>`;
+            return;
+        }
+
+        container.innerHTML = '';
+        findings.forEach(f => {
+            const badgeClass = f.rating === 'CRITICAL' ? 'badge-critical' : f.rating === 'ATTENTION' ? 'badge-attention' : 'badge-fair';
+            const costFormatted = f.estimated_cost ? new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(f.estimated_cost) : '₦0';
+            
+            const div = document.createElement('div');
+            div.className = 'finding-item';
+            div.innerHTML = `
+                <div>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
+                        <span class="badge ${badgeClass}">${escapeHtml(f.rating)}</span>
+                        <strong>${escapeHtml(f.area)} &rsaquo; ${escapeHtml(f.component)}</strong>
+                    </div>
+                    <div style="font-size: 0.875rem; color: #334155; margin-bottom: 4px;">${escapeHtml(f.finding)}</div>
+                    <div style="font-size: 0.8125rem; color: #64748b;"><strong>Action:</strong> ${escapeHtml(f.recommended_action || 'None')} | <strong>Cost:</strong> ${costFormatted}</div>
+                </div>
+                <button type="button" class="action-btn" style="color: var(--danger); border-color: #fca5a5;" onclick="window.removeFinding('${f.id}')">Delete</button>
+            `;
+            container.appendChild(div);
+        });
     }
 
     async function handleAddFinding(e) {
         e.preventDefault();
-        if (!currentInspection) return;
+        const btn = document.getElementById('addFindingBtn');
+        btn.disabled = true;
+        btn.textContent = 'Adding...';
 
         const payload = {
-            inspection_id: currentInspection.id,
-            system_area: document.getElementById('findingArea').value,
-            component: document.getElementById('findingComponent').value,
-            severity_rating: document.getElementById('findingRating').value,
-            observation: document.getElementById('findingDescription').value,
-            recommendation: document.getElementById('findingRecommendation').value,
+            area: document.getElementById('findingArea').value.trim(),
+            component: document.getElementById('findingComponent').value.trim(),
+            rating: document.getElementById('findingRating').value,
+            finding: document.getElementById('findingDescription').value.trim(),
+            recommended_action: document.getElementById('findingRecommendation').value.trim(),
             estimated_cost: parseFloat(document.getElementById('findingCost').value) || 0
         };
 
         try {
-            const newFinding = await inspectionService.addInspectionFinding(payload);
+            const newFinding = await inspectionService.addInspectionFinding(currentInspection.id, payload);
             if (!currentInspection.inspection_findings) currentInspection.inspection_findings = [];
             currentInspection.inspection_findings.push(newFinding);
-
             renderFindingsList(currentInspection.inspection_findings);
-            e.target.reset();
+            document.getElementById('addFindingForm').reset();
         } catch (err) {
             alert('Failed to add finding: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Add Finding';
         }
     }
 
-    function renderFindingsList(findings) {
-        const container = document.getElementById('findingsListContainer');
-        if (!findings.length) {
-            container.innerHTML = `<div style="color: #64748b; font-size: 0.875rem;">No findings added yet.</div>`;
-            return;
+    window.removeFinding = async function(findingId) {
+        if (!confirm('Delete this finding permanently?')) return;
+        try {
+            await inspectionService.deleteInspectionFinding(findingId);
+            currentInspection.inspection_findings = currentInspection.inspection_findings.filter(f => f.id !== findingId);
+            renderFindingsList(currentInspection.inspection_findings);
+        } catch (err) {
+            alert('Failed to delete finding: ' + err.message);
+        }
+    };
+
+    function applyWorkflowConstraints(inspection, authUser) {
+        const status = inspection?.inspection_status;
+        const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(authUser?.role);
+        const isInspector = authUser?.role === 'INSPECTOR';
+
+        const submitReviewBtn = document.getElementById('submitForReviewBtn');
+        const completeInspectionBtn = document.getElementById('completeInspectionBtn');
+        const backToAdminBtn = document.getElementById('backToAdminBtn');
+        const adminReviewBanner = document.getElementById('adminReviewBanner');
+
+        if (completeInspectionBtn) {
+            completeInspectionBtn.classList.add('hidden');
+            completeInspectionBtn.style.display = 'none';
+            completeInspectionBtn.onclick = null;
         }
 
-        const badgeClass = {
-            'FAIR': 'badge-fair',
-            'ATTENTION': 'badge-attention',
-            'CRITICAL': 'badge-critical'
-        };
+        if (
+            isAdmin &&
+            inspection?.inspection_origin === 'VERIFIED_VEHICLE' &&
+            ['ASSIGNED', 'IN_PROGRESS', 'DRAFT'].includes(status)
+        ) {
+            if (completeInspectionBtn) {
+                completeInspectionBtn.classList.remove('hidden');
+                completeInspectionBtn.style.display = 'inline-block';
+                completeInspectionBtn.textContent = 'Complete Inspection';
+                completeInspectionBtn.onclick = handleAdminCompleteInspection;
+            }
+        }
 
-        container.innerHTML = findings.map(f => `
-            <div class="finding-item">
-                <div>
-                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
-                        <span class="badge ${badgeClass[f.severity_rating] || 'badge-fair'}">${f.severity_rating}</span>
-                        <strong>${escapeHtml(f.system_area)} &rsaquo; ${escapeHtml(f.component)}</strong>
-                    </div>
-                    <p style="margin: 4px 0; font-size: 0.875rem; color: #334155;">${escapeHtml(f.observation)}</p>
-                    <p style="margin: 0; font-size: 0.8125rem; color: #64748b;"><strong>Action:</strong> ${escapeHtml(f.recommendation)}</p>
-                </div>
-                <div style="text-align: right; font-size: 0.875rem; font-weight: bold; color: var(--primary);">
-                    ${f.estimated_cost ? `₦${Number(f.estimated_cost).toLocaleString()}` : ''}
-                </div>
-            </div>
-        `).join('');
+        if (isInspector) {
+            if (['SUBMITTED_FOR_REVIEW', 'APPROVED', 'REPORT_GENERATED', 'DELIVERED'].includes(status)) {
+                if (submitReviewBtn) submitReviewBtn.style.display = 'none';
+            } else {
+                if (submitReviewBtn) {
+                    submitReviewBtn.style.display = 'inline-block';
+                    submitReviewBtn.textContent = status === 'CHANGES_REQUESTED' ? 'Resubmit for Review' : 'Submit for Review';
+                    submitReviewBtn.onclick = handleInspectorSubmitForReview;
+                }
+            }
+        }
+
+        if (isAdmin) {
+            if (backToAdminBtn) {
+                backToAdminBtn.style.display = 'inline-block';
+                backToAdminBtn.onclick = () => { window.location.href = 'admin.html'; };
+            }
+
+            const toolbarActions = document.querySelector('.toolbar-actions');
+
+            if (status === 'SUBMITTED_FOR_REVIEW') {
+                if (adminReviewBanner) {
+                    adminReviewBanner.classList.remove('hidden');
+                    document.getElementById('adminReviewSubtitle').textContent = 'Reviewing submitted inspector checklist, observations, and findings.';
+                    document.getElementById('adminRequestChangesBtn').onclick = handleAdminRequestChanges;
+                    document.getElementById('adminApproveBtn').onclick = handleAdminApprove;
+                }
+            } else if (status === 'APPROVED') {
+                if (adminReviewBanner) adminReviewBanner.classList.add('hidden');
+                
+                let generateReportBtn = document.getElementById('generateReportBtn');
+                if (!generateReportBtn) {
+                    generateReportBtn = document.createElement('button');
+                    generateReportBtn.id = 'generateReportBtn';
+                    generateReportBtn.className = 'action-btn btn-primary';
+                    generateReportBtn.textContent = 'Generate Official PPI Report';
+                    generateReportBtn.onclick = handleGenerateOfficialReport;
+                    toolbarActions.appendChild(generateReportBtn);
+                }
+            } else if (['REPORT_GENERATED', 'DELIVERED'].includes(status)) {
+                if (adminReviewBanner) adminReviewBanner.classList.add('hidden');
+                
+                const genBtn = document.getElementById('generateReportBtn');
+                if (genBtn) genBtn.remove();
+
+                let viewReportBtn = document.getElementById('viewReportBtn');
+                if (!viewReportBtn && inspection.report_path) {
+                    viewReportBtn = document.createElement('button');
+                    viewReportBtn.id = 'viewReportBtn';
+                    viewReportBtn.className = 'action-btn btn-primary';
+                    viewReportBtn.textContent = 'View Official Report (PDF)';
+                    viewReportBtn.onclick = async () => {
+                        const url = await inspectionReportService.getOfficialReportUrl(inspection.report_path);
+                        window.open(url, '_blank');
+                    };
+                    toolbarActions.appendChild(viewReportBtn);
+                }
+            } else {
+                if (adminReviewBanner) adminReviewBanner.classList.add('hidden');
+            }
+        }
+
+        if (['APPROVED', 'REPORT_GENERATED', 'DELIVERED', 'COMPLETED'].includes(status)) {
+            const checklistContainer = document.getElementById('inspectionChecklist');
+            if (checklistContainer) {
+                checklistContainer.querySelectorAll('input, select, textarea').forEach(el => el.disabled = true);
+                
+                let notice = document.getElementById('inspectionLockNotice');
+                if (!notice) {
+                    notice = document.createElement('div');
+                    notice.id = 'inspectionLockNotice';
+                    notice.style.cssText = 'background: #dcfce7; color: #15803d; padding: 12px; text-align: center; font-weight: bold; margin-bottom: 16px; border-radius: 8px;';
+                    checklistContainer.prepend(notice);
+                }
+                notice.textContent = `This inspection has been ${status} and officially locked.`;
+            }
+        }
     }
 
-    async function handleUploadScannerPdf() {
-        const fileInput = document.getElementById('scannerPdfInput');
-        const statusText = document.getElementById('scannerStatusText');
-        if (!fileInput.files[0]) {
-            alert('Please select a PDF scanner report file first.');
+    async function handleAdminCompleteInspection() {
+        if (!currentInspection) {
+            alert('Inspection record not found.');
             return;
         }
 
-        const file = fileInput.files[0];
-        statusText.textContent = 'Uploading secure report...';
+        if (!['ADMIN', 'SUPER_ADMIN'].includes(currentAuthUser?.role)) {
+            alert('Access Denied: Administrative privileges required.');
+            return;
+        }
+
+        if (currentInspection.inspection_origin !== 'VERIFIED_VEHICLE') {
+            alert('This action is only available for verified-vehicle inspections.');
+            return;
+        }
+
+        if (!['ASSIGNED', 'IN_PROGRESS', 'DRAFT'].includes(currentInspection.inspection_status)) {
+            alert(`This inspection cannot be completed from its current status: ${currentInspection.inspection_status}`);
+            return;
+        }
+
+        const checklistItems = currentInspection.inspection_items || [];
+        const unassessed = checklistItems.filter(item =>
+            item.is_applicable &&
+            (!item.status || item.status === 'PENDING')
+        );
+
+        if (unassessed.length > 0) {
+            alert(`Cannot complete inspection: ${unassessed.length} required checklist item(s) remain unassessed.`);
+            return;
+        }
+
+        if (!confirm('Complete this inspection?\n\nThe inspection will be recorded as COMPLETED and you will return to the Admin Dashboard.')) {
+            return;
+        }
+
+        const btn = document.getElementById('completeInspectionBtn');
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Completing...';
+        }
 
         try {
-            const updatedInspection = await inspectionService.uploadScannerPdf(currentInspection.id, file);
-            currentInspection = updatedInspection;
-            await renderScannerSection(currentInspection);
-            statusText.textContent = 'Upload successful!';
-            fileInput.value = '';
+            await inspectionService.completeInspection(currentInspection.id);
+            alert('Inspection completed successfully.');
+            window.location.href = 'admin.html';
         } catch (err) {
-            statusText.textContent = 'Upload failed.';
-            alert('Failed to upload scanner report: ' + err.message);
+            console.error('Inspection completion failed:', err);
+            alert('Unable to complete inspection: ' + err.message);
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Complete Inspection';
+            }
         }
     }
 
-    function applyWorkflowConstraints(inspection, user) {
-        const isInspector = user.role === 'INSPECTOR';
-        const isAdmin = user.role === 'ADMIN';
-        const status = inspection.inspection_status;
+    async function handleInspectorSubmitForReview() {
+        if (!confirm('Submit this inspection for Admin review?')) return;
+        const btn = document.getElementById('submitForReviewBtn');
+        btn.disabled = true;
+        btn.textContent = 'Submitting...';
 
-        const submitBtn = document.getElementById('submitForReviewBtn');
-        const adminBanner = document.getElementById('adminReviewBanner');
+        try {
+            await inspectionService.submitInspectionForReview(currentInspection.id);
+            alert('Inspection successfully submitted for review!');
+            window.location.href = 'inspector.html';
+        } catch (err) {
+            alert('Submission failed: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = 'Submit for Review';
+        }
+    }
 
-        // Inspector controls
-        if (isInspector && ['IN_PROGRESS', 'CHANGES_REQUESTED'].includes(status)) {
-            submitBtn.classList.remove('hidden');
-            submitBtn.onclick = async () => {
-                if (confirm('Submit this inspection for administrative review?')) {
-                    currentInspection = await inspectionService.submitForReview(inspection.id);
-                    window.location.reload();
-                }
-            };
+    async function handleAdminRequestChanges() {
+        const notes = prompt('Enter review notes / reasons for requesting changes:');
+        if (notes === null) return;
+        if (!notes.trim()) {
+            alert('Review notes are required when sending back for correction.');
+            return;
         }
 
-        // Admin review mode
-        if (isAdmin && status === 'SUBMITTED_FOR_REVIEW') {
-            adminBanner.classList.remove('hidden');
-            document.getElementById('adminApproveBtn').onclick = async () => {
-                if (confirm('Approve this inspection? The vehicle remains unpublished until final verification/publishing.')) {
-                    await inspectionService.approveInspection(inspection.id);
-                    alert('Inspection approved.');
-                    window.location.href = 'admin.html';
-                }
-            };
-            document.getElementById('adminRequestChangesBtn').onclick = async () => {
-                const notes = prompt('Enter reason for sending back to inspector:');
-                if (notes) {
-                    await inspectionService.requestChanges(inspection.id, notes);
-                    alert('Sent back for correction.');
-                    window.location.reload();
-                }
-            };
+        try {
+            await inspectionService.requestInspectionChanges(currentInspection.id, notes.trim());
+            alert('Inspection sent back to the inspector with change requests.');
+            window.location.href = 'admin.html';
+        } catch (err) {
+            alert('Action failed: ' + err.message);
+        }
+    }
+
+    async function handleAdminApprove() {
+        if (!confirm('Approve this inspection? This will lock the inspection records.')) return;
+
+        try {
+            await inspectionService.approveInspection(currentInspection.id);
+            alert('Inspection successfully approved!');
+            window.location.reload();
+        } catch (err) {
+            alert('Approval failed: ' + err.message);
+        }
+    }
+
+    async function handleGenerateOfficialReport() {
+        if (!confirm('Generate the official customer PPI report via Python ReportLab? This compiles the approved database state into an immutable PDF document.')) return;
+        const btn = document.getElementById('generateReportBtn');
+        btn.disabled = true;
+        btn.textContent = 'Generating PDF...';
+
+        try {
+            await inspectionReportService.generateOfficialReport(currentInspection.id);
+            alert('Official PPI Report successfully generated!');
+            window.location.reload();
+        } catch (err) {
+            alert('Report generation failed: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = 'Generate Official PPI Report';
         }
     }
 
     initWorkbench();
-    </script>
+</script>
+
 </body>
 </html>
