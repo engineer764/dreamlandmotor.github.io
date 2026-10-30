@@ -448,28 +448,8 @@ export const inspectionService = {
             throw new Error('Verification failed: One or more report files could not be found in storage.');
         }
 
-        const { error } = await supabase
-            .from('inspections')
-            .update({
-                inspection_status: 'REPORT_GENERATED',
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', inspectionId);
-
-        if (error) throw error;
-
-        if (inspection.vehicle_id) {
-            await supabase
-                .from('vehicles')
-                .update({
-                    verification_inspection_id: inspectionId,
-                    last_inspection_date: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', inspection.vehicle_id);
-        }
-
-        return true;
+        // UNIFIED PATHWAY FIX: Delegate directly to canonical completeInspection() RPC
+        return await this.completeInspection(inspectionId);
     },
 
     async getSecureReportSignedUrl(inspectionId, reportType) {
