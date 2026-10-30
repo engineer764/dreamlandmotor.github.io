@@ -211,6 +211,28 @@ export const vehicleService = {
         return data;
     },
 
+    /**
+     * Securely publishes a verified vehicle associated with a completed inspection 
+     * via the database-enforced publish_verified_vehicle RPC.
+     */
+    async publishVerifiedVehicle(vehicleId, inspectionId) {
+        if (!vehicleId || !inspectionId) {
+            throw new Error('Vehicle ID and Inspection ID are required.');
+        }
+
+        const { data, error } = await supabase.rpc(
+            'publish_verified_vehicle',
+            {
+                p_vehicle_id: vehicleId,
+                p_inspection_id: inspectionId
+            }
+        );
+
+        if (error) throw new Error(error.message);
+
+        return data;
+    },
+
     async unpublishVehicle(vehicleId) {
         if (!vehicleId) {
             throw new Error('Vehicle ID is required.');
