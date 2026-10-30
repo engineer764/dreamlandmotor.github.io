@@ -411,42 +411,85 @@ export const inspectionService = {
         return await this.getInspectionById(inspectionId);
     },
 
-    async getOfflineReportSignedUrl(inspectionId) {
+    async verifyStorageObjectExists(bucketName, objectPath) {
+        if (!objectPath) return false;
+        try {
+            if (bucketName === 'vehicle-photos' && (objectPath.startsWith('http://') || objectPath.startsWith('https://'))) {
+                return true; // External/public URL
+            }
+            const parts = objectPath.split('/');
+            const fileName = parts.pop();
+            const folderPath = parts.join('/');
+
+            const { data, error } = await supabase.storage
+                .from(bucketName)
+                .list(folderPath, { search: fileName });
+
+            if (error || !data || data.length === 0) return false;
+            return data.some(file => file.name === fileName);
+        } catch (err) {
+            console.error('Storage verification error:', err);
+            return false;
+        }
+    },
+
+    async completeOfflineInspection(inspectionId) {
         if (!inspectionId) throw new Error('Inspection ID is required.');
 
-        const { data: { user }, error: authErr } = await supabase.auth.getUser();
-        if (authErr || !user) throw new Error('Authentication required.');
-
-        const { data: inspection, error: fetchErr } = await supabase
-            .from('inspections')
-            .select('id, inspector_id, reviewer_id, offline_report_path')
-            .eq('id', inspectionId)
-            .single();
-
-        if (fetchErr || !inspection || !inspection.offline_report_path) {
-            throw new Error('No offline report found for this inspection.');
+        const inspection = await this.getInspectionById(inspectionId);
+        if (!inspection.offline_report_path || !inspection.scanner_report_path) {
+            throw new Error('Both offline report and scanner report must be uploaded before completion.');
         }
 
-        const { data: staffUser } = await supabase
-            .from('users')
-            .select('role')
-            .eq('id', user.id)
-            .single();
+        const offlineExists = await this.verifyStorageObjectExists('inspection-reports', inspection.offline_report_path);
+        const scannerExists = await this.verifyStorageObjectExists('vehicle-photos', inspection.scanner_report_path);
 
-        const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(staffUser?.role);
-        const isAuthorized = inspection.inspector_id === user.id || inspection.reviewer_id === user.id;
+        if (!offlineExists || !scannerExists) {
+            throw new Error('Verification failed: One or more report files could not be found in storage.');
+        }
 
-        if (!isAdmin && !isAuthorized) {
-            throw new Error('Access Denied: You are not authorized to view this offline report.');
+        const { error } = await supabase
+            .from('inspections')
+            .update({
+                inspection_status: 'REPORT_GENERATED',
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', inspectionId);
+
+        if (error) throw error;
+
+        if (inspection.vehicle_id) {
+            await supabase
+                .from('vehicles')
+                .update({
+                    verification_inspection_id: inspectionId,
+                    last_inspection_date: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', inspection.vehicle_id);
+        }
+
+        return true;
+    },
+
+    async getSecureReportSignedUrl(inspectionId, reportType) {
+        if (!inspectionId || !reportType) throw new Error('Inspection ID and report type are required.');
+
+        const inspection = await this.getInspectionById(inspectionId);
+        const path = reportType === 'offline' ? inspection.offline_report_path : inspection.scanner_report_path;
+        const bucket = reportType === 'offline' ? 'inspection-reports' : 'vehicle-photos';
+
+        if (!path) throw new Error('Requested report is not available.');
+
+        if (bucket === 'vehicle-photos' && (path.startsWith('http://') || path.startsWith('https://'))) {
+            return path;
         }
 
         const { data, error } = await supabase.storage
-            .from('inspection-reports')
-            .createSignedUrl(inspection.offline_report_path, 300); // 5 minutes
+            .from(bucket)
+            .createSignedUrl(path, 300); // 5 minutes
 
-        if (error) throw error;
-        if (!data?.signedUrl) throw new Error('Failed to generate secure signed URL.');
-
+        if (error || !data?.signedUrl) throw new Error('Failed to generate secure report access URL.');
         return data.signedUrl;
     }
 };
