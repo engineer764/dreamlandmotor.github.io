@@ -76,7 +76,7 @@ export const vehicleService = {
                     inspection_date
                 `)
                 .in('vehicle_id', legacyVehicleIds)
-                .eq('inspection_status', 'COMPLETED')
+                .in('inspection_status', ['COMPLETED', 'REPORT_GENERATED'])
                 .order('completed_at', { ascending: false, nullsFirst: false });
 
             if (legacyError) {
@@ -236,6 +236,23 @@ export const vehicleService = {
         if (!vehicleId) throw new Error('Vehicle ID is required.');
         const { data, error } = await supabase.rpc('unpublish_vehicle', { p_vehicle_id: vehicleId });
         if (error) throw new Error(error.message);
+        return data;
+    },
+
+    async deleteVehicle(vehicleId) {
+        if (!vehicleId) {
+            throw new Error('Vehicle ID is required.');
+        }
+
+        const { data, error } = await supabase.rpc(
+            'admin_delete_vehicle',
+            { p_vehicle_id: vehicleId }
+        );
+
+        if (error) {
+            throw new Error(error.message);
+        }
+
         return data;
     },
 
@@ -462,7 +479,7 @@ export const vehicleService = {
                 .from('inspections')
                 .select(`id, vehicle_id, inspection_number, inspection_date, mileage, overall_score, mechanical_score, electrical_score, body_score, interior_score, suspension_score, brake_score, diagnostic_score, road_test_score, overall_condition, recommendation, summary, inspection_status, report_path, scanner_report_path, completed_at, inspection_items(*), inspection_findings(*, finding_photos(*))`)
                 .eq('id', vehicle.verification_inspection_id)
-                .eq('inspection_status', 'COMPLETED')
+                .in('inspection_status', ['COMPLETED', 'REPORT_GENERATED'])
                 .single();
 
             if (!inspError && inspection) {
