@@ -877,29 +877,40 @@
                 const pStatusClass = (v.publication_status === 'PUBLISHED' || v.is_published) ? 'badge-published' : 'badge-unpublished';
                 const sStatusClass = v.sales_status === 'SOLD' ? 'badge-sold' : v.sales_status === 'RESERVED' ? 'badge-reserved' : 'badge-sales';
 
+                const isPublished = (v.publication_status === 'PUBLISHED' || v.is_published);
+                const isVerified = (v.verification_status === 'VERIFIED');
+                const isAvailable = (v.sales_status === 'AVAILABLE' || !v.sales_status);
+                const isInspectionCompleted = (v.inspection_status === 'COMPLETED');
+
+                // Determine conditional actions in inventory row
+                let actionButtons = `
+                    <button type="button" class="action-btn btn-edit" onclick="editVehicle('${v.id}')">Edit</button>
+                `;
+
+                if (!isVerified) {
+                    actionButtons += `<button type="button" class="action-btn btn-verify" onclick="verifyVehicleAction('${v.id}')">Verify</button>`;
+                } else if (isAvailable && !isPublished && isInspectionCompleted && v.inspection_id) {
+                    // Direct Publish button when verified, available, unpublished, and inspection is completed
+                    actionButtons += `<button type="button" class="action-btn btn-publish" onclick="handleDashboardPublish('${v.id}', '${v.inspection_id}')">Publish</button>`;
+                } else if (v.inspection_id) {
+                    actionButtons += `<a href="inspection.html?inspectionId=${v.inspection_id}" class="action-btn btn-inspect" target="_blank">Review</a>`;
+                }
+
+                if (v.sales_status === 'SOLD') {
+                    actionButtons += `<button type="button" class="action-btn btn-reserve" onclick="handleMarkAvailable('${v.id}')">Make Available</button>`;
+                }
+
+                actionButtons += `<button type="button" class="action-btn btn-delete" onclick="deleteVehicleAction('${v.id}')">Delete</button>`;
+
                 tr.innerHTML = `
                     <td><strong>${escapeHtml(v.vehicle_code || 'V-' + v.id.substring(0, 6))}</strong></td>
                     <td>${escapeHtml(v.year)} ${escapeHtml(v.make)} ${escapeHtml(v.model)} ${escapeHtml(v.trim || '')}<br><small style="color:#64748b">${escapeHtml(v.vin || 'No VIN')}</small></td>
                     <td>₦${Number(v.price || 0).toLocaleString()}</td>
                     <td><span class="badge ${vStatusClass}">${escapeHtml(v.verification_status || 'PENDING')}</span></td>
                     <td><span class="badge badge-published">${escapeHtml(v.inspection_status || 'DRAFT')}</span></td>
-                    <td><span class="badge ${pStatusClass}">${(v.publication_status === 'PUBLISHED' || v.is_published) ? 'PUBLISHED' : 'UNPUBLISHED'}</span></td>
+                    <td><span class="badge ${pStatusClass}">${isPublished ? 'PUBLISHED' : 'UNPUBLISHED'}</span></td>
                     <td><span class="badge ${sStatusClass}">${escapeHtml(v.sales_status || 'AVAILABLE')}</span></td>
-                    <td><div class="action-cell">
-                        <button type="button" class="action-btn btn-edit" onclick="editVehicle('${v.id}')">Edit</button>
-                        ${v.verification_status !== 'VERIFIED' ? `<button type="button" class="action-btn btn-verify" onclick="verifyVehicleAction('${v.id}')">Verify</button>` : ''}
-                        
-                        <!-- Direct Publication Action for completed verified vehicles -->
-                        ${(v.verification_status === 'VERIFIED' && (!v.publication_status || v.publication_status !== 'PUBLISHED') && !v.is_published && v.inspection_id && v.inspection_status === 'COMPLETED') ? 
-                            `<button type="button" class="action-btn btn-publish" onclick="handleDashboardPublish('${v.id}', '${v.inspection_id}')">Publish</button>` : 
-                            (v.inspection_id ? `<a href="inspection.html?inspectionId=${v.inspection_id}" class="action-btn btn-inspect" target="_blank">Review</a>` : '')}
-
-                        <!-- Reselling / Return to Available Action for SOLD vehicles -->
-                        ${v.sales_status === 'SOLD' ? 
-                            `<button type="button" class="action-btn btn-reserve" onclick="handleMarkAvailable('${v.id}')">Make Available</button>` : ''}
-
-                        <button type="button" class="action-btn btn-delete" onclick="deleteVehicleAction('${v.id}')">Delete</button>
-                    </div></td>
+                    <td><div class="action-cell">${actionButtons}</div></td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -908,7 +919,7 @@
         }
     }
 
-    // Direct dashboard publication handler using vehicleService
+    // Direct dashboard publication handler using vehicleService.publishVerifiedVehicle
     window.handleDashboardPublish = async function(vehicleId, inspectionId) {
         if (!confirm('Publish this verified vehicle to the public Dreamland Verified Cars portal?')) return;
 
