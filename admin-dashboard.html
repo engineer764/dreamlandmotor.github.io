@@ -880,9 +880,9 @@
                 const isPublished = (v.publication_status === 'PUBLISHED' || v.is_published);
                 const isVerified = (v.verification_status === 'VERIFIED');
                 const isAvailable = (v.sales_status === 'AVAILABLE' || !v.sales_status);
-                const isInspectionCompleted = (v.inspection_status === 'COMPLETED');
+                // Updated inspection completion check supporting both COMPLETED and REPORT_GENERATED statuses
+                const isInspectionCompleted = ['COMPLETED', 'REPORT_GENERATED'].includes(v.inspection_status);
 
-                // Determine conditional actions in inventory row
                 let actionButtons = `
                     <button type="button" class="action-btn btn-edit" onclick="editVehicle('${v.id}')">Edit</button>
                 `;
@@ -890,7 +890,6 @@
                 if (!isVerified) {
                     actionButtons += `<button type="button" class="action-btn btn-verify" onclick="verifyVehicleAction('${v.id}')">Verify</button>`;
                 } else if (isAvailable && !isPublished && isInspectionCompleted && v.inspection_id) {
-                    // Direct Publish button when verified, available, unpublished, and inspection is completed
                     actionButtons += `<button type="button" class="action-btn btn-publish" onclick="handleDashboardPublish('${v.id}', '${v.inspection_id}')">Publish</button>`;
                 } else if (v.inspection_id) {
                     actionButtons += `<a href="inspection.html?inspectionId=${v.inspection_id}" class="action-btn btn-inspect" target="_blank">Review</a>`;
@@ -919,7 +918,6 @@
         }
     }
 
-    // Direct dashboard publication handler using vehicleService.publishVerifiedVehicle
     window.handleDashboardPublish = async function(vehicleId, inspectionId) {
         if (!confirm('Publish this verified vehicle to the public Dreamland Verified Cars portal?')) return;
 
@@ -932,7 +930,6 @@
         }
     };
 
-    // Return sold vehicle to AVAILABLE status via markAvailable() without modifying inspections
     window.handleMarkAvailable = async function(vehicleId) {
         if (!confirm('Return this sold vehicle to AVAILABLE inventory status? Inspection records will be preserved.')) return;
 
