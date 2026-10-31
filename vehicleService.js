@@ -9,7 +9,7 @@ export const vehicleService = {
 
     /**
      * Fetches all vehicles for the admin inventory dashboard, 
-     * enriching each vehicle record with its latest inspection status.
+     * enforcing strict authoritative verification inspection selection via verification_inspection_id.
      */
     async getAdminVehicles() {
         const { data: vehicles, error: vehicleError } = await supabase
@@ -25,37 +25,74 @@ export const vehicleService = {
             return [];
         }
 
-        const vehicleIds = vehicles.map(v => v.id);
+        // 1. Collect explicit authoritative inspection IDs where verification_inspection_id is set
+        const authoritativeInspectionIds = vehicles
+            .map(v => v.verification_inspection_id)
+            .filter(Boolean);
 
-        const { data: inspections, error: inspectionError } = await supabase
-            .from('inspections')
-            .select(`
-                id,
-                vehicle_id,
-                inspection_status,
-                completed_at,
-                inspection_date
-            `)
-            .in('vehicle_id', vehicleIds)
-            .order('completed_at', { ascending: false, nullsFirst: false });
+        const inspectionMap = new Map();
 
-        if (inspectionError) {
-            throw new Error(inspectionError.message);
+        if (authoritativeInspectionIds.length > 0) {
+            const { data: authInspections, error: authError } = await supabase
+                .from('inspections')
+                .select(`
+                    id,
+                    vehicle_id,
+                    inspection_status,
+                    completed_at,
+                    inspection_date
+                `)
+                .in('id', authoritativeInspectionIds);
+
+            if (authError) {
+                throw new Error(`Failed to retrieve authoritative verification inspections: ${authError.message}`);
+            }
+
+            if (authInspections) {
+                for (const insp of authInspections) {
+                    inspectionMap.set(insp.id, insp);
+                }
+            }
         }
 
-        const latestInspectionByVehicle = new Map();
+        // 2. Fallback query ONLY for legacy vehicles lacking an explicit verification_inspection_id pointer
+        const legacyVehicleIds = vehicles
+            .filter(v => !v.verification_inspection_id)
+            .map(v => v.id);
 
-        for (const inspection of inspections || []) {
-            if (!latestInspectionByVehicle.has(inspection.vehicle_id)) {
-                latestInspectionByVehicle.set(
-                    inspection.vehicle_id,
-                    inspection
-                );
+        if (legacyVehicleIds.length > 0) {
+            const { data: legacyInspections, error: legacyError } = await supabase
+                .from('inspections')
+                .select(`
+                    id,
+                    vehicle_id,
+                    inspection_status,
+                    completed_at,
+                    inspection_date
+                `)
+                .in('vehicle_id', legacyVehicleIds)
+                .eq('inspection_status', 'COMPLETED')
+                .order('completed_at', { ascending: false, nullsFirst: false });
+
+            if (!legacyError && legacyInspections) {
+                for (const inspection of legacyInspections) {
+                    if (!inspectionMap.has(inspection.id) && !Array.from(inspectionMap.values()).some(i => i.vehicle_id === inspection.vehicle_id)) {
+                        inspectionMap.set(inspection.id, inspection);
+                    }
+                }
             }
         }
 
         return vehicles.map(vehicle => {
-            const inspection = latestInspectionByVehicle.get(vehicle.id);
+            let inspection = null;
+
+            if (vehicle.verification_inspection_id) {
+                // Strict authoritative binding: never silently substitute if verification_inspection_id is present
+                inspection = inspectionMap.get(vehicle.verification_inspection_id) || null;
+            } else {
+                // Find matching legacy inspection by vehicle_id
+                inspection = Array.from(inspectionMap.values()).find(i => i.vehicle_id === vehicle.id) || null;
+            }
 
             return {
                 ...vehicle,
@@ -108,7 +145,6 @@ export const vehicleService = {
             throw new Error('Vehicle ID is required for update.');
         }
 
-        // 1. Update the vehicle through the existing RPC
         const { data: updatedVehicle, error: rpcError } = await supabase
             .rpc('update_vehicle', {
                 p_vehicle_id: vehicleId,
@@ -119,7 +155,6 @@ export const vehicleService = {
             throw new Error(`Failed to update vehicle: ${rpcError.message}`);
         }
 
-        // 2. Synchronize mileage only when mileage was supplied
         if (updateData.mileage !== undefined && updateData.mileage !== null) {
             const mileage = Number(updateData.mileage);
 
@@ -127,7 +162,6 @@ export const vehicleService = {
                 throw new Error('Mileage must be a valid non-negative number.');
             }
 
-            // 3. Read the authoritative inspection relationship (verification_inspection_id)
             const { data: vehicleRecord, error: fetchErr } = await supabase
                 .from('vehicles')
                 .select('verification_inspection_id')
@@ -140,7 +174,6 @@ export const vehicleService = {
                 );
             }
 
-            // 4. If an authoritative inspection relationship exists, update THAT inspection only.
             if (vehicleRecord?.verification_inspection_id) {
                 const { error: inspectionUpdateError } = await supabase
                     .from('inspections')
@@ -156,7 +189,6 @@ export const vehicleService = {
                     );
                 }
             }
-            // 5. If verification_inspection_id is NULL, safely skip synchronization.
         }
 
         return Array.isArray(updatedVehicle)
@@ -167,14 +199,11 @@ export const vehicleService = {
     /**
      * ==========================================
      * VEHICLE LIFECYCLE ACTIONS
-     * Protected state changes MUST use database RPCs.
      * ==========================================
      */
 
     async verifyVehicle(vehicleId) {
-        if (!vehicleId) {
-            throw new Error('Vehicle ID is required.');
-        }
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
 
         const { data, error } = await supabase.rpc('verify_vehicle', {
             p_vehicle_id: vehicleId
@@ -185,9 +214,7 @@ export const vehicleService = {
     },
 
     async rejectVehicle(vehicleId, reason) {
-        if (!vehicleId) {
-            throw new Error('Vehicle ID is required.');
-        }
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
 
         const { data, error } = await supabase.rpc('reject_vehicle', {
             p_vehicle_id: vehicleId,
@@ -199,9 +226,7 @@ export const vehicleService = {
     },
 
     async publishVehicle(vehicleId) {
-        if (!vehicleId) {
-            throw new Error('Vehicle ID is required.');
-        }
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
 
         const { data, error } = await supabase.rpc('publish_vehicle', {
             p_vehicle_id: vehicleId
@@ -212,8 +237,7 @@ export const vehicleService = {
     },
 
     /**
-     * Securely publishes a verified vehicle associated with a completed inspection 
-     * via the database-enforced publish_verified_vehicle RPC.
+     * Securely publishes a verified vehicle and verifies publication_status post-execution.
      */
     async publishVerifiedVehicle(vehicleId, inspectionId) {
         if (!vehicleId || !inspectionId) {
@@ -230,13 +254,22 @@ export const vehicleService = {
 
         if (error) throw new Error(error.message);
 
+        // Confirm database state post-publication
+        const { data: vehicleCheck, error: checkError } = await supabase
+            .from('vehicles')
+            .select('publication_status')
+            .eq('id', vehicleId)
+            .single();
+
+        if (checkError || !vehicleCheck || vehicleCheck.publication_status !== 'PUBLISHED') {
+            throw new Error('Publication verification failed: Database confirmed publication_status is not PUBLISHED.');
+        }
+
         return data;
     },
 
     async unpublishVehicle(vehicleId) {
-        if (!vehicleId) {
-            throw new Error('Vehicle ID is required.');
-        }
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
 
         const { data, error } = await supabase.rpc('unpublish_vehicle', {
             p_vehicle_id: vehicleId
@@ -247,9 +280,7 @@ export const vehicleService = {
     },
 
     async reserveVehicle(vehicleId) {
-        if (!vehicleId) {
-            throw new Error('Vehicle ID is required.');
-        }
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
 
         const { data, error } = await supabase.rpc('reserve_vehicle', {
             p_vehicle_id: vehicleId
@@ -260,9 +291,7 @@ export const vehicleService = {
     },
 
     async markAvailable(vehicleId) {
-        if (!vehicleId) {
-            throw new Error('Vehicle ID is required.');
-        }
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
 
         const { data, error } = await supabase.rpc('mark_vehicle_available', {
             p_vehicle_id: vehicleId
@@ -273,9 +302,7 @@ export const vehicleService = {
     },
 
     async markSold(vehicleId) {
-        if (!vehicleId) {
-            throw new Error('Vehicle ID is required.');
-        }
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
 
         const { data, error } = await supabase.rpc('mark_vehicle_sold', {
             p_vehicle_id: vehicleId
@@ -286,9 +313,7 @@ export const vehicleService = {
     },
 
     async archiveVehicle(vehicleId) {
-        if (!vehicleId) {
-            throw new Error('Vehicle ID is required.');
-        }
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
 
         const { data, error } = await supabase.rpc('archive_vehicle', {
             p_vehicle_id: vehicleId
@@ -365,9 +390,6 @@ export const vehicleService = {
         return this.uploadVehiclePhoto(vehicleId, file, options);
     },
 
-    /**
-     * Fetches photos for a vehicle, ordered by primary first then sort order.
-     */
     async getVehiclePhotos(vehicleId) {
         if (!vehicleId) throw new Error('Vehicle ID is required.');
         const { data, error } = await supabase
@@ -381,9 +403,6 @@ export const vehicleService = {
         return data || [];
     },
 
-    /**
-     * Sets a specific photo as primary for a vehicle safely without PGRST116 coercion errors.
-     */
     async setPrimaryPhoto(vehicleId, photoId) {
         if (!vehicleId || !photoId) {
             throw new Error('Vehicle ID and Photo ID are required.');
@@ -416,9 +435,6 @@ export const vehicleService = {
         return data[0];
     },
 
-    /**
-     * Deletes a vehicle photo from storage and database, promoting another photo if primary was deleted.
-     */
     async deleteVehiclePhoto(photoId) {
         if (!photoId) throw new Error('Photo ID is required.');
 
@@ -465,15 +481,8 @@ export const vehicleService = {
         return true;
     },
 
-    /**
-     * Uploads an inspection PDF report (scanner or main report) to storage 
-     * and updates the vehicle inspection record securely.
-     */
     async uploadInspectionReportPdf(vehicleId, file, reportType = 'scanner') {
-        if (!vehicleId) {
-            throw new Error('Vehicle ID is required.');
-        }
-
+        if (!vehicleId) throw new Error('Vehicle ID is required.');
         if (!file || !(file instanceof File)) {
             throw new Error('A valid PDF file is required.');
         }
@@ -577,13 +586,8 @@ export const vehicleService = {
 
         const { data: vehicles, error: vehicleError } = await query.order('created_at', { ascending: false });
 
-        if (vehicleError) {
-            throw new Error(vehicleError.message);
-        }
-
-        if (!vehicles || vehicles.length === 0) {
-            return [];
-        }
+        if (vehicleError) throw new Error(vehicleError.message);
+        if (!vehicles || vehicles.length === 0) return [];
 
         const vehicleIds = vehicles.map(vehicle => vehicle.id);
 
@@ -602,16 +606,12 @@ export const vehicleService = {
             .in('vehicle_id', vehicleIds)
             .order('sort_order', { ascending: true });
 
-        if (photoError) {
-            throw new Error(photoError.message);
-        }
+        if (photoError) throw new Error(photoError.message);
 
         const photosByVehicle = new Map();
 
         for (const photo of photos || []) {
-            if (!photo.vehicle_id || !photo.public_url) {
-                continue;
-            }
+            if (!photo.vehicle_id || !photo.public_url) continue;
 
             if (!photosByVehicle.has(photo.vehicle_id)) {
                 photosByVehicle.set(photo.vehicle_id, []);
@@ -624,12 +624,8 @@ export const vehicleService = {
             const vehiclePhotos = photosByVehicle.get(vehicle.id) || [];
 
             const primaryPhoto =
-                vehiclePhotos.find(
-                    photo => photo.is_primary === true && photo.public_url
-                ) ||
-                vehiclePhotos.find(
-                    photo => photo.public_url
-                ) ||
+                vehiclePhotos.find(photo => photo.is_primary === true && photo.public_url) ||
+                vehiclePhotos.find(photo => photo.public_url) ||
                 null;
 
             return {
@@ -641,12 +637,7 @@ export const vehicleService = {
         });
     },
 
-    /**
-     * ==========================================
-     * PUBLIC DATA ADAPTER (vehicle-details.html)
-     * ==========================================
-     */
-   async getPublicVehicleDetails(vehicleId) {
+    async getPublicVehicleDetails(vehicleId) {
         if (!vehicleId) throw new Error('Vehicle ID is required.');
 
         const { data: vehicle, error: vehicleError } = await supabase
@@ -792,13 +783,9 @@ export const vehicleService = {
                     };
                 });
 
-                const mappedItems = (inspection.inspection_items || []).map(item => ({
-                    ...item
-                }));
-
                 const normalizedInspection = {
                     ...inspection,
-                    inspection_items: mappedItems,
+                    inspection_items: inspection.inspection_items || [],
                     findings: mappedFindings
                 };
 
