@@ -888,7 +888,16 @@
                     <td><div class="action-cell">
                         <button type="button" class="action-btn btn-edit" onclick="editVehicle('${v.id}')">Edit</button>
                         ${v.verification_status !== 'VERIFIED' ? `<button type="button" class="action-btn btn-verify" onclick="verifyVehicleAction('${v.id}')">Verify</button>` : ''}
-                        ${(v.publication_status !== 'PUBLISHED' && !v.is_published && v.inspection_id) ? `<a href="inspection.html?inspectionId=${v.inspection_id}" class="action-btn btn-publish" target="_blank">Publish</a>` : ''}
+                        
+                        <!-- Direct Publication Action for completed verified vehicles -->
+                        ${(v.verification_status === 'VERIFIED' && (!v.publication_status || v.publication_status !== 'PUBLISHED') && !v.is_published && v.inspection_id && v.inspection_status === 'COMPLETED') ? 
+                            `<button type="button" class="action-btn btn-publish" onclick="handleDashboardPublish('${v.id}', '${v.inspection_id}')">Publish</button>` : 
+                            (v.inspection_id ? `<a href="inspection.html?inspectionId=${v.inspection_id}" class="action-btn btn-inspect" target="_blank">Review</a>` : '')}
+
+                        <!-- Reselling / Return to Available Action for SOLD vehicles -->
+                        ${v.sales_status === 'SOLD' ? 
+                            `<button type="button" class="action-btn btn-reserve" onclick="handleMarkAvailable('${v.id}')">Make Available</button>` : ''}
+
                         <button type="button" class="action-btn btn-delete" onclick="deleteVehicleAction('${v.id}')">Delete</button>
                     </div></td>
                 `;
@@ -898,6 +907,32 @@
             tbody.innerHTML = `<tr><td colspan="8" style="color:red;text-align:center;">Failed to load inventory: ${escapeHtml(error.message)}</td></tr>`;
         }
     }
+
+    // Direct dashboard publication handler using vehicleService
+    window.handleDashboardPublish = async function(vehicleId, inspectionId) {
+        if (!confirm('Publish this verified vehicle to the public Dreamland Verified Cars portal?')) return;
+
+        try {
+            await vehicleService.publishVerifiedVehicle(vehicleId, inspectionId);
+            alert('Vehicle published successfully! It is now live on the public portal.');
+            await loadInventory();
+        } catch (err) {
+            alert('Publication failed: ' + err.message);
+        }
+    };
+
+    // Return sold vehicle to AVAILABLE status via markAvailable() without modifying inspections
+    window.handleMarkAvailable = async function(vehicleId) {
+        if (!confirm('Return this sold vehicle to AVAILABLE inventory status? Inspection records will be preserved.')) return;
+
+        try {
+            await vehicleService.markAvailable(vehicleId);
+            alert('Vehicle status updated to AVAILABLE.');
+            await loadInventory();
+        } catch (err) {
+            alert('Failed to update vehicle status: ' + err.message);
+        }
+    };
 
     async function handleFormSubmit(e) {
         e.preventDefault();
@@ -940,19 +975,16 @@
                 targetVehicleId = newVeh.id;
             }
 
-            // Upload photo if selected
             if (window.vehiclePhotoPicker && window.vehiclePhotoPicker.hasSelectedFile()) {
                 const photoFile = window.vehiclePhotoPicker.getSelectedFile();
                 await vehicleService.uploadVehiclePhoto(targetVehicleId, photoFile, { is_primary: true });
             }
 
-            // Upload Scanner PDF if selected
             const scannerFile = document.getElementById('adminScannerPdfInput').files[0];
             if (scannerFile) {
                 await vehicleService.uploadInspectionReportPdf(targetVehicleId, scannerFile, 'scanner');
             }
 
-            // Upload Main PDF if selected
             const mainFile = document.getElementById('adminMainPdfInput').files[0];
             if (mainFile) {
                 await vehicleService.uploadInspectionReportPdf(targetVehicleId, mainFile, 'report');
